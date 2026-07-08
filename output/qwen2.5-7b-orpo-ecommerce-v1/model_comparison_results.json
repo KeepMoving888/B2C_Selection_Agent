@@ -1,0 +1,15 @@
+{
+  "test_samples": 341,
+  "base": {
+    "accuracy": 1.0,
+    "avg_margin": 0.9540449069741884
+  },
+  "merged": {
+    "accuracy": 1.0,
+    "avg_margin": 2.08857127062736
+  },
+  "quantized": {
+    "accuracy": 1.0,
+    "avg_margin": 1.9731102954607205
+  }
+}

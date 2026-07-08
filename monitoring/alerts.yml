@@ -1,0 +1,48 @@
+# ============================================================
+# monitoring/alerts.yml — Prometheus 告警规则
+# ============================================================
+
+groups:
+  - name: agent_alerts
+    rules:
+      - alert: AgentSuccessRateLow
+        expr: agent_task_success_rate < 0.85
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent 成功率低于 85%"
+          description: "当前成功率 {{ $value | humanizePercentage }}，请检查错误日志"
+
+      - alert: AgentLatencyHigh
+        expr: histogram_quantile(0.95, rate(agent_duration_seconds_bucket[5m])) > 480
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 延迟超过 8 分钟"
+          description: "当前 P95: {{ $value }}s"
+
+      - alert: AgentLoopDetected
+        expr: rate(agent_loop_detection_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "检测到 Agent 死循环"
+
+      - alert: GPUVRAMHigh
+        expr: agent_vram_used_gb / agent_vram_total_gb > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU 显存使用率超过 90%"
+
+      - alert: APIErrorRateHigh
+        expr: rate(agent_api_errors_total[5m]) / rate(agent_api_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DeepSeek API 错误率超过 5%，正在自动降级"

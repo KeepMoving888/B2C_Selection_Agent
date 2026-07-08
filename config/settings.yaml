@@ -1,0 +1,142 @@
+# ============================================================
+# config/settings.yaml — 生产级配置中心
+#
+# 环境变量覆盖规则：CFG_<SECTION>_<KEY>（如 CFG_LLM_DEEPSEEK_API_KEY）
+# ============================================================
+
+# ── LLM 模型配置 ──────────────────────────────────────
+llm:
+  deepseek:
+    api_key: "${DEEPSEEK_API_KEY}"
+    api_base: "https://api.deepseek.com/v1"
+    flash_model: "deepseek-v4-flash"
+    pro_model: "deepseek-v4-pro"
+    max_tokens: 4096
+    temperature: 0.1
+    timeout_seconds: 60
+    max_retries: 3
+    retry_backoff: "exponential"
+
+  qwen_local:
+    model_path: "./models/qwen2.5-7b-ecommerce-awq"
+    vllm_endpoint: "http://localhost:8000/v1"
+    max_tokens: 2048
+    temperature: 0.0
+    timeout_seconds: 30
+
+  qwen_base:
+    model_path: "./models/qwen2.5-7b-base-awq"
+    vllm_endpoint: "http://localhost:8001/v1"
+
+# ── Agent 配置 ────────────────────────────────────────
+agent:
+  orchestrator:
+    model: "v4-pro"
+    max_plan_steps: 10
+    replan_max_retries: 2
+
+  market_research:
+    model: "qwen2.5-7b-orpo"
+    max_react_steps: 8
+    mcp_servers: ["amazon", "social_media"]
+
+  supply_chain:
+    model: "v4-flash"
+    max_react_steps: 6
+    mcp_servers: ["supply_chain"]
+
+  compliance:
+    model: "v4-flash"
+    max_react_steps: 4
+    mcp_servers: ["compliance"]
+
+  profit_calculator:
+    model: "qwen2.5-7b-base"
+    max_react_steps: 3
+
+  trend_forecast:
+    model: "qwen2.5-7b-orpo"
+    max_react_steps: 5
+    mcp_servers: ["social_media"]
+
+loop:
+  max_total_steps: 15
+  max_agent_steps: 8
+  token_budget: 32000
+  loop_detection_threshold: 3
+  agent_timeout_seconds: 120
+  parallel_agents: 3          # 4060Ti 16GB: 最多并行 3 个 8B 推理实例
+  quality_score_threshold: 0.7
+
+# ── MCP Server 配置 ──────────────────────────────────
+mcp:
+  amazon:
+    api_key: "${AMAZON_PA_API_KEY}"
+    api_secret: "${AMAZON_PA_API_SECRET}"
+    partner_tag: "${AMAZON_PARTNER_TAG}"
+    marketplace: "us"
+    cache_ttl_seconds: 3600
+
+  supply_chain:
+    alibaba_app_key: "${ALIBABA_APP_KEY}"
+    alibaba_app_secret: "${ALIBABA_APP_SECRET}"
+    cache_ttl_seconds: 7200
+
+  compliance:
+    fda_api_base: "https://api.fda.gov"
+    uspto_api_base: "https://api.uspto.gov"
+
+  social_media:
+    google_trends_api: "pytrends"
+    cache_ttl_seconds: 86400
+
+# ── 飞书集成 ─────────────────────────────────────────
+feishu:
+  app_id: "${FEISHU_APP_ID}"
+  app_secret: "${FEISHU_APP_SECRET}"
+  base_token: "${FEISHU_BASE_TOKEN}"
+  wiki_space_id: "${FEISHU_WIKI_SPACE_ID}"
+  approval_code: "${FEISHU_APPROVAL_CODE}"
+  report_folder_token: "${FEISHU_REPORT_FOLDER_TOKEN}"
+  notify_chat_id: "${FEISHU_NOTIFY_CHAT_ID}"
+
+# ── RAG 检索配置 ─────────────────────────────────────
+rag:
+  embedding_model: "BAAI/bge-large-zh-v1.5"
+  vector_db: "chromadb"
+  vector_db_path: "./data/vector_db"
+  chunk_size: 512
+  chunk_overlap: 64
+  top_k_retrieval: 20
+  top_k_rerank: 5
+  reranker_model: "BAAI/bge-reranker-v2-m3"
+
+# ── 监控配置 ─────────────────────────────────────────
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9091
+    metrics_path: "/metrics"
+  health_check:
+    enabled: true
+    port: 8080
+    path: "/health"
+  logging:
+    level: "INFO"  # DEBUG / INFO / WARNING / ERROR
+    format: "json"  # json / text
+    output: "stdout"  # stdout / file / both
+    file_path: "./logs/agent.log"
+    rotation: "10 MB"
+    retention: "7 days"
+
+# ── 部署配置 ─────────────────────────────────────────
+deployment:
+  environment: "development"  # development / staging / production
+  cloud_gpu:
+    provider: "auto"  # auto / aliyun_pai / aws_sagemaker / lambda_labs
+    instance_type: "A100-80GB"  # for training
+    spot_instance: true
+    max_cost_per_hour: 3.0
+  docker:
+    image_tag: "latest"
+    registry: "${DOCKER_REGISTRY}"

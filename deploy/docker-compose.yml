@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # 领域微调模型（主推理实例）
+  vllm-qwen-ecommerce:
+    image: vllm/vllm-openai:latest
+    container_name: qwen2.5-7b-ecommerce
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ../models/qwen2.5-7b-ecommerce-awq:/models/qwen2.5-7b:ro
+      - ../hf_cache:/root/.cache/huggingface
+    command: >
+      --model /models/qwen2.5-7b
+      --quantization awq
+      --max-model-len 4096
+      --gpu-memory-utilization 0.85
+      --max-num-seqs 8
+      --port 8000
+      --host 0.0.0.0
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 基础模型实例（降级备用）
+  vllm-qwen-base:
+    image: vllm/vllm-openai:latest
+    container_name: qwen2.5-7b-base
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ../models/qwen2.5-7b-base-awq:/models/qwen2.5-7b-base:ro
+      - ../hf_cache:/root/.cache/huggingface
+    command: >
+      --model /models/qwen2.5-7b-base
+      --quantization awq
+      --max-model-len 4096
+      --gpu-memory-utilization 0.85
+      --max-num-seqs 8
+      --port 8001
+      --host 0.0.0.0
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  # Prometheus 监控（可选）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agent-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped

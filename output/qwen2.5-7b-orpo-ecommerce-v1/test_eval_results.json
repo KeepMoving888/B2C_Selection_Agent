@@ -1,0 +1,9 @@
+{
+  "test_samples": 341,
+  "base_accuracy": 1.0,
+  "base_avg_margin": 0.9541158934842107,
+  "tuned_accuracy": 1.0,
+  "tuned_avg_margin": 1.7162357157975698,
+  "margin_improvement": 0.7621198223133592,
+  "accuracy_improvement": 0.0
+}

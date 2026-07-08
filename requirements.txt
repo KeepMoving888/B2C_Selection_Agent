@@ -1,0 +1,44 @@
+# ============================================================
+# requirements.txt -- project core dependencies
+#
+# Layered install:
+#   pip install -r requirements.txt              # core
+#   pip install -r requirements-finetune.txt     # fine-tune (optional)
+#   pip install -r requirements-deploy.txt       # deploy (optional)
+# ============================================================
+
+# -- core dependencies (Agent framework + MCP + Feishu) --
+# Python >= 3.10
+aiohttp>=3.9.0
+pydantic>=2.0.0
+pytrends>=4.9.2          # Google Trends real data source
+python-dotenv>=1.0.0     # auto load .env
+
+# -- fine-tune dependencies --
+# install separately: pip install -r requirements-finetune.txt --index-url https://download.pytorch.org/whl/cu126
+# torch>=2.4.0
+# transformers>=4.45.0
+# peft>=0.13.0
+# trl>=0.9.0,<0.10.0
+# bitsandbytes>=0.44.0
+# flash-attn>=2.7.0
+# datasets>=3.0.0
+# accelerate>=1.0.0
+
+# -- inference / deploy dependencies --
+# install separately: pip install -r requirements-deploy.txt --index-url https://download.pytorch.org/whl/cu126
+# vllm>=0.7.0
+# autoawq>=0.2.0
+
+# -- monitoring dependencies --
+prometheus-client>=0.20.0
+# wandb>=0.17.0
+
+# -- frontend dependencies (optional) --
+streamlit>=1.40.0
+plotly>=5.20.0
+
+# -- RAG dependencies --
+# chromadb>=0.5.0
+# sentence-transformers>=3.0.0
+# FlagEmbedding>=1.3.0

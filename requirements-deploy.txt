@@ -1,0 +1,20 @@
+# ============================================================
+# requirements-deploy.txt -- inference deployment dependencies
+#
+# Install (CUDA 12.6):
+#   pip install -r requirements-deploy.txt --index-url https://download.pytorch.org/whl/cu126
+#
+# Purpose: vLLM local inference service + AWQ quantization
+# ============================================================
+
+# High-performance inference engine
+vllm>=0.7.0
+
+# AWQ INT4 quantization
+autoawq>=0.2.0
+
+# OpenAI-compatible client (for calling vLLM)
+openai>=1.0.0
+
+# Optional: model download acceleration
+huggingface_hub>=0.25.0

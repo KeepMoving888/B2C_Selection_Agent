@@ -1,0 +1,35 @@
+# ============================================================
+# requirements-finetune.txt -- fine-tune dependencies
+#
+# Install (CUDA 12.6):
+#   pip install -r requirements-finetune.txt --index-url https://download.pytorch.org/whl/cu126
+#
+# Purpose: Qwen2.5-7B QLoRA + ORPO domain fine-tuning
+# ============================================================
+
+# Deep learning framework
+torch>=2.4.0
+torchvision
+
+# HuggingFace ecosystem
+# Qwen2.5-7B 需要 transformers >= 5.8 才能识别 qwen3_5 架构
+transformers>=5.8.0
+datasets>=3.0.0
+accelerate>=1.4.0
+peft>=0.15.0
+
+# Preference optimization training
+# trl 0.24.0 同时保留 ORPOTrainer 且兼容 transformers 5.8
+trl>=0.24.0,<0.25.0
+
+# Quantized training and inference
+bitsandbytes>=0.45.0
+
+# Attention optimization (optional, Windows install is tricky)
+# flash-attn>=2.7.0
+
+# Logging and experiment tracking (optional but recommended)
+wandb>=0.17.0
+
+# Domestic model download mirror (optional, recommended for CN networks)
+modelscope>=1.30.0
