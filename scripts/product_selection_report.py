@@ -8,7 +8,7 @@
 # 运行：
 #   python scripts/product_selection_report.py "cat toy"
 #   python scripts/product_selection_report.py "automatic cat toy ball" --limit 3
-#   python scripts/product_selection_report.py "yoga mat" --source mock
+#   python scripts/product_selection_report.py "yoga mat" --source api --limit 5
 # ============================================================
 
 import argparse
