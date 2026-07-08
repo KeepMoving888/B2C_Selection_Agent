@@ -123,14 +123,16 @@ def quantize_awq(model_path: str, output_dir: str, bits: int = 4, group_size: in
 
 def main():
     parser = argparse.ArgumentParser(description="Export fine-tuned model for vLLM")
-    parser.add_argument("--base_model", default="Qwen/Qwen2.5-7B",
-                        help="基座模型路径或 HuggingFace 仓库名")
-    parser.add_argument("--adapter", default="output/qwen2.5-7b-orpo-ecommerce/adapter",
+    parser.add_argument("--base_model", default="E:/models/qwen/Qwen2.5-7B",
+                        help="基座模型路径或 HuggingFace / ModelScope 仓库名")
+    parser.add_argument("--adapter", default="E:/models/qwen2.5-7b-orpo-adapter",
                         help="LoRA adapter 路径")
-    parser.add_argument("--output", default="models/qwen2.5-7b-ecommerce-merged",
+    parser.add_argument("--output", default="E:/models/qwen2.5-7b-ecommerce-merged",
                         help="合并后模型保存路径")
     parser.add_argument("--quantize", choices=["none", "awq"], default="none",
                         help="是否进行 AWQ 量化")
+    parser.add_argument("--quant_output", default=None,
+                        help="AWQ 量化模型保存路径（默认：{output}-awq）")
     parser.add_argument("--bits", type=int, default=4, help="AWQ 量化位数")
     parser.add_argument("--group_size", type=int, default=128, help="AWQ group size")
     parser.add_argument("--calib_data", default="./finetune/data/orpo_train.jsonl",
@@ -148,12 +150,16 @@ def main():
         merged_path = merge_adapter(args.base_model, args.adapter, args.output)
 
     if args.quantize == "awq":
-        quant_dir = f"{args.output}-awq"
+        quant_dir = args.quant_output or f"{args.output}-awq"
         quantize_awq(merged_path, quant_dir, bits=args.bits, group_size=args.group_size,
                      calib_data_path=args.calib_data, calib_max_samples=args.calib_max_samples)
+        serve_path = quant_dir
+    else:
+        serve_path = merged_path
 
     print("\n✅ 导出完成。启动 vLLM 示例：")
-    print(f"   vllm serve {args.output}-awq --quantization awq "
+    print(f"   vllm serve {serve_path} "
+          f"{'--quantization awq ' if args.quantize == 'awq' else ''}"
           f"--max-model-len 4096 --gpu-memory-utilization 0.85")
 
 

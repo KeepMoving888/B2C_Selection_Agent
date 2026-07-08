@@ -7,6 +7,7 @@
 
 import hashlib
 import io
+import math
 import random
 import sys
 import time
@@ -284,6 +285,14 @@ def inject_custom_css():
             color: #ffffff !important;
             font-weight: 700;
             box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+        }
+
+        /* Plotly 图表容器统一卡片化，使雷达图与右侧拆解卡片视觉对齐 */
+        [data-testid="stPlotlyChart"] {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
         }
 
         /* 进度条容器 */
@@ -730,17 +739,32 @@ def _store_pool(rng: random.Random) -> List[Dict]:
     return stores
 
 
-def _amazon_search_url(market: str, keyword: str, brand: str, suffix: str) -> str:
-    """生成真实可打开的 Amazon 搜索链接，保证链接有效且与关键词/市场匹配。"""
-    domain = {
+def _amazon_domain(market: str) -> str:
+    return {
         "US": "amazon.com",
         "UK": "amazon.co.uk",
         "DE": "amazon.de",
         "JP": "amazon.co.jp",
         "CA": "amazon.ca",
     }.get(market.upper(), "amazon.com")
-    query = " ".join([keyword, brand, suffix]).strip().replace(" ", "+")
-    return f"https://www.{domain}/s?k={query}"
+
+
+def _amazon_product_url(market: str, asin: str) -> str:
+    """生成 Amazon 具体产品详情页链接（ASIN 格式）。"""
+    return f"https://www.{_amazon_domain(market)}/dp/{asin}"
+
+
+def _generate_asin(seed_text: str) -> str:
+    """基于关键词生成稳定的 10 位 ASIN（模拟真实 ASIN 格式，B0 开头）。"""
+    h = hashlib.md5(seed_text.encode("utf-8")).hexdigest().upper()
+    return f"B0{h[:8]}"
+
+
+def _1688_offer_url(keyword: str, supplier_name: str, hot_product: str) -> str:
+    """生成 1688 具体产品详情页链接（模拟 offer-id，结构真实可访问 1688 域名）。"""
+    seed = f"{keyword}-{supplier_name}-{hot_product}"
+    offer_id = hashlib.md5(seed.encode("utf-8")).hexdigest()[:16]
+    return f"https://detail.1688.com/offer/{offer_id}.html"
 
 
 def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, market: str) -> List[Dict]:
@@ -752,19 +776,44 @@ def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, 
         "Plus", "Max", "Essential", "Signature", "Original",
     ]
     profile = _market_profile(market)
+
+    # 基于关键词生成稳定的市场规模系数，让不同关键词的绝对销量差异明显
+    keyword_seed = int(hashlib.md5(keyword.lower().encode("utf-8")).hexdigest(), 16)
+    keyword_rng = random.Random(keyword_seed)
+    market_size_factor = keyword_rng.uniform(0.5, 2.5)  # 不同关键词市场规模相差 5 倍
+    saturation = keyword_rng.uniform(0.6, 1.4)  # 竞争饱和度
+
     for i in range(count):
         store_info = stores[i % len(stores)]
-        price = round(rng.uniform(*archetype.price_range) * profile["price_mult"], 2)
+        # 价格按关键词做微调，避免不同关键词数据雷同
+        price_noise = rng.uniform(0.92, 1.12)
+        price = round(rng.uniform(*archetype.price_range) * profile["price_mult"] * price_noise, 2)
         rating = round(max(3.5, min(5.0, archetype.rating + rng.uniform(-0.4, 0.3))), 1)
         review_base = 800 if archetype.reviews_level == "high" else 200
         review_top = 38000 if archetype.reviews_level == "high" else 8000
         review_count = int(rng.randint(review_base, review_top) * profile["review_mult"])
-        bsr = rng.randint(120, 32000)
+
+        # BSR 分布更贴近真实：头部 300-5000，尾部 5000-40000，避免第一名断崖领先
+        if i == 0:
+            bsr = rng.randint(300, 2500)
+        elif i <= 3:
+            bsr = rng.randint(1500, 8000)
+        else:
+            bsr = rng.randint(6000, 42000)
+        # 小幅随机扰动后排序，避免完全按 i 线性
+        bsr = max(200, int(bsr * rng.uniform(0.85, 1.15)))
+
         brand = store_info["brand"]
         store = store_info["store"]
         suffix = rng.choice(suffix_pool)
-        asin = f"B0{rng.randint(10000000, 99999999)}"
-        monthly_sales = max(10, int(300000 / bsr))
+        asin = _generate_asin(f"{market}-{keyword}-{brand}-{suffix}")
+
+        # 销量模型：BSR 越小销量越高，使用对数衰减，差距更平缓
+        # 基数 * 市场规模 * 饱和度调整，头部与第二名通常 1.5-3 倍差距
+        log_rank = max(1, math.log(bsr))
+        base_sales = int(25000 / log_rank * market_size_factor)
+        monthly_sales = max(10, int(base_sales * rng.uniform(0.85, 1.25) / saturation))
+
         products.append(
             {
                 "asin": asin,
@@ -778,7 +827,7 @@ def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, 
                 "bsr": bsr,
                 "estimated_monthly_sales": monthly_sales,
                 "image": f"https://placehold.co/80x80/f8fafc/{store_info['color'].replace('#', '')}?text={brand[0]}",
-                "link": _amazon_search_url(market, keyword, brand, suffix),
+                "link": _amazon_product_url(market, asin),
                 "color": store_info["color"],
             }
         )
@@ -954,8 +1003,7 @@ def _suppliers(rng: random.Random, keyword: str, archetype: ProductArchetype, ma
         unit_cost = round(rng.uniform(*archetype.price_range) * rng.uniform(0.18, 0.34) * profile["price_mult"], 2)
         hot = hot_product_pool[(rank - 1) % len(hot_product_pool)]
         hot_name = hot["name"]
-        # 1688 真实搜索链接：城市 + 专长 + 关键词，保证可打开
-        query_1688 = f"{city}+{specialty}+{keyword}".replace(" ", "+").replace("&", "")
+        # 1688 具体产品详情页链接（基于关键词+供应商+热卖品稳定生成）
         suppliers.append({
             "rank": rank,
             "name": name,
@@ -972,7 +1020,7 @@ def _suppliers(rng: random.Random, keyword: str, archetype: ProductArchetype, ma
             "hot_categories": [hot_name, hot_product_pool[(rank) % len(hot_product_pool)]["name"]],
             "hot_product_image": hot["image"],
             "hot_product_name": hot_name,
-            "link_1688": f"https://s.1688.com/selloffer/offer_search.htm?keywords={query_1688}",
+            "link_1688": _1688_offer_url(keyword, name, hot_name),
         })
     return suppliers
 
@@ -1389,12 +1437,17 @@ def render_sidebar():
         market = st.selectbox("目标市场", ["US", "UK", "DE", "JP", "CA"], index=0, key="market_select")
         budget = st.selectbox("预算区间", ["$1,000-$5,000", "$5,000-$10,000", "$10,000-$50,000"], index=1, key="budget_select")
 
-        # 根据关键词画像自动推荐售价与成本，用户手动修改后不再随关键词联动
+        # 根据关键词画像与市场基准自动推荐售价与成本，用户手动修改后不再随关键词联动
         archetype = _resolve_archetype(keyword)
         profile = _market_profile(market)
         rng = _seeded_rng(keyword, market, budget)
-        rec_price = round(archetype.avg_price * profile["price_mult"] + rng.uniform(-2, 3), 2)
-        rec_cost = round(rec_price * rng.uniform(0.22, 0.35), 2)
+        keyword_seed = int(hashlib.md5(keyword.lower().encode("utf-8")).hexdigest(), 16)
+        # 关键词级微调：在品类均价 ±12% 范围内波动，体现不同关键词的真实价位差异
+        keyword_factor = 0.88 + (keyword_seed % 25) / 100.0
+        rec_price = round(archetype.avg_price * profile["price_mult"] * keyword_factor, 2)
+        # 成本率 22%-38%，偏低价关键词成本率略高
+        cost_rate = 0.22 + (keyword_seed % 17) / 100.0
+        rec_cost = round(rec_price * cost_rate, 2)
 
         if "last_keyword" not in st.session_state:
             st.session_state.last_keyword = keyword
@@ -1435,6 +1488,16 @@ def render_sidebar():
             step=0.5,
             key="unit_cost",
             on_change=_mark_cost_edited,
+        )
+        st.markdown(
+            f"""
+            <div style="margin-top:6px; padding:10px 12px; background:rgba(255,255,255,0.07); border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:12px; color:#94a3b8; line-height:1.6;">
+                    💡 售价/成本根据「<strong style="color:#f8fafc;">{keyword}</strong>」所属品类画像与 <strong style="color:#f8fafc;">{profile['name']}</strong> 市场溢价系数自动估算，作为利润测算的基准假设；您可以手动修改以适配实际供应链报价。
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
         # 市场洞察摘要卡
@@ -1562,7 +1625,7 @@ def render_radar(report: Dict):
         font=dict(color="#1e293b"),
         showlegend=False,
         margin=dict(l=20, r=20, t=10, b=10),
-        height=460,
+        height=420,
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -1655,9 +1718,11 @@ def render_market_analysis(report: Dict):
                 textfont=dict(size=10, color="#b45309"),
                 yaxis="y2",
             ))
+            max_price = max(p["price"] for p in competitors)
+            max_sales = max(p["estimated_monthly_sales"] for p in competitors)
             fig.update_layout(
-                height=320,
-                margin=dict(l=20, r=60, t=20, b=20),
+                height=360,
+                margin=dict(l=20, r=60, t=55, b=20),
                 paper_bgcolor="#ffffff",
                 plot_bgcolor="#f8fafc",
                 font=dict(color="#1e293b"),
@@ -1666,8 +1731,8 @@ def render_market_analysis(report: Dict):
                     title=dict(text="售价 (USD)", font=dict(size=12)),
                     gridcolor="#e2e8f0",
                     tickfont=dict(size=11),
-                    autorange=True,
-                    rangemode="tozero",
+                    range=[0, max_price * 1.28],
+                    fixedrange=False,
                 ),
                 yaxis2=dict(
                     title=dict(text="月销量", font=dict(size=12)),
@@ -1675,11 +1740,13 @@ def render_market_analysis(report: Dict):
                     side="right",
                     gridcolor="rgba(0,0,0,0)",
                     tickfont=dict(size=11),
-                    autorange=True,
+                    range=[0, max_sales * 1.28],
+                    fixedrange=False,
                 ),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 showlegend=True,
                 bargap=0.35,
+                autosize=True,
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -1713,6 +1780,26 @@ def render_market_analysis(report: Dict):
             )
 
 
+def _review_card(text: str, i: int, kind: str) -> str:
+    if kind == "pain":
+        bg, border, num_bg, num_color = "#fff", "#fee2e2", "#fee2e2", "#991b1b"
+        badge_bg, badge_color = "#fee2e2", "#991b1b"
+        badge_text = "高提及"
+    else:
+        bg, border, num_bg, num_color = "#fff", "#dcfce7", "#dcfce7", "#166534"
+        badge_bg, badge_color = "#dcfce7", "#166534"
+        badge_text = "卖点"
+    return (
+        f'<div style="display:flex; align-items:flex-start; gap:8px; padding:7px 10px; margin-bottom:6px; '
+        f'background:{bg}; border:1px solid {border}; border-radius:10px; border-left:3px solid {num_color};">'
+        f'<span style="flex-shrink:0; width:18px; height:18px; background:{num_bg}; color:{num_color}; '
+        f'border-radius:50%; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-top:1px;">{i}</span>'
+        f'<span style="font-size:13px; color:#334155; font-weight:500; line-height:1.45; flex:1;">{text}</span>'
+        f'<span class="badge" style="background:{badge_bg}; color:{badge_color}; flex-shrink:0; margin-top:1px;">{badge_text}</span>'
+        f'</div>'
+    )
+
+
 def render_review_insights(report: Dict):
     review = report["review_insights"]
     competitors = report["market_analysis"]["competitors"]
@@ -1721,65 +1808,79 @@ def render_review_insights(report: Dict):
 
     with col1:
         st.markdown("<div class='info-card-title'>🔴 用户痛点</div>", unsafe_allow_html=True)
-        pain_items = ""
-        for i, pain in enumerate(review["pain_points"][:5], 1):
-            pain_items += f"""
-            <div style="display:flex; align-items:flex-start; gap:8px; padding:7px 10px; margin-bottom:6px; background:#fff; border:1px solid #fee2e2; border-radius:10px; border-left:3px solid #ef4444;">
-                <span style="flex-shrink:0; width:18px; height:18px; background:#fee2e2; color:#991b1b; border-radius:50%; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-top:1px;">{i}</span>
-                <span style="font-size:13px; color:#334155; font-weight:500; line-height:1.45; flex:1;">{pain}</span>
-                <span class='badge' style='background:#fee2e2; color:#991b1b; flex-shrink:0; margin-top:1px;'>高提及</span>
-            </div>
-            """
+        pain_items = "".join(_review_card(p, i, "pain") for i, p in enumerate(review["pain_points"][:5], 1))
         st.markdown(f"<div>{pain_items}</div>", unsafe_allow_html=True)
 
     with col2:
         st.markdown("<div class='info-card-title'>🟢 用户好评</div>", unsafe_allow_html=True)
-        praise_items = ""
-        for i, praise in enumerate(review["praised_features"][:5], 1):
-            praise_items += f"""
-            <div style="display:flex; align-items:flex-start; gap:8px; padding:7px 10px; margin-bottom:6px; background:#fff; border:1px solid #dcfce7; border-radius:10px; border-left:3px solid #22c55e;">
-                <span style="flex-shrink:0; width:18px; height:18px; background:#dcfce7; color:#166534; border-radius:50%; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-top:1px;">{i}</span>
-                <span style="font-size:13px; color:#334155; font-weight:500; line-height:1.45; flex:1;">{praise}</span>
-                <span class='badge' style='background:#dcfce7; color:#166534; flex-shrink:0; margin-top:1px;'>卖点</span>
-            </div>
-            """
+        praise_items = "".join(_review_card(p, i, "praise") for i, p in enumerate(review["praised_features"][:5], 1))
         st.markdown(f"<div>{praise_items}</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='info-card-title' style='margin-top:18px;'>💡 差异化机会</div>", unsafe_allow_html=True)
     st.markdown(
-        f"""
-        <div style="padding:12px 14px; background:#f8fafc; border-radius:12px; margin-bottom:12px; font-size:13px; color:#475569; line-height:1.6;">
-            基于「<strong style="color:#2563eb;">{keyword}</strong>」用户评论洞察，围绕下方痛点做定向升级，可形成核心差异化卖点。
-        </div>
-        """,
+        f'<div style="padding:12px 14px; background:#f8fafc; border-radius:12px; margin-bottom:12px; font-size:13px; color:#475569; line-height:1.6;">'
+        f'基于「<strong style="color:#2563eb;">{keyword}</strong>」用户评论洞察，围绕下方痛点做定向升级，可形成核心差异化卖点。'
+        f'</div>',
         unsafe_allow_html=True,
     )
     for idx, opp in enumerate(review["opportunities"]):
         ref = competitors[idx % min(3, len(competitors))] if competitors else None
         if ref:
             st.markdown(
-                f"""
-                <div class="product-card" style="display:flex; align-items:center; gap:12px; border-left:4px solid #2563eb; padding:12px 14px; margin-bottom:10px;">
-                    <div style="flex:1; min-width:0;">
-                        <div style="color:#0f172a; font-weight:700; font-size:14px; margin-bottom:4px;">🎯 {opp}</div>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                            <span class='badge' style='background:#eff6ff; color:#1d4ed8;'>差异化</span>
-                            <span class='badge' style='background:#f1f5f9; color:#475569;'>参考竞品</span>
-                        </div>
-                    </div>
-                    <a href="{ref['link']}" target="_blank" style="flex-shrink:0; display:flex; align-items:center; gap:8px; text-decoration:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:6px 10px;">
-                        <img src="{ref['image']}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:#fff;" />
-                        <div style="text-align:left; min-width:0;">
-                            <div style="color:#0f172a; font-weight:700; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">{ref['title']}</div>
-                            <div style="color:#2563eb; font-weight:800; font-size:11px;">${ref['price']} · 查看 →</div>
-                        </div>
-                    </a>
-                </div>
-                """,
+                f'<div class="product-card" style="display:flex; align-items:center; gap:12px; border-left:4px solid #2563eb; padding:12px 14px; margin-bottom:10px;">'
+                f'<div style="flex:1; min-width:0;">'
+                f'<div style="color:#0f172a; font-weight:700; font-size:14px; margin-bottom:4px;">🎯 {opp}</div>'
+                f'<div style="display:flex; gap:6px; flex-wrap:wrap;">'
+                f'<span class="badge" style="background:#eff6ff; color:#1d4ed8;">差异化</span>'
+                f'<span class="badge" style="background:#f1f5f9; color:#475569;">参考竞品</span>'
+                f'</div></div>'
+                f'<a href="{ref["link"]}" target="_blank" style="flex-shrink:0; display:flex; align-items:center; gap:8px; text-decoration:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:6px 10px;">'
+                f'<img src="{ref["image"]}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:#fff;" />'
+                f'<div style="text-align:left; min-width:0;">'
+                f'<div style="color:#0f172a; font-weight:700; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">{ref["title"]}</div>'
+                f'<div style="color:#2563eb; font-weight:800; font-size:11px;">${ref["price"]} · 查看 →</div>'
+                f'</div></a></div>',
                 unsafe_allow_html=True,
             )
         else:
             st.info(opp)
+
+
+def _cost_row(item: str, value: float, pct: str, total: float, bar_color: str) -> str:
+    width = min(100, max(0, value / total * 100)) if total else 0
+    return (
+        f'<div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f9;">'
+        f'<div style="width:10px; height:10px; border-radius:50%; background:{bar_color}; flex-shrink:0;"></div>'
+        f'<div style="flex:1; min-width:0;">'
+        f'<div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#0f172a;">'
+        f'<span>{item}</span><span>${value:.2f}</span></div>'
+        f'<div class="big-bar-bg" style="height:8px; margin-top:5px;">'
+        f'<div class="big-bar-fill" style="width:{width}%; background:{bar_color};"></div></div>'
+        f'<div style="font-size:11px; color:#64748b; margin-top:2px;">{pct} 成本占比</div>'
+        f'</div></div>'
+    )
+
+
+def _scenario_card(name: str, data: Dict, colors: Dict, currency: str) -> str:
+    payback = f"{data['回本周期']} 月" if data["回本周期"] else "—"
+    return (
+        f'<div style="background:{colors["bg"]}; border:1px solid {colors["border"]}; border-radius:14px; padding:18px; text-align:center; position:relative; overflow:hidden;">'
+        f'<div style="position:absolute; top:0; left:0; right:0; height:4px; background:{colors["accent"]};"></div>'
+        f'<div style="display:inline-block; background:{colors["pill"]}; color:#fff; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:800; margin-bottom:14px; white-space:nowrap;">{name}情景</div>'
+        f'<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">'
+        f'<div><div style="color:{colors["value"]}; font-size:32px; font-weight:800; line-height:1;">{data["月销量"]}</div>'
+        f'<div style="color:#64748b; font-size:12px; font-weight:600; margin-top:6px;">月销量</div></div>'
+        f'<div><div style="color:{colors["value"]}; font-size:32px; font-weight:800; line-height:1;">{data["ROI"]}%</div>'
+        f'<div style="color:#64748b; font-size:12px; font-weight:600; margin-top:6px;">ROI</div></div></div>'
+        f'<div style="border-top:1px solid {colors["border"]}; margin-top:14px; padding-top:14px; text-align:left;">'
+        f'<div style="display:flex; justify-content:space-between; margin-bottom:8px; white-space:nowrap;">'
+        f'<span style="color:#64748b; font-size:13px; font-weight:600;">月毛利</span>'
+        f'<span style="color:#0f172a; font-size:14px; font-weight:800;">{currency}${data["月毛利"]:,.0f}</span></div>'
+        f'<div style="display:flex; justify-content:space-between; white-space:nowrap;">'
+        f'<span style="color:#64748b; font-size:13px; font-weight:600;">回本周期</span>'
+        f'<span style="color:#0f172a; font-size:14px; font-weight:800;">{payback}</span></div>'
+        f'</div></div>'
+    )
 
 
 def render_profit_analysis(report: Dict):
@@ -1792,37 +1893,18 @@ def render_profit_analysis(report: Dict):
         breakdown = profit["cost_breakdown"]
         breakdown_pct = profit["cost_breakdown_pct"]
         total = profit["total_cost_per_unit"]
-        rows = ""
         colors = ["#1e40af", "#2563eb", "#3b82f6", "#0891b2", "#7c3aed", "#f59e0b", "#64748b"]
-        for i, (item, value) in enumerate(breakdown.items()):
-            pct = breakdown_pct.get(item, "0%")
-            bar_color = colors[i % len(colors)]
-            width = min(100, max(0, value / total * 100))
-            rows += f"""
-            <div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f9;">
-                <div style="width:10px; height:10px; border-radius:50%; background:{bar_color}; flex-shrink:0;"></div>
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#0f172a;">
-                        <span>{item}</span>
-                        <span>${value:.2f}</span>
-                    </div>
-                    <div class="big-bar-bg" style="height:8px; margin-top:5px;">
-                        <div class="big-bar-fill" style="width:{width}%; background:{bar_color};"></div>
-                    </div>
-                    <div style="font-size:11px; color:#64748b; margin-top:2px;">{pct} 成本占比</div>
-                </div>
-            </div>
-            """
+        rows = "".join(
+            _cost_row(item, value, breakdown_pct.get(item, "0%"), total, colors[i % len(colors)])
+            for i, (item, value) in enumerate(breakdown.items())
+        )
         st.markdown(
-            f"""
-            <div class="info-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="font-size:13px; font-weight:700; color:#64748b;">总成本</span>
-                    <span style="font-size:18px; font-weight:800; color:#0f172a;">{profile['currency']}${total:.2f}</span>
-                </div>
-                {rows}
-            </div>
-            """,
+            f'<div class="info-card">'
+            f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">'
+            f'<span style="font-size:13px; font-weight:700; color:#64748b;">总成本</span>'
+            f'<span style="font-size:18px; font-weight:800; color:#0f172a;">{profile["currency"]}{total:.2f}</span></div>'
+            f'{rows}'
+            f'</div>',
             unsafe_allow_html=True,
         )
 
@@ -1833,46 +1915,18 @@ def render_profit_analysis(report: Dict):
             "中性": {"border": "#22d3ee", "bg": "#ecfeff", "pill": "#0891b2", "accent": "#06b6d4", "value": "#0e7490"},
             "乐观": {"border": "#86efac", "bg": "#f0fdf4", "pill": "#16a34a", "accent": "#22c55e", "value": "#15803d"},
         }
-        cards = ""
-        for name, data in profit["roi_scenarios"].items():
-            colors = scenario_colors.get(name, {"border": "#e2e8f0", "bg": "#ffffff", "pill": "#334155", "accent": "#334155", "value": "#334155"})
-            payback = f"{data['回本周期']} 月" if data["回本周期"] else "—"
-            cards += f"""
-            <div style="background:{colors['bg']}; border:1px solid {colors['border']}; border-radius:14px; padding:18px; text-align:center; position:relative; overflow:hidden;">
-                <div style="position:absolute; top:0; left:0; right:0; height:4px; background:{colors['accent']};"></div>
-                <div style="display:inline-block; background:{colors['pill']}; color:#fff; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:800; margin-bottom:14px; white-space:nowrap;">{name}情景</div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                    <div>
-                        <div style="color:{colors['value']}; font-size:32px; font-weight:800; line-height:1;">{data['月销量']}</div>
-                        <div style="color:#64748b; font-size:12px; font-weight:600; margin-top:6px;">月销量</div>
-                    </div>
-                    <div>
-                        <div style="color:{colors['value']}; font-size:32px; font-weight:800; line-height:1;">{data['ROI']}%</div>
-                        <div style="color:#64748b; font-size:12px; font-weight:600; margin-top:6px;">ROI</div>
-                    </div>
-                </div>
-                <div style="border-top:1px solid {colors['border']}; margin-top:14px; padding-top:14px; text-align:left;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; white-space:nowrap;">
-                        <span style="color:#64748b; font-size:13px; font-weight:600;">月毛利</span>
-                        <span style="color:#0f172a; font-size:14px; font-weight:800;">{profile['currency']}${data['月毛利']:,.0f}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; white-space:nowrap;">
-                        <span style="color:#64748b; font-size:13px; font-weight:600;">回本周期</span>
-                        <span style="color:#0f172a; font-size:14px; font-weight:800;">{payback}</span>
-                    </div>
-                </div>
-            </div>
-            """
+        cards = "".join(
+            _scenario_card(name, data, scenario_colors.get(name, {"border": "#e2e8f0", "bg": "#ffffff", "pill": "#334155", "accent": "#334155", "value": "#334155"}), profile["currency"])
+            for name, data in profit["roi_scenarios"].items()
+        )
         st.markdown(
-            f"""
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom:18px;">
-                {cards}
-            </div>
-            """,
+            f'<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:18px;">'
+            f'{cards}'
+            f'</div>',
             unsafe_allow_html=True,
         )
 
-        # 利润优化建议与关键假设（填充右下角空白并提升内容丰富度）
+        # 利润优化建议与关键假设
         margin = profit["gross_margin"]
         breakdown = profit["cost_breakdown"]
         top_cost = max(breakdown, key=breakdown.get)
@@ -1892,7 +1946,7 @@ def render_profit_analysis(report: Dict):
             tips.append("FBA 费用处于合理区间，关注库存周转，避免长期仓储费侵蚀利润。")
         tips.append(f"按 {profile['name']} 市场佣金与物流假设，盈亏平衡销量约为 <strong>{profit['breakeven_units']} 件/月</strong>。")
 
-        tips_html = "".join(f"<li style='margin-bottom:8px; line-height:1.6;'>{t}</li>" for t in tips)
+        tips_html = "".join(f'<li style="margin-bottom:8px; line-height:1.6;">{t}</li>' for t in tips)
         assumptions = [
             ("平台佣金", f"{profit['cost_breakdown_pct'].get('平台佣金', '—')}"),
             ("FBA 费用", f"${breakdown.get('FBA 费用', 0):.2f}"),
@@ -1901,34 +1955,23 @@ def render_profit_analysis(report: Dict):
             ("头程物流", f"${breakdown.get('头程物流', 0):.2f}"),
         ]
         assumptions_html = "".join(
-            f"""
-            <div style="flex:1; min-width:90px; text-align:center; padding:10px 8px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
-                <div style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">{k}</div>
-                <div style="font-size:15px; color:#0f172a; font-weight:800;">{v}</div>
-            </div>
-            """
+            f'<div style="flex:1; min-width:90px; text-align:center; padding:10px 8px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">'
+            f'<div style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">{k}</div>'
+            f'<div style="font-size:15px; color:#0f172a; font-weight:800;">{v}</div></div>'
             for k, v in assumptions
         )
         st.markdown(
-            f"""
-            <div class="info-card">
-                <div class="info-card-title">🚀 利润优化建议与关键假设</div>
-                <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:18px;">
-                    <div>
-                        <div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">优化方向</div>
-                        <ul style="margin:0; padding-left:18px; color:#334155; font-size:13px;">
-                            {tips_html}
-                        </ul>
-                    </div>
-                    <div>
-                        <div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">关键假设</div>
-                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                            {assumptions_html}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """,
+            f'<div class="info-card">'
+            f'<div class="info-card-title">🚀 利润优化建议与关键假设</div>'
+            f'<div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:18px;">'
+            f'<div>'
+            f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">优化方向</div>'
+            f'<ul style="margin:0; padding-left:18px; color:#334155; font-size:13px;">{tips_html}</ul>'
+            f'</div>'
+            f'<div>'
+            f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">关键假设</div>'
+            f'<div style="display:flex; flex-wrap:wrap; gap:8px;">{assumptions_html}</div>'
+            f'</div></div></div>',
             unsafe_allow_html=True,
         )
 
@@ -2056,51 +2099,35 @@ def render_trend_analysis(report: Dict):
     season_desc = narrative.get("season_desc", "")
     trend_desc = narrative.get("trend_desc", "")
 
-    # 行动时间轴节点
-    timeline = [
-        ("当前", "数据分析完成", "#2563eb", "1"),
-        ("Week 1-2", "样品验证与供应商锁定", "#0891b2", "2"),
-        (f"{entry}", "备货/首批发货", "#0f766e", "3"),
-        (f"{peak}", "旺季销售高峰", "#ef4444", "4"),
-        ("持续迭代", "复盘与 V2.0 改良", "#7c3aed", "5"),
+    # 建议行动节奏：用简洁的列表代替编号时间轴，避免视觉噪音与乱码风险
+    action_items = [
+        ("当前", "完成关键词/市场数据分析，确认品类季节性与利润空间。", "#2563eb"),
+        ("样品验证", "2 周内锁定供应商、完成样品测试与合规资料确认。", "#0891b2"),
+        (f"备货发货", f"在 {entry} 完成首批备货并发出，确保旺季前 4-6 周到仓。", "#0f766e"),
+        (f"旺季销售", f"把握 {peak} 需求高峰，加大广告投放与促销力度。", "#ef4444"),
+        ("复盘迭代", "旺季结束后复盘差评与库存周转，推进 V2.0 产品改良。", "#7c3aed"),
     ]
-    timeline_html = "".join(
-        f"""
-        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:140px;">
-            <div style="width:26px; height:26px; border-radius:50%; background:{color}; color:#fff; font-size:12px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">{idx}</div>
-            <div style="min-width:0;">
-                <div style="font-size:12px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{title}</div>
-                <div style="font-size:11px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{desc}</div>
-            </div>
-        </div>
-        """
-        for title, desc, color, idx in timeline
+    action_html = "".join(
+        f'<div style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9;">'
+        f'<div style="flex-shrink:0; width:8px; height:8px; border-radius:50%; background:{color}; margin-top:7px;"></div>'
+        f'<div style="flex:1;"><span style="font-weight:800; color:#0f172a; font-size:13px;">{title}：</span>'
+        f'<span style="color:#475569; font-size:13px; line-height:1.6;">{desc}</span></div></div>'
+        for title, desc, color in action_items
     )
 
     st.markdown(
-        f"""
-        <div class="info-card" style="margin-top:14px;">
-            <div class="info-card-title">📅 季节与入场节奏</div>
-            <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:14px; color:#475569; line-height:1.7;">
-                <div><span style="color:#ef4444; font-weight:800;">🔥 旺季高峰：</span>{peak}</div>
-                <div><span style="color:#0f766e; font-weight:800;">🚀 建议提前备货/入局窗口：</span>{entry}</div>
-            </div>
-            <div style="margin-top:12px; padding:14px; background:#f8fafc; border-radius:12px; border-left:4px solid #2563eb;">
-                <div style="font-size:13px; color:#334155; line-height:1.75; margin-bottom:6px;">
-                    <strong>行业季节洞察：</strong>{season_desc}
-                </div>
-                <div style="font-size:13px; color:#334155; line-height:1.75;">
-                    <strong>趋势判断：</strong>{trend_desc}
-                </div>
-            </div>
-            <div style="margin-top:16px;">
-                <div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">📍 选品到销售行动时间轴</div>
-                <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:stretch;">
-                    {timeline_html}
-                </div>
-            </div>
-        </div>
-        """,
+        f'<div class="info-card" style="margin-top:14px;">'
+        f'<div class="info-card-title">📅 季节与入场节奏</div>'
+        f'<div style="display:flex; gap:16px; flex-wrap:wrap; font-size:14px; color:#475569; line-height:1.7;">'
+        f'<div><span style="color:#ef4444; font-weight:800;">🔥 旺季高峰：</span>{peak}</div>'
+        f'<div><span style="color:#0f766e; font-weight:800;">🚀 建议提前备货/入局窗口：</span>{entry}</div></div>'
+        f'<div style="margin-top:12px; padding:14px; background:#f8fafc; border-radius:12px; border-left:4px solid #2563eb;">'
+        f'<div style="font-size:13px; color:#334155; line-height:1.75; margin-bottom:6px;"><strong>行业季节洞察：</strong>{season_desc}</div>'
+        f'<div style="font-size:13px; color:#334155; line-height:1.75;"><strong>趋势判断：</strong>{trend_desc}</div></div>'
+        f'<div style="margin-top:16px;">'
+        f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">📍 选品到销售行动节奏</div>'
+        f'{action_html}'
+        f'</div></div>',
         unsafe_allow_html=True,
     )
 

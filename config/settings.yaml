@@ -18,13 +18,17 @@ llm:
     retry_backoff: "exponential"
 
   qwen_local:
-    model_path: "E:/models/qwen2.5-7b-ecommerce-merged"
+    # 本地优先模型。
+    # 当前 4060Ti 16GB 显存紧张，临时使用 AWQ INT4（端口 8000）。
+    # 若 GPU 空闲显存 >= 14GB，可改回 E:/models/qwen2.5-7b-ecommerce-merged 并启动 8000。
+    model_path: "E:/models/qwen2.5-7b-ecommerce-awq-v3"
     vllm_endpoint: "http://localhost:8000/v1"
     max_tokens: 2048
     temperature: 0.0
     timeout_seconds: 30
 
   qwen_local_awq:
+    # AWQ INT4 显存受限 fallback（可单独启动在 8001）
     model_path: "E:/models/qwen2.5-7b-ecommerce-awq-v3"
     vllm_endpoint: "http://localhost:8001/v1"
     max_tokens: 2048
@@ -32,8 +36,9 @@ llm:
     timeout_seconds: 30
 
   qwen_base:
+    # 降级保底，与 qwen_local 共用当前已启动的 AWQ 服务
     model_path: "E:/models/qwen2.5-7b-ecommerce-awq-v3"
-    vllm_endpoint: "http://localhost:8001/v1"
+    vllm_endpoint: "http://localhost:8000/v1"
 
 # ── Agent 配置 ────────────────────────────────────────
 agent:
