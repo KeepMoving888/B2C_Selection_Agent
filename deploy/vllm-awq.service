@@ -1,0 +1,33 @@
+[Unit]
+Description=vLLM AWQ Inference Service
+After=network.target
+
+[Service]
+Type=simple
+User=b2cuser
+Group=b2cuser
+WorkingDirectory=/home/b2cuser
+Environment="PATH=/home/b2cuser/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="http_proxy="
+Environment="https_proxy="
+Environment="HTTP_PROXY="
+Environment="HTTPS_PROXY="
+Environment="no_proxy=localhost,127.0.0.1"
+ExecStart=/home/b2cuser/venv/bin/python -m vllm.entrypoints.openai.api_server \
+    --model /home/b2cuser/models/qwen2.5-7b-ecommerce-awq-v3 \
+    --quantization awq_marlin \
+    --max-model-len 4096 \
+    --gpu-memory-utilization 0.85 \
+    --max-num-seqs 8 \
+    --port 8002 \
+    --host 0.0.0.0
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

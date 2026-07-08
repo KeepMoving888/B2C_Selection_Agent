@@ -52,6 +52,7 @@ def send_request(prompt: str, max_tokens: int = 256) -> dict:
                 "top_p": 0.9,
             },
             timeout=300,
+            proxies={"http": None, "https": None},
         )
         latency = time.time() - start
         data = resp.json()
@@ -78,7 +79,7 @@ def wait_for_server(timeout: int = 60):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            r = requests.get(f"{BASE_URL}/v1/models", timeout=5)
+            r = requests.get(f"{BASE_URL}/v1/models", timeout=5, proxies={"http": None, "https": None})
             if r.status_code == 200:
                 print("[Bench] Server ready.", flush=True)
                 return

@@ -1,0 +1,30 @@
+[Unit]
+Description=B2C Product Selection API Gateway
+After=network.target vllm-awq.service
+
+[Service]
+Type=simple
+User=b2cuser
+Group=b2cuser
+WorkingDirectory=/home/b2cuser
+Environment="PATH=/home/b2cuser/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+Environment="VLLM_AWQ_URL=http://127.0.0.1:8002"
+Environment="VLLM_FP16_URL=http://127.0.0.1:8003"
+Environment="GATEWAY_PORT=8080"
+Environment="http_proxy="
+Environment="https_proxy="
+Environment="HTTP_PROXY="
+Environment="HTTPS_PROXY="
+Environment="no_proxy=localhost,127.0.0.1"
+# 如需接入 DeepSeek，取消下行注释并填入真实 key
+# Environment="DEEPSEEK_API_KEY=your_key_here"
+ExecStart=/home/b2cuser/venv/bin/python /mnt/c/Users/Windows/AppData/Roaming/reasonix/global-workspace/cross-border-agent/deploy/api_gateway.py
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

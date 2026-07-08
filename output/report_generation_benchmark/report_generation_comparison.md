@@ -2,7 +2,7 @@
 
 ## 1. 测试说明
 
-- **AWQ INT4**：在 WSL2 + vLLM 0.7.3 上实测，使用 5 个真实选品 prompts，每个 prompt 重复 3 次，`max_tokens=1024`。
+- **AWQ INT4**：在 WSL2 + vLLM 0.7.3 上实测，使用 5 个选品 prompts，每个 prompt 重复 3 次，`max_tokens=1024`。
 - **Merged FP16**：当前 E:\models\qwen2.5-7b-ecommerce-merged 的 safetensors 文件不完整，无法直接加载。FP16 数据为基于历史 `awq_metrics.json` 中简单推理延迟比例的估算值：
   - Merged 简单推理延迟: 7.874s
   - AWQ 简单推理延迟: 3.633s

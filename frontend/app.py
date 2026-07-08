@@ -11,11 +11,21 @@ import math
 import random
 import sys
 import time
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import streamlit as st
+
+# 用于抓取真实 Amazon 产品 ASIN（可选依赖）
+try:
+    import requests
+    from bs4 import BeautifulSoup
+
+    SCRAPING_AVAILABLE = True
+except ImportError:
+    SCRAPING_AVAILABLE = False
 
 # 把项目根目录加入 Python 路径（后续接入真实 AgentLoop 时使用）
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -287,12 +297,12 @@ def inject_custom_css():
             box-shadow: 0 2px 8px rgba(37,99,235,0.25);
         }
 
-        /* Plotly 图表容器统一卡片化，使雷达图与右侧拆解卡片视觉对齐 */
+        /* Plotly 图表容器：保持简洁内衬，避免与外层 info-card 产生双重边框或底部重叠 */
         [data-testid="stPlotlyChart"] {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 16px;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 0;
         }
 
         /* 进度条容器 */
@@ -484,6 +494,7 @@ class ProductArchetype:
     certifications: List[str]
     supplier_city: str
     supplier_specialty: str
+    compliance_risks: List[str]
 
 
 ARCHETYPES = {
@@ -500,6 +511,11 @@ ARCHETYPES = {
         certifications=["CPSC 儿童产品证书", "ASTM F963 玩具安全标准"],
         supplier_city="义乌",
         supplier_specialty="宠物玩具",
+        compliance_risks=[
+            "小零件/绳线/羽毛存在窒息与缠绕风险，须符合 ASTM F963 机械物理性能要求",
+            "含电池款须做 GCC 通用合格证书及 UL 4200A 纽扣电池安全测试",
+            "猫薄荷填充物来源、农药残留及标签标识需符合宠物用品安全规范",
+        ],
     ),
     "dog chew toys": ProductArchetype(
         category="pet_supplies",
@@ -514,6 +530,11 @@ ARCHETYPES = {
         certifications=["FDA 食品接触材料", "CPSC 儿童产品证书"],
         supplier_city="东莞",
         supplier_specialty="宠物咬胶",
+        compliance_risks=[
+            "咬胶/食品接触材质需通过 FDA 21 CFR 177 食品级检测，避免邻苯二甲酸盐超标",
+            "产品耐咬碎片吞咽风险高，需做 CPSC 16 CFR 1501 小零件及锐利边缘测试",
+            "色素/香精添加剂需符合宠物用品化学品安全限量，防止过敏与中毒投诉",
+        ],
     ),
     "yoga mat": ProductArchetype(
         category="sports",
@@ -528,6 +549,11 @@ ARCHETYPES = {
         certifications=["CE 认证", "REACH 环保检测", "SGS 材质检测"],
         supplier_city="广州",
         supplier_specialty="运动用品",
+        compliance_risks=[
+            "TPE/PVC/NBR 材质需通过 REACH SVHC 与邻苯二甲酸盐检测，防止气味投诉与下架",
+            "防滑涂层、染料及印刷油墨需符合 OEKO-TEX 或加州 65 号提案化学物质限量",
+            "出口欧盟需 CE 标识及技术文件，德国需 EPR 包装法注册",
+        ],
     ),
     "wireless earbuds": ProductArchetype(
         category="electronics",
@@ -542,6 +568,11 @@ ARCHETYPES = {
         certifications=["FCC 认证", "CE 认证", "RoHS 环保认证"],
         supplier_city="深圳",
         supplier_specialty="蓝牙耳机",
+        compliance_risks=[
+            "无线射频模块需通过 FCC ID（美国）、CE-RED（欧盟）、TELEC（日本）认证",
+            "锂电池需符合 UN38.3、UL 1642/2054 或 IEC 62133 安全测试，防止起火召回",
+            "RoHS/REACH 重金属与有害物质限量、WEEE 注册及能效标签要求",
+        ],
     ),
     "carplay": ProductArchetype(
         category="electronics",
@@ -556,6 +587,11 @@ ARCHETYPES = {
         certifications=["FCC 认证", "CE 认证", "RoHS 环保认证"],
         supplier_city="深圳",
         supplier_specialty="车载电子",
+        compliance_risks=[
+            "CarPlay/Android Auto 无线适配涉及苹果 MFi 或谷歌 GMS 授权，未授权存在下架风险",
+            "车载电子需通过 FCC/CE-RED 射频认证、E-mark（欧洲车载）及电磁兼容 EMC 测试",
+            "高温环境下工作需做可靠性测试，防止过热、起火及车辆保险责任纠纷",
+        ],
     ),
     "portable charger": ProductArchetype(
         category="electronics",
@@ -570,6 +606,11 @@ ARCHETYPES = {
         certifications=["FCC 认证", "CE 认证", "UL 安全认证"],
         supplier_city="深圳",
         supplier_specialty="移动电源",
+        compliance_risks=[
+            "锂电池移动电源属于危险品，需 UN38.3、MSDS、UL 2056/2743 或 IEC 62133 认证",
+            "亚马逊已要求充电宝提供 UL 2056 测试报告，容量虚标易引发消费者集体诉讼",
+            "空运/海运需按 UN38.3 与 IATA DGR 包装要求，否则物流拒收",
+        ],
     ),
     "kitchen organizer": ProductArchetype(
         category="home_kitchen",
@@ -584,6 +625,11 @@ ARCHETYPES = {
         certifications=["FDA 食品接触材料", "SGS 材质检测"],
         supplier_city="泉州",
         supplier_specialty="家居收纳",
+        compliance_risks=[
+            "接触食品的收纳/架类需符合 FDA 21 CFR 食品级及 LFGB（德国）迁移量测试",
+            "金属焊接部位需做防锈、镀层重金属（铅、镉、镍）迁移测试",
+            "带吸盘/胶贴安装件需评估承重安全与跌落风险，避免人身伤害索赔",
+        ],
     ),
     "makeup brush": ProductArchetype(
         category="beauty",
@@ -598,6 +644,11 @@ ARCHETYPES = {
         certifications=["FDA 化妆品合规", "CE 认证"],
         supplier_city="广州",
         supplier_specialty="美妆工具",
+        compliance_risks=[
+            "刷毛材质（动物毛/人造纤维）及粘合剂需符合 FDA 化妆品接触材料与欧盟 REACH 要求",
+            "木质手柄涂料、金属口管镀层需检测重金属（铅、镍、铬）与甲醛释放",
+            "声称抗菌/环保/ cruelty-free 需有相应检测报告与标签证据，避免虚假宣传投诉",
+        ],
     ),
 }
 
@@ -708,6 +759,11 @@ def _resolve_archetype(keyword: str) -> ProductArchetype:
         certifications=["CE 认证", "FDA 认证（如适用）"],
         supplier_city=rng.choice(["深圳", "义乌", "广州", "东莞", "泉州"]),
         supplier_specialty="综合类目",
+        compliance_risks=[
+            "通用类目需确认目标市场强制认证（CE/FCC/UKCA 等）与标签语言要求",
+            "产品外观与功能需排查目标市场专利、商标与版权风险",
+            "建议根据具体材质与使用场景补充化学、机械及电气安全测试",
+        ],
     )
 
 
@@ -749,22 +805,104 @@ def _amazon_domain(market: str) -> str:
     }.get(market.upper(), "amazon.com")
 
 
-def _amazon_product_url(market: str, asin: str) -> str:
-    """生成 Amazon 具体产品详情页链接（ASIN 格式）。"""
-    return f"https://www.{_amazon_domain(market)}/dp/{asin}"
+def _amazon_search_url(market: str, keyword: str) -> str:
+    """生成真实可打开的 Amazon 搜索链接（替代无法稳定抓取的 ASIN 详情页）。"""
+    domain = _amazon_domain(market)
+    query = urllib.parse.quote_plus(keyword)
+    return f"https://www.{domain}/s?k={query}"
 
 
-def _generate_asin(seed_text: str) -> str:
-    """基于关键词生成稳定的 10 位 ASIN（模拟真实 ASIN 格式，B0 开头）。"""
-    h = hashlib.md5(seed_text.encode("utf-8")).hexdigest().upper()
-    return f"B0{h[:8]}"
+def _1688_search_url(keyword: str) -> str:
+    """生成真实可打开的 1688 搜索链接（替代无法生成的 offer-id 详情页）。"""
+    query = urllib.parse.quote_plus(keyword)
+    return f"https://s.1688.com/selloffer/offer_search.htm?keywords={query}"
 
 
-def _1688_offer_url(keyword: str, supplier_name: str, hot_product: str) -> str:
-    """生成 1688 具体产品详情页链接（模拟 offer-id，结构真实可访问 1688 域名）。"""
-    seed = f"{keyword}-{supplier_name}-{hot_product}"
-    offer_id = hashlib.md5(seed.encode("utf-8")).hexdigest()[:16]
-    return f"https://detail.1688.com/offer/{offer_id}.html"
+# 简单内存缓存：每个 (keyword, market) 只抓取一次真实产品（保留扩展能力，当前默认使用搜索链接兜底）
+_real_product_cache: Dict[str, List[Dict]] = {}
+
+
+def _fetch_real_amazon_products(keyword: str, market: str, limit: int = 10) -> List[Dict]:
+    """
+    尝试从 Amazon 搜索结果页抓取真实产品 ASIN、标题、价格、评分、评论数、图片。
+    抓取失败或网络不可用时返回空列表，由调用方降级为模拟数据+搜索链接。
+    """
+    cache_key = f"{market.lower()}:{keyword.lower()}"
+    if cache_key in _real_product_cache:
+        return _real_product_cache[cache_key]
+
+    if not SCRAPING_AVAILABLE:
+        return []
+
+    domain = _amazon_domain(market)
+    query = urllib.parse.quote_plus(keyword)
+    url = f"https://www.{domain}/s?k={query}"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=12)
+        if resp.status_code != 200:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        items = []
+        for node in soup.select("div[data-component-type='s-search-result']")[:limit]:
+            asin = node.get("data-asin", "").strip()
+            if not asin:
+                continue
+            title_tag = node.select_one("h2 a span")
+            title = title_tag.get_text(strip=True) if title_tag else ""
+            # 价格：优先取隐藏文本中的完整价格
+            price_text = ""
+            price_whole = node.select_one(".a-price .a-offscreen")
+            if price_whole:
+                price_text = price_whole.get_text(strip=True)
+            if not price_text:
+                price_whole = node.select_one(".a-price-whole")
+                price_frac = node.select_one(".a-price-fraction")
+                if price_whole:
+                    price_text = f"${price_whole.get_text(strip=True)}.{price_frac.get_text(strip=True) if price_frac else '00'}"
+            # 评分
+            rating = 0.0
+            rating_tag = node.select_one(".a-icon-alt")
+            if rating_tag:
+                txt = rating_tag.get_text(strip=True)
+                try:
+                    rating = float(txt.split()[0])
+                except Exception:
+                    pass
+            # 评论数
+            reviews = 0
+            reviews_tag = node.select_one("a[href*='reviews'] span")
+            if reviews_tag:
+                txt = reviews_tag.get_text(strip=True).replace(",", "").replace("(", "").replace(")", "")
+                try:
+                    reviews = int(txt)
+                except Exception:
+                    pass
+            # 图片
+            image = ""
+            img_tag = node.select_one(".s-image")
+            if img_tag:
+                image = img_tag.get("src", "")
+            if title:
+                items.append({
+                    "asin": asin,
+                    "title": title,
+                    "price_text": price_text,
+                    "rating": round(rating, 1),
+                    "reviews": reviews,
+                    "image": image,
+                })
+        _real_product_cache[cache_key] = items
+        return items
+    except Exception:
+        return []
 
 
 def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, market: str) -> List[Dict]:
@@ -776,6 +914,8 @@ def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, 
         "Plus", "Max", "Essential", "Signature", "Original",
     ]
     profile = _market_profile(market)
+    # 统一的真实可打开搜索链接（Amazon 搜索结果页）
+    search_link = _amazon_search_url(market, keyword)
 
     # 基于关键词生成稳定的市场规模系数，让不同关键词的绝对销量差异明显
     keyword_seed = int(hashlib.md5(keyword.lower().encode("utf-8")).hexdigest(), 16)
@@ -806,7 +946,6 @@ def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, 
         brand = store_info["brand"]
         store = store_info["store"]
         suffix = rng.choice(suffix_pool)
-        asin = _generate_asin(f"{market}-{keyword}-{brand}-{suffix}")
 
         # 销量模型：BSR 越小销量越高，使用对数衰减，差距更平缓
         # 基数 * 市场规模 * 饱和度调整，头部与第二名通常 1.5-3 倍差距
@@ -816,7 +955,7 @@ def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, 
 
         products.append(
             {
-                "asin": asin,
+                "asin": "",
                 "title": f"{brand} {keyword.title()} {suffix}",
                 "subtitle": f"{store} · {archetype.category.replace('_', ' ').title()}",
                 "brand": brand,
@@ -827,7 +966,7 @@ def _competitors(rng: random.Random, archetype: ProductArchetype, keyword: str, 
                 "bsr": bsr,
                 "estimated_monthly_sales": monthly_sales,
                 "image": f"https://placehold.co/80x80/f8fafc/{store_info['color'].replace('#', '')}?text={brand[0]}",
-                "link": _amazon_product_url(market, asin),
+                "link": search_link,
                 "color": store_info["color"],
             }
         )
@@ -1020,7 +1159,7 @@ def _suppliers(rng: random.Random, keyword: str, archetype: ProductArchetype, ma
             "hot_categories": [hot_name, hot_product_pool[(rank) % len(hot_product_pool)]["name"]],
             "hot_product_image": hot["image"],
             "hot_product_name": hot_name,
-            "link_1688": _1688_offer_url(keyword, name, hot_name),
+            "link_1688": _1688_search_url(keyword),
         })
     return suppliers
 
@@ -1108,6 +1247,8 @@ def _build_compliance(rng: random.Random, archetype: ProductArchetype, market: s
     certifications = list(archetype.certifications)
     category = archetype.category
     market_key = market.upper()
+    # 品类专属合规风险（来自 ARCHETYPES 画像，避免通用模板）
+    category_risks = list(archetype.compliance_risks)
 
     # 根据目标市场补充强制认证，确保与国家法规匹配
     market_cert_additions = {
@@ -1196,6 +1337,7 @@ def _build_compliance(rng: random.Random, archetype: ProductArchetype, market: s
         "risk_level": risk_level,
         "estimated_cert_cost": round(rng.uniform(500, 3500) * profile["price_mult"], 2),
         "estimated_cert_time": rng.choice(["2-4 周", "4-6 周", "6-8 周", "8-12 周"]),
+        "category_risks": rng.sample(category_risks, k=min(3, len(category_risks))),
         "design_patent_risks": rng.sample(design_patent_risks, k=min(2, len(design_patent_risks))),
         "brand_risks": rng.sample(brand_risks, k=min(2, len(brand_risks))),
         "industry_patent_risks": rng.sample(industry_patent_risks, k=min(2, len(industry_patent_risks))),
@@ -1594,9 +1736,14 @@ def render_kpi_cards(report: Dict):
 
 
 def render_radar(report: Dict):
-    st.markdown("<div class='info-card-title radar-title'>🎯 五维评分雷达</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='info-card' style='height:100%; display:flex; flex-direction:column;'>"
+        "<div class='info-card-title radar-title' style='flex-shrink:0;'>🎯 五维评分雷达</div>",
+        unsafe_allow_html=True,
+    )
     if not PLOTLY_AVAILABLE:
         st.info("雷达图需要 plotly 支持，请运行 pip install plotly 后刷新页面。")
+        st.markdown("</div>", unsafe_allow_html=True)
         return
 
     categories = list(report["score_breakdown"].keys())
@@ -1628,12 +1775,16 @@ def render_radar(report: Dict):
         height=420,
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
-def render_score_breakdown(report: Dict):
+def render_score_breakdown(report: Dict, wrap_card: bool = True):
     max_values = {"利润空间": 40, "趋势热度": 25, "竞争强度": 20, "评论洞察": 15}
 
-    html = "<div class='info-card'><div class='info-card-title'>📊 五维评分拆解</div>"
+    html = ""
+    if wrap_card:
+        html += "<div class='info-card'>"
+    html += "<div class='info-card-title'>📊 五维评分拆解</div>"
     for name, score in report["score_breakdown"].items():
         max_v = max_values.get(name, 25)
         pct = min(100, max(0, score / max_v * 100))
@@ -1653,17 +1804,20 @@ def render_score_breakdown(report: Dict):
             f'<div class="score-value">{score}/{max_v}</div>'
             f'</div>'
         )
-    html += "</div>"
+    if wrap_card:
+        html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
 
-def render_conclusion(report: Dict):
+def render_conclusion(report: Dict, wrap_card: bool = True):
     market = report['market_analysis']
     profit = report['profit_analysis']
     profile = market['market_profile']
+    open_div = "<div class='info-card'>" if wrap_card else ""
+    close_div = "</div>" if wrap_card else ""
     st.markdown(
         f"""
-        <div class="info-card">
+        {open_div}
             <div class="info-card-title">💡 核心结论</div>
             <p style="color:#475569; line-height:1.75; margin:0; font-size:14px;">
             关键词 <strong style="color:#2563eb;">{report['keyword']}</strong>
@@ -1678,7 +1832,7 @@ def render_conclusion(report: Dict):
                 <span class="badge" style="background:#dbeafe; color:#1e40af;">平均评分 {market['avg_rating']}⭐</span>
                 <span class="badge" style="background:#f1f5f9; color:#334155;">总评论 {market['avg_reviews']:,.0f}+</span>
             </div>
-        </div>
+        {close_div}
         """,
         unsafe_allow_html=True,
     )
@@ -1863,22 +2017,26 @@ def _cost_row(item: str, value: float, pct: str, total: float, bar_color: str) -
 
 def _scenario_card(name: str, data: Dict, colors: Dict, currency: str) -> str:
     payback = f"{data['回本周期']} 月" if data["回本周期"] else "—"
+    icon = {"保守": "🛡️", "中性": "⚖️", "乐观": "🚀"}.get(name, "📊")
     return (
-        f'<div style="background:{colors["bg"]}; border:1px solid {colors["border"]}; border-radius:14px; padding:18px; text-align:center; position:relative; overflow:hidden;">'
-        f'<div style="position:absolute; top:0; left:0; right:0; height:4px; background:{colors["accent"]};"></div>'
-        f'<div style="display:inline-block; background:{colors["pill"]}; color:#fff; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:800; margin-bottom:14px; white-space:nowrap;">{name}情景</div>'
-        f'<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">'
-        f'<div><div style="color:{colors["value"]}; font-size:32px; font-weight:800; line-height:1;">{data["月销量"]}</div>'
-        f'<div style="color:#64748b; font-size:12px; font-weight:600; margin-top:6px;">月销量</div></div>'
-        f'<div><div style="color:{colors["value"]}; font-size:32px; font-weight:800; line-height:1;">{data["ROI"]}%</div>'
-        f'<div style="color:#64748b; font-size:12px; font-weight:600; margin-top:6px;">ROI</div></div></div>'
-        f'<div style="border-top:1px solid {colors["border"]}; margin-top:14px; padding-top:14px; text-align:left;">'
-        f'<div style="display:flex; justify-content:space-between; margin-bottom:8px; white-space:nowrap;">'
-        f'<span style="color:#64748b; font-size:13px; font-weight:600;">月毛利</span>'
-        f'<span style="color:#0f172a; font-size:14px; font-weight:800;">{currency}${data["月毛利"]:,.0f}</span></div>'
-        f'<div style="display:flex; justify-content:space-between; white-space:nowrap;">'
-        f'<span style="color:#64748b; font-size:13px; font-weight:600;">回本周期</span>'
-        f'<span style="color:#0f172a; font-size:14px; font-weight:800;">{payback}</span></div>'
+        f'<div style="background:linear-gradient(145deg, #ffffff 0%, {colors["bg"]} 100%); border:1px solid {colors["border"]}; border-radius:18px; padding:22px 18px; text-align:center; position:relative; overflow:hidden; box-shadow:0 6px 18px rgba(15,23,42,0.05);">'
+        f'<div style="position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg, {colors["accent"]}, {colors["value"]});"></div>'
+        f'<div style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.85); border:1px solid {colors["border"]}; color:{colors["pill"]}; padding:6px 16px; border-radius:24px; font-size:13px; font-weight:800; margin-bottom:16px; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.04);">'
+        f'<span style="font-size:15px;">{icon}</span><span>{name}情景</span></div>'
+        f'<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px;">'
+        f'<div style="background:rgba(255,255,255,0.65); border-radius:12px; padding:12px 8px;">'
+        f'<div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px;">月销量</div>'
+        f'<div style="color:{colors["value"]}; font-size:34px; font-weight:900; line-height:1;">{data["月销量"]}</div></div>'
+        f'<div style="background:rgba(255,255,255,0.65); border-radius:12px; padding:12px 8px;">'
+        f'<div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px;">ROI</div>'
+        f'<div style="color:{colors["value"]}; font-size:34px; font-weight:900; line-height:1;">{data["ROI"]}%</div></div></div>'
+        f'<div style="border-top:1px solid {colors["border"]}; padding-top:14px; text-align:left;">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:9px;">'
+        f'<span style="display:flex; align-items:center; gap:5px; color:#64748b; font-size:13px; font-weight:600;"><span>💰</span> 月毛利</span>'
+        f'<span style="color:#0f172a; font-size:15px; font-weight:800;">{currency}${data["月毛利"]:,.0f}</span></div>'
+        f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+        f'<span style="display:flex; align-items:center; gap:5px; color:#64748b; font-size:13px; font-weight:600;"><span>⏳</span> 回本周期</span>'
+        f'<span style="color:#0f172a; font-size:15px; font-weight:800;">{payback}</span></div>'
         f'</div></div>'
     )
 
@@ -2275,6 +2433,7 @@ def render_compliance(report: Dict):
     rc = risk_colors.get(comp["risk_level"], {"bg": "#f1f5f9", "text": "#475569", "border": "#e2e8f0"})
 
     sections = [
+        ("🎯 品类专属合规风险", comp.get("category_risks", []), "#dc2626", "重点关注", "与关键词行业精准匹配"),
         ("📋 强制认证", comp["certifications"], "#2563eb", "通过", "建议尽早上架前准备"),
         ("🎨 外观设计专利风险", comp.get("design_patent_risks", []), "#d97706", "需检索", "避免 TRO 与下架"),
         ("™️ 商标/品牌侵权风险", comp.get("brand_risks", []), "#7c3aed", "需筛查", "Listing 文案/图片自查"),
@@ -2439,14 +2598,19 @@ def render_report(report: Dict):
     render_verdict_banner(report)
     render_kpi_cards(report)
 
-    # 决策看板：雷达图占更多空间，评分拆解与结论在右侧
+    # 决策看板：雷达图与右侧评分拆解/结论视觉对齐，共用等高端 info-card
     col_left, col_right = st.columns([3, 2])
     with col_left:
         render_radar(report)
     with col_right:
-        render_score_breakdown(report)
-        st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
-        render_conclusion(report)
+        st.markdown(
+            "<div class='info-card' style='height:100%; display:flex; flex-direction:column; justify-content:space-between;'>",
+            unsafe_allow_html=True,
+        )
+        render_score_breakdown(report, wrap_card=False)
+        st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+        render_conclusion(report, wrap_card=False)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # 详情标签页
     tab_market, tab_review, tab_profit, tab_trend, tab_supply, tab_compliance, tab_action = st.tabs(

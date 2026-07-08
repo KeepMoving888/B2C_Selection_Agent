@@ -1,8 +1,45 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    project: b2c-product-selection
+
+alerting:
+  alertmanagers: []
+
+rule_files: []
 
 scrape_configs:
-  - job_name: 'agent-metrics'
+  # 1. vLLM AWQ 推理服务原生指标
+  - job_name: 'vllm-awq'
+    static_configs:
+      - targets: ['host.docker.internal:8002']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # 2. vLLM FP16 推理服务原生指标
+  - job_name: 'vllm-fp16'
+    static_configs:
+      - targets: ['host.docker.internal:8003']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # 3. API Gateway 自定义指标
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # 4. Agent 应用指标（若通过 prometheus_client 暴露）
+  - job_name: 'agent-app'
     static_configs:
       - targets: ['host.docker.internal:9091']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # 5. Node Exporter 主机层指标（可选，需单独启动 node-exporter）
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+    scrape_interval: 15s

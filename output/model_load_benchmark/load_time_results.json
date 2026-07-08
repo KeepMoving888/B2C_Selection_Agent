@@ -1,0 +1,12 @@
+[
+  {
+    "label": "WSL ext4 (/home/b2cuser/models)",
+    "model_path": "/home/b2cuser/models/qwen2.5-7b-ecommerce-awq-v3",
+    "load_time_s": 32.1
+  },
+  {
+    "label": "E: drive (/mnt/e/models)",
+    "model_path": "/mnt/e/models/qwen2.5-7b-ecommerce-awq-v3",
+    "load_time_s": 140.0
+  }
+]

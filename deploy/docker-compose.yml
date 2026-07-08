@@ -1,5 +1,8 @@
 version: '3.8'
 
+# 说明：
+#   本 Compose 面向 WSL2 / Linux 生产环境。若在 Windows Docker Desktop 使用，
+#   请将卷映射中的 /mnt/e/models/... 替换为 E:/models/...
 services:
   # 领域微调合并模型（主推理实例，优先使用 FP16）
   vllm-qwen-ecommerce:
@@ -10,7 +13,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - CUDA_VISIBLE_DEVICES=0
     volumes:
-      - E:/models/qwen2.5-7b-ecommerce-merged:/models/qwen2.5-7b:ro
+      - /mnt/e/models/qwen2.5-7b-ecommerce-merged:/models/qwen2.5-7b:ro
       - ../hf_cache:/root/.cache/huggingface
     command: >
       --model /models/qwen2.5-7b
@@ -38,7 +41,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - CUDA_VISIBLE_DEVICES=0
     volumes:
-      - E:/models/qwen2.5-7b-ecommerce-awq-v3:/models/qwen2.5-7b-base:ro
+      - /mnt/e/models/qwen2.5-7b-ecommerce-awq-v3:/models/qwen2.5-7b-base:ro
       - ../hf_cache:/root/.cache/huggingface
     command: >
       --model /models/qwen2.5-7b-base
@@ -52,12 +55,53 @@ services:
       - "8001:8001"
     restart: unless-stopped
 
-  # Prometheus 监控（可选）
+  # API Gateway + 模型路由
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gateway
+    container_name: agent-api-gateway
+    environment:
+      - VLLM_AWQ_URL=http://vllm-qwen-base:8001
+      - VLLM_FP16_URL=http://vllm-qwen-ecommerce:8000
+      - GATEWAY_PORT=8080
+      # - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - vllm-qwen-ecommerce
+      - vllm-qwen-base
+    restart: unless-stopped
+
+  # Prometheus 监控
   prometheus:
     image: prom/prometheus:latest
     container_name: agent-prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
     ports:
       - "9090:9090"
     restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  # Grafana 可视化看板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agent-grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
