@@ -1,5 +1,5 @@
 # ============================================================
-# docker-compose.yml — 面试演示版：一键启动 Streamlit 前端
+# docker-compose.yml — 快速体验版：一键启动 Streamlit 前端
 #
 # 使用方式：
 #   docker compose up -d              # 启动
@@ -9,8 +9,8 @@
 # 打开浏览器访问：http://localhost:8501
 #
 # 说明：
-#   本配置默认使用 Mock 数据运行前端，无需 GPU 和大模型，
-#   适合面试演示、代码评审与架构讲解。
+#   本配置默认使用示例数据运行前端，无需 GPU 和大模型，
+#   适合快速体验产品功能、代码评审与架构讲解。
 #   生产部署（含 vLLM / Prometheus / Grafana）请使用：
 #   docker compose -f docker-compose.prod.yml up -d
 # ============================================================

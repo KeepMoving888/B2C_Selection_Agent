@@ -1,5 +1,5 @@
 # ============================================================
-# Dockerfile — 面试演示版：默认启动 Streamlit 前端（Mock 模式）
+# Dockerfile — 快速体验版：默认启动 Streamlit 前端（示例数据模式）
 #
 # 使用方式：
 #   docker build -t xuanpin-frontend .

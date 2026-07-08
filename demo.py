@@ -34,7 +34,7 @@ from feishu.integration import FeishuIntegration, FeishuConfig
 
 
 class MockLLMClient:
-    """离线 LLM 客户端，用于本地开发、CI 测试与无 API 凭证场景演示。"""
+    """离线 LLM 客户端，用于本地开发、CI 测试与无 API 凭证场景。"""
 
     async def call(self, prompt: str, model: str = "",
                    tools: list = None) -> str:

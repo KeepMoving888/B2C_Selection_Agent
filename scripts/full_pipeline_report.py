@@ -254,9 +254,9 @@ class EnhancedMockLLMClient:
                 "profit": profit,
             },
             "risk_warnings": [
-                "本报告基于真实感模拟数据生成，正式投产前需用真实 API 复核",
+                "本报告基于示例数据生成，正式投产前需用真实 API 复核",
                 "关税、FBA 费率和平台佣金可能变动，建议定期重新测算",
-                "专利检索为模拟结果，上架前务必做 FTO（自由实施）分析",
+                "专利检索为示例结果，上架前务必做 FTO（自由实施）分析",
             ],
             "action_recommendations": [
                 f"针对用户核心痛点优化产品：{', '.join(market.get('top_pain_points', [])[:2]) or '持续调研'}",
