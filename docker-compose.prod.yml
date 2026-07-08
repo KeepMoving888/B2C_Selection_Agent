@@ -1,0 +1,139 @@
+# ============================================================
+# docker-compose.prod.yml — 生产部署编排（保留原版）
+#
+# 使用方式：
+#   docker compose -f docker-compose.prod.yml up -d
+# ============================================================
+
+version: "3.8"
+
+services:
+  # ── vLLM 推理服务（Qwen2.5-7B 微调合并 FP16，优先使用）───────
+  vllm-ecommerce:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-ecommerce
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=0
+      - HF_HOME=/models/.cache
+    volumes:
+      - E:/models/qwen2.5-7b-ecommerce-merged:/models/qwen2.5-7b:ro
+      - ./hf_cache:/models/.cache
+    command: >
+      --model /models/qwen2.5-7b
+      --max-model-len 4096
+      --gpu-memory-utilization 0.85
+      --max-num-seqs 8
+      --port 8000
+      --host 0.0.0.0
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── vLLM 推理服务（AWQ INT4 量化版，显存受限时 fallback）────
+  vllm-base:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-base
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - E:/models/qwen2.5-7b-ecommerce-awq-v3:/models/qwen2.5-7b-base:ro
+    command: >
+      --model /models/qwen2.5-7b-base
+      --quantization awq
+      --max-model-len 4096
+      --gpu-memory-utilization 0.45
+      --max-num-seqs 4
+      --port 8001
+      --host 0.0.0.0
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── Agent 应用服务 ──────────────────────────────────
+  agent-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: agent-app
+    environment:
+      - APP_ENV=production
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+      - AMAZON_PA_API_KEY=${AMAZON_PA_API_KEY}
+      - ALIBABA_APP_KEY=${ALIBABA_APP_KEY}
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./data:/app/data
+    ports:
+      - "8080:8080"
+    depends_on:
+      vllm-ecommerce:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Prometheus ──────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # ── Grafana ─────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:

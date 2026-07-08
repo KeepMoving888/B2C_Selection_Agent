@@ -297,12 +297,15 @@ def inject_custom_css():
             box-shadow: 0 2px 8px rgba(37,99,235,0.25);
         }
 
-        /* Plotly 图表容器：保持简洁内衬，避免与外层 info-card 产生双重边框或底部重叠 */
+        /* Plotly 图表容器：零 padding，避免在 info-card 内产生额外边角空白 */
         [data-testid="stPlotlyChart"] {
             background: #ffffff;
-            border-radius: 12px;
-            padding: 8px;
+            border-radius: 0;
+            padding: 0;
             margin-bottom: 0;
+        }
+        [data-testid="stPlotlyChart"] .js-plotly-plot .plotly .modebar {
+            display: none !important;
         }
 
         /* 进度条容器 */
@@ -495,6 +498,7 @@ class ProductArchetype:
     supplier_city: str
     supplier_specialty: str
     compliance_risks: List[str]
+    cn_keywords: List[str]
 
 
 ARCHETYPES = {
@@ -516,6 +520,7 @@ ARCHETYPES = {
             "含电池款须做 GCC 通用合格证书及 UL 4200A 纽扣电池安全测试",
             "猫薄荷填充物来源、农药残留及标签标识需符合宠物用品安全规范",
         ],
+        cn_keywords=["猫玩具", "逗猫棒", "猫薄荷玩具", "电动猫玩具"],
     ),
     "dog chew toys": ProductArchetype(
         category="pet_supplies",
@@ -535,6 +540,7 @@ ARCHETYPES = {
             "产品耐咬碎片吞咽风险高，需做 CPSC 16 CFR 1501 小零件及锐利边缘测试",
             "色素/香精添加剂需符合宠物用品化学品安全限量，防止过敏与中毒投诉",
         ],
+        cn_keywords=["宠物咬胶", "耐咬磨牙棒", "狗狗玩具", "洁齿磨牙棒"],
     ),
     "yoga mat": ProductArchetype(
         category="sports",
@@ -554,6 +560,7 @@ ARCHETYPES = {
             "防滑涂层、染料及印刷油墨需符合 OEKO-TEX 或加州 65 号提案化学物质限量",
             "出口欧盟需 CE 标识及技术文件，德国需 EPR 包装法注册",
         ],
+        cn_keywords=["瑜伽垫", "TPE瑜伽垫", "防滑瑜伽垫", "健身垫"],
     ),
     "wireless earbuds": ProductArchetype(
         category="electronics",
@@ -573,6 +580,7 @@ ARCHETYPES = {
             "锂电池需符合 UN38.3、UL 1642/2054 或 IEC 62133 安全测试，防止起火召回",
             "RoHS/REACH 重金属与有害物质限量、WEEE 注册及能效标签要求",
         ],
+        cn_keywords=["蓝牙耳机", "TWS耳机", "无线耳机", "降噪耳机"],
     ),
     "carplay": ProductArchetype(
         category="electronics",
@@ -592,6 +600,7 @@ ARCHETYPES = {
             "车载电子需通过 FCC/CE-RED 射频认证、E-mark（欧洲车载）及电磁兼容 EMC 测试",
             "高温环境下工作需做可靠性测试，防止过热、起火及车辆保险责任纠纷",
         ],
+        cn_keywords=["车载CarPlay", "无线CarPlay盒子", "车载电子", "车机互联"],
     ),
     "portable charger": ProductArchetype(
         category="electronics",
@@ -611,6 +620,7 @@ ARCHETYPES = {
             "亚马逊已要求充电宝提供 UL 2056 测试报告，容量虚标易引发消费者集体诉讼",
             "空运/海运需按 UN38.3 与 IATA DGR 包装要求，否则物流拒收",
         ],
+        cn_keywords=["移动电源", "充电宝", "快充充电宝", "大容量充电宝"],
     ),
     "kitchen organizer": ProductArchetype(
         category="home_kitchen",
@@ -630,6 +640,7 @@ ARCHETYPES = {
             "金属焊接部位需做防锈、镀层重金属（铅、镉、镍）迁移测试",
             "带吸盘/胶贴安装件需评估承重安全与跌落风险，避免人身伤害索赔",
         ],
+        cn_keywords=["厨房收纳", "冰箱收纳盒", "厨房置物架", "抽屉分隔"],
     ),
     "makeup brush": ProductArchetype(
         category="beauty",
@@ -649,6 +660,7 @@ ARCHETYPES = {
             "木质手柄涂料、金属口管镀层需检测重金属（铅、镍、铬）与甲醛释放",
             "声称抗菌/环保/ cruelty-free 需有相应检测报告与标签证据，避免虚假宣传投诉",
         ],
+        cn_keywords=["化妆刷", "美妆工具", "散粉刷", "化妆刷套装"],
     ),
 }
 
@@ -764,6 +776,7 @@ def _resolve_archetype(keyword: str) -> ProductArchetype:
             "产品外观与功能需排查目标市场专利、商标与版权风险",
             "建议根据具体材质与使用场景补充化学、机械及电气安全测试",
         ],
+        cn_keywords=["外贸爆款", "跨境电商货源", "工厂直销"],
     )
 
 
@@ -813,8 +826,12 @@ def _amazon_search_url(market: str, keyword: str) -> str:
 
 
 def _1688_search_url(keyword: str) -> str:
-    """生成真实可打开的 1688 搜索链接（替代无法生成的 offer-id 详情页）。"""
-    query = urllib.parse.quote_plus(keyword)
+    """生成真实可打开的 1688 搜索链接（GBK 编码避免中文乱码）。"""
+    try:
+        # 1688 搜索框期望 GBK 编码的中文字符串
+        query = urllib.parse.quote(keyword.encode("gbk"))
+    except Exception:
+        query = urllib.parse.quote_plus(keyword)
     return f"https://s.1688.com/selloffer/offer_search.htm?keywords={query}"
 
 
@@ -1095,6 +1112,8 @@ def _suppliers(rng: random.Random, keyword: str, archetype: ProductArchetype, ma
     city = archetype.supplier_city
     specialty = archetype.supplier_specialty
     profile = _market_profile(market)
+    # 1688 使用中文行业关键词搜索，更贴合国内供应链实际
+    cn_keywords = archetype.cn_keywords if archetype.cn_keywords else [keyword]
     district_map = {
         "深圳": ["龙华区", "宝安区", "龙岗区", "南山区", "光明区"],
         "东莞": ["长安镇", "虎门镇", "塘厦镇", "厚街镇", "大朗镇"],
@@ -1142,7 +1161,8 @@ def _suppliers(rng: random.Random, keyword: str, archetype: ProductArchetype, ma
         unit_cost = round(rng.uniform(*archetype.price_range) * rng.uniform(0.18, 0.34) * profile["price_mult"], 2)
         hot = hot_product_pool[(rank - 1) % len(hot_product_pool)]
         hot_name = hot["name"]
-        # 1688 具体产品详情页链接（基于关键词+供应商+热卖品稳定生成）
+        # 1688 使用中文行业关键词搜索，不同供应商可对应不同中文词
+        cn_query = cn_keywords[(rank - 1) % len(cn_keywords)]
         suppliers.append({
             "rank": rank,
             "name": name,
@@ -1159,7 +1179,7 @@ def _suppliers(rng: random.Random, keyword: str, archetype: ProductArchetype, ma
             "hot_categories": [hot_name, hot_product_pool[(rank) % len(hot_product_pool)]["name"]],
             "hot_product_image": hot["image"],
             "hot_product_name": hot_name,
-            "link_1688": _1688_search_url(keyword),
+            "link_1688": _1688_search_url(cn_query),
         })
     return suppliers
 
@@ -1735,15 +1755,17 @@ def render_kpi_cards(report: Dict):
     )
 
 
-def render_radar(report: Dict):
+def render_radar(report: Dict, wrap_card: bool = True, card_height: str = "100%"):
+    open_div = f"<div class='info-card' style='height:{card_height}; display:flex; flex-direction:column;'>" if wrap_card else ""
+    close_div = "</div>" if wrap_card else ""
+    title_html = "<div class='info-card-title radar-title' style='flex-shrink:0;'>🎯 五维评分雷达</div>" if wrap_card else ""
     st.markdown(
-        "<div class='info-card' style='height:100%; display:flex; flex-direction:column;'>"
-        "<div class='info-card-title radar-title' style='flex-shrink:0;'>🎯 五维评分雷达</div>",
+        f"{open_div}{title_html}",
         unsafe_allow_html=True,
     )
     if not PLOTLY_AVAILABLE:
         st.info("雷达图需要 plotly 支持，请运行 pip install plotly 后刷新页面。")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(close_div, unsafe_allow_html=True)
         return
 
     categories = list(report["score_breakdown"].keys())
@@ -1774,7 +1796,7 @@ def render_radar(report: Dict):
         margin=dict(l=20, r=20, t=10, b=10),
         height=420,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config=dict(displayModeBar=False))
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -1902,7 +1924,7 @@ def render_market_analysis(report: Dict):
                 bargap=0.35,
                 autosize=True,
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config=dict(displayModeBar=False))
         else:
             st.info("价格带分布图需要 plotly 支持，请运行 pip install plotly 后刷新页面。")
 
@@ -2104,31 +2126,52 @@ def render_profit_analysis(report: Dict):
             tips.append("FBA 费用处于合理区间，关注库存周转，避免长期仓储费侵蚀利润。")
         tips.append(f"按 {profile['name']} 市场佣金与物流假设，盈亏平衡销量约为 <strong>{profit['breakeven_units']} 件/月</strong>。")
 
-        tips_html = "".join(f'<li style="margin-bottom:8px; line-height:1.6;">{t}</li>' for t in tips)
+        # 利润优化建议：改为带图标的卡片列表，与整体 SaaS 风格统一
+        tip_items = [
+            ("💰", tips[0], "#eff6ff", "#2563eb"),
+            ("📢", tips[1], "#fef3c7", "#d97706"),
+            ("📦", tips[2], "#e0f2fe", "#0891b2"),
+            ("⚖️", tips[3], "#f3e8ff", "#7c3aed"),
+        ]
+        tips_html = "".join(
+            f'<div style="display:flex; align-items:flex-start; gap:12px; background:{bg}; border:1px solid {bg}; border-radius:12px; padding:12px 14px; margin-bottom:10px;">'
+            f'<div style="flex-shrink:0; width:32px; height:32px; border-radius:10px; background:#ffffff; color:{color}; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 2px 6px rgba(0,0,0,0.04);">{icon}</div>'
+            f'<div style="color:#334155; font-size:13px; line-height:1.65; font-weight:500;">{t}</div></div>'
+            for icon, t, bg, color in tip_items
+        )
+
         assumptions = [
-            ("平台佣金", f"{profit['cost_breakdown_pct'].get('平台佣金', '—')}"),
-            ("FBA 费用", f"${breakdown.get('FBA 费用', 0):.2f}"),
-            ("广告占比", f"{profit['cost_breakdown_pct'].get('广告费用', '—')}"),
-            ("退货预留", f"{profit['cost_breakdown_pct'].get('退货预留', '—')}"),
-            ("头程物流", f"${breakdown.get('头程物流', 0):.2f}"),
+            ("平台佣金", f"{profit['cost_breakdown_pct'].get('平台佣金', '—')}", "#eff6ff", "#2563eb"),
+            ("FBA 费用", f"${breakdown.get('FBA 费用', 0):.2f}", "#e0f2fe", "#0891b2"),
+            ("广告占比", f"{profit['cost_breakdown_pct'].get('广告费用', '—')}", "#fef3c7", "#d97706"),
+            ("退货预留", f"{profit['cost_breakdown_pct'].get('退货预留', '—')}", "#fee2e2", "#dc2626"),
+            ("头程物流", f"${breakdown.get('头程物流', 0):.2f}", "#f3e8ff", "#7c3aed"),
+            ("盈亏平衡", f"{profit['breakeven_units']} 件/月", "#f0fdf4", "#16a34a"),
         ]
         assumptions_html = "".join(
-            f'<div style="flex:1; min-width:90px; text-align:center; padding:10px 8px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">'
-            f'<div style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">{k}</div>'
-            f'<div style="font-size:15px; color:#0f172a; font-weight:800;">{v}</div></div>'
-            for k, v in assumptions
+            f'<div style="flex:1 1 calc(50% - 5px); min-width:100px; text-align:center; padding:12px 6px; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 2px 6px rgba(15,23,42,0.03);">'
+            f'<div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px;">{k}</div>'
+            f'<div style="font-size:17px; color:{color}; font-weight:900; line-height:1;">{v}</div></div>'
+            for k, v, _, color in assumptions
         )
+
+        section_title = (
+            '<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; '
+            'letter-spacing:0.05em; margin-bottom:12px; display:flex; align-items:center; gap:6px;">'
+            '<span style="display:inline-block; width:4px; height:14px; background:#2563eb; border-radius:2px;"></span>{title}</div>'
+        )
+
         st.markdown(
             f'<div class="info-card">'
             f'<div class="info-card-title">🚀 利润优化建议与关键假设</div>'
-            f'<div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:18px;">'
+            f'<div style="display:grid; grid-template-columns: 1.35fr 1fr; gap:22px; align-items:stretch;">'
             f'<div>'
-            f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">优化方向</div>'
-            f'<ul style="margin:0; padding-left:18px; color:#334155; font-size:13px;">{tips_html}</ul>'
+            f'{section_title.format(title="优化方向")}'
+            f'{tips_html}'
             f'</div>'
             f'<div>'
-            f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">关键假设</div>'
-            f'<div style="display:flex; flex-wrap:wrap; gap:8px;">{assumptions_html}</div>'
+            f'{section_title.format(title="关键假设")}'
+            f'<div style="display:flex; flex-wrap:wrap; gap:10px;">{assumptions_html}</div>'
             f'</div></div></div>',
             unsafe_allow_html=True,
         )
@@ -2250,7 +2293,7 @@ def render_trend_analysis(report: Dict):
                 bgcolor="rgba(255,255,255,0.8)", bordercolor="#e2e8f0", borderwidth=1,
             ),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config=dict(displayModeBar=False))
 
     peak = "、".join(f"{m}月" for m in sorted(peak_months))
     entry = "、".join(f"{m}月" for m in sorted(entry_windows))
@@ -2455,28 +2498,27 @@ def render_compliance(report: Dict):
         unsafe_allow_html=True,
     )
 
-    cols = st.columns(2)
+    # 使用 CSS Grid 布局，保证同一行左右卡片严格等高对齐
+    cards_html = ""
     for idx, (title, items, accent, status_ok, status_note) in enumerate(sections):
         if not items:
             continue
-        col = cols[idx % 2]
-        with col:
-            items_html = "".join(f"<li>{c}</li>" for c in items)
-            st.markdown(
-                f"""
-                <div class="compliance-card" style="border-left:4px solid {accent};">
-                    <div class="compliance-card-header">
-                        <div class="compliance-card-title">{title}</div>
-                        <span class="compliance-status" style="background:{accent}20; color:{accent};">{status_ok}</span>
-                    </div>
-                    <ul class="compliance-list">{items_html}</ul>
-                    <div style="margin-top:10px; padding:8px 10px; background:#f8fafc; border-radius:8px; font-size:12px; color:#64748b; font-weight:600;">
-                        💡 {status_note}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        items_html = "".join(f"<li>{c}</li>" for c in items)
+        cards_html += (
+            f'<div class="compliance-card" style="border-left:4px solid {accent}; height:100%; min-height:170px; display:flex; flex-direction:column;">'
+            f'<div class="compliance-card-header">'
+            f'<div class="compliance-card-title">{title}</div>'
+            f'<span class="compliance-status" style="background:{accent}20; color:{accent};">{status_ok}</span>'
+            f'</div>'
+            f'<ul class="compliance-list" style="flex:1;">{items_html}</ul>'
+            f'<div style="margin-top:auto; padding:8px 10px; background:#f8fafc; border-radius:8px; font-size:12px; color:#64748b; font-weight:600;">'
+            f'💡 {status_note}</div>'
+            f'</div>'
+        )
+    st.markdown(
+        f"<div style='display:grid; grid-template-columns:1fr 1fr; gap:16px;'>{cards_html}</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def render_trending_products(report: Dict):
@@ -2598,19 +2640,20 @@ def render_report(report: Dict):
     render_verdict_banner(report)
     render_kpi_cards(report)
 
-    # 决策看板：雷达图与右侧评分拆解/结论视觉对齐，共用等高端 info-card
+    # 决策看板：雷达图与评分拆解/结论放入同一个 info-card，内部自然对齐
+    st.markdown(
+        "<div class='info-card' style='margin-bottom:20px; padding:18px;'>"
+        "<div class='info-card-title'>🎯 选品决策看板</div>",
+        unsafe_allow_html=True,
+    )
     col_left, col_right = st.columns([3, 2])
     with col_left:
-        render_radar(report)
+        render_radar(report, wrap_card=False)
     with col_right:
-        st.markdown(
-            "<div class='info-card' style='height:100%; display:flex; flex-direction:column; justify-content:space-between;'>",
-            unsafe_allow_html=True,
-        )
         render_score_breakdown(report, wrap_card=False)
         st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
         render_conclusion(report, wrap_card=False)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # 详情标签页
     tab_market, tab_review, tab_profit, tab_trend, tab_supply, tab_compliance, tab_action = st.tabs(
