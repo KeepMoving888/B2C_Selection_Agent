@@ -14,7 +14,7 @@ plt.rcParams["axes.unicode_minus"] = False
 
 def main():
     result_file = Path("output/qwen2.5-7b-orpo-ecommerce-v1/model_comparison_results.json")
-    report_dir = Path("models/qwen2.5-7b-ecommerce-awq-v3/report")
+    report_dir = Path("E:/models/qwen2.5-7b-ecommerce-awq-v3/report")
     report_dir.mkdir(parents=True, exist_ok=True)
 
     with open(result_file, "r", encoding="utf-8") as f:

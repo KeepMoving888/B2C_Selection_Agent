@@ -26,21 +26,20 @@
 # 
 # # 1. 合并 LoRA adapter 到基座模型
 # python -m peft.merge_and_unload \
-#   --base_model Qwen/Qwen2.5-7B \
-#   --adapter ./output/qwen2.5-7b-orpo-ecommerce/adapter \
-#   --output ./models/qwen2.5-7b-ecommerce-merged
+#   --base_model E:/models/qwen/Qwen2.5-7B \
+#   --adapter E:/models/qwen2.5-7b-orpo-adapter \
+#   --output E:/models/qwen2.5-7b-ecommerce-merged
 #
 # # 2. AWQ 量化（可选，推荐）
 # python -m awq.quantize \
-#   --model ./models/qwen2.5-7b-ecommerce-merged \
-#   --output ./models/qwen2.5-7b-ecommerce-awq \
+#   --model E:/models/qwen2.5-7b-ecommerce-merged \
+#   --output E:/models/qwen2.5-7b-ecommerce-awq-v3 \
 #   --bits 4 --group_size 128
 #
-# # 3. 启动 vLLM 服务
-# vllm serve ./models/qwen2.5-7b-ecommerce-awq \
+# # 3. 启动 vLLM 服务（优先使用 FP16 合并模型）
+# vllm serve E:/models/qwen2.5-7b-ecommerce-merged \
 #   --host 0.0.0.0 \
 #   --port 8000 \
-#   --quantization awq \
 #   --max-model-len 4096 \
 #   --gpu-memory-utilization 0.85 \
 #   --max-num-seqs 8 \
@@ -54,19 +53,18 @@ DOCKER_COMPOSE = """
 version: '3.8'
 
 services:
-  vllm-qwen3-ecommerce:
+  vllm-qwen-ecommerce:
     image: vllm/vllm-openai:latest
-    container_name: qwen3-ecommerce
+    container_name: qwen2.5-7b-ecommerce
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=0
       - CUDA_VISIBLE_DEVICES=0
     volumes:
-      - ./models/qwen2.5-7b-ecommerce-awq:/models/qwen2.5-7b:ro
+      - E:/models/qwen2.5-7b-ecommerce-merged:/models/qwen2.5-7b:ro
       - ./hf_cache:/root/.cache/huggingface
     command: >
       --model /models/qwen2.5-7b
-      --quantization awq
       --max-model-len 4096
       --gpu-memory-utilization 0.85
       --max-num-seqs 8
@@ -82,8 +80,8 @@ services:
       retries: 3
       start_period: 60s
 
-  # 基础模型实例（降级备用）
-  vllm-qwen2.5-7b-base:
+  # AWQ INT4 量化实例（显存受限时 fallback）
+  vllm-qwen-base:
     image: vllm/vllm-openai:latest
     container_name: qwen2.5-7b-base
     runtime: nvidia
@@ -91,7 +89,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - CUDA_VISIBLE_DEVICES=0
     volumes:
-      - ./models/qwen2.5-7b-base-awq:/models/qwen2.5-7b-base:ro
+      - E:/models/qwen2.5-7b-ecommerce-awq-v3:/models/qwen2.5-7b-base:ro
     command: >
       --model /models/qwen2.5-7b-base
       --quantization awq

@@ -96,7 +96,7 @@ def main():
             pass
 
     adapter_path = os.getenv("ADAPTER_PATH", "./output/qwen2.5-7b-orpo-ecommerce-v1/adapter")
-    base_model_path = os.getenv("BASE_MODEL", "./models/qwen/Qwen2.5-7B")
+    base_model_path = os.getenv("BASE_MODEL", "E:/models/qwen/Qwen2.5-7B")
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     print(f"[Eval] Adapter: {adapter_path}")

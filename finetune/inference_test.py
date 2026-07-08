@@ -63,7 +63,7 @@ def main():
             pass
 
     adapter_path = os.getenv("ADAPTER_PATH", "./output/qwen2.5-7b-orpo-ecommerce-v1/adapter")
-    base_model_path = os.getenv("BASE_MODEL", "./models/qwen/Qwen2.5-7B")
+    base_model_path = os.getenv("BASE_MODEL", "E:/models/qwen/Qwen2.5-7B")
 
     print(f"[Test] Loading models...")
     tokenizer, base_model, tuned_model = load_model(adapter_path, base_model_path)

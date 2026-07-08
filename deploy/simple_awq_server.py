@@ -31,7 +31,7 @@ app = Flask(__name__)
 
 # --------------------------- 配置 ---------------------------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_PATH = os.getenv("AWQ_MODEL_PATH", "models/qwen2.5-7b-ecommerce-awq-v3")
+MODEL_PATH = os.getenv("AWQ_MODEL_PATH", "E:/models/qwen2.5-7b-ecommerce-awq-v3")
 MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", "4096"))
 PORT = int(os.getenv("SERVER_PORT", "8000"))
 

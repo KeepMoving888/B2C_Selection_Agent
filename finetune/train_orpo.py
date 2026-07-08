@@ -68,12 +68,13 @@ def _resolve_model_path(config: "FineTuneConfig") -> str:
     """
     解析基座模型路径，优先顺序：
       1. 若 config.base_model 指向已存在的本地目录，直接使用
-      2. 检查项目本地缓存 ./models/qwen/Qwen2.5-7B
-      3. 尝试通过 ModelScope 下载（国内网络更快）
-      4. 回退到原始标识符，让 transformers 从 HuggingFace 拉取
+      2. 检查 E 盘本地模型仓库 E:/models/qwen/Qwen2.5-7B
+      3. 检查项目历史本地缓存 ./models/qwen/Qwen2.5-7B（向后兼容）
+      4. 回退到原始标识符，由 transformers 从 HuggingFace / ModelScope 拉取
     """
     candidates = [
         config.base_model,
+        "E:/models/qwen/Qwen2.5-7B",
         "./models/qwen/Qwen2.5-7B",
     ]
     for cand in candidates:
@@ -81,18 +82,7 @@ def _resolve_model_path(config: "FineTuneConfig") -> str:
             print(f"[Model] Using local path: {cand}")
             return cand
 
-    # 本地不存在且原始标识符为 Qwen/Qwen2.5-7B 时，尝试 ModelScope
-    if config.base_model in ("Qwen/Qwen2.5-7B", "qwen/Qwen2.5-7B"):
-        try:
-            from modelscope import snapshot_download
-            print("[Model] Local model not found, downloading via ModelScope...")
-            local_path = snapshot_download("qwen/Qwen2.5-7B", cache_dir="./models")
-            print(f"[Model] Downloaded to: {local_path}")
-            return local_path
-        except Exception as e:
-            print(f"[Model] ModelScope download failed ({e}), fallback to HF Hub.")
-
-    print(f"[Model] Using HF Hub identifier: {config.base_model}")
+    print(f"[Model] Local model not found, using HF/ModelScope identifier: {config.base_model}")
     return config.base_model
 
 

@@ -18,14 +18,21 @@ llm:
     retry_backoff: "exponential"
 
   qwen_local:
-    model_path: "./models/qwen2.5-7b-ecommerce-awq"
+    model_path: "E:/models/qwen2.5-7b-ecommerce-merged"
     vllm_endpoint: "http://localhost:8000/v1"
     max_tokens: 2048
     temperature: 0.0
     timeout_seconds: 30
 
+  qwen_local_awq:
+    model_path: "E:/models/qwen2.5-7b-ecommerce-awq-v3"
+    vllm_endpoint: "http://localhost:8001/v1"
+    max_tokens: 2048
+    temperature: 0.0
+    timeout_seconds: 30
+
   qwen_base:
-    model_path: "./models/qwen2.5-7b-base-awq"
+    model_path: "E:/models/qwen2.5-7b-ecommerce-awq-v3"
     vllm_endpoint: "http://localhost:8001/v1"
 
 # ── Agent 配置 ────────────────────────────────────────

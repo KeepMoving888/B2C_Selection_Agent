@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # 领域微调模型（主推理实例）
+  # 领域微调合并模型（主推理实例，优先使用 FP16）
   vllm-qwen-ecommerce:
     image: vllm/vllm-openai:latest
     container_name: qwen2.5-7b-ecommerce
@@ -10,11 +10,10 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - CUDA_VISIBLE_DEVICES=0
     volumes:
-      - ../models/qwen2.5-7b-ecommerce-awq:/models/qwen2.5-7b:ro
+      - E:/models/qwen2.5-7b-ecommerce-merged:/models/qwen2.5-7b:ro
       - ../hf_cache:/root/.cache/huggingface
     command: >
       --model /models/qwen2.5-7b
-      --quantization awq
       --max-model-len 4096
       --gpu-memory-utilization 0.85
       --max-num-seqs 8
@@ -30,7 +29,7 @@ services:
       retries: 3
       start_period: 60s
 
-  # 基础模型实例（降级备用）
+  # AWQ INT4 量化实例（显存受限时 fallback）
   vllm-qwen-base:
     image: vllm/vllm-openai:latest
     container_name: qwen2.5-7b-base
@@ -39,7 +38,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - CUDA_VISIBLE_DEVICES=0
     volumes:
-      - ../models/qwen2.5-7b-base-awq:/models/qwen2.5-7b-base:ro
+      - E:/models/qwen2.5-7b-ecommerce-awq-v3:/models/qwen2.5-7b-base:ro
       - ../hf_cache:/root/.cache/huggingface
     command: >
       --model /models/qwen2.5-7b-base

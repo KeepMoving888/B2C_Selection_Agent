@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
 """
-deploy/benchmark_awq_server.py
-==============================
-对 deploy/simple_awq_server.py 进行压测与吞吐测试。
+deploy/benchmark_vllm_wsl.py
+============================
+在 WSL2 中启动的 vLLM 服务上进行真实选品请求压测。
 
 测试维度：
-  1. 单请求延迟（TTFT / 总延迟 / tokens/s）
-  2. 不同并发下的 throughput（req/s）与平均延迟
-  3. 真实选品请求成功率
+  - 单请求延迟（5 次重复）
+  - 并发吞吐（1/2/4/8/12/16）
+  - 多 batch 吞吐（1/2/4/8/16）
+  - 最大可支撑并行量（逐步加压直到失败或超时）
 
 输出：
-  - output/vllm_benchmark/benchmark_results.json
-  - output/vllm_benchmark/*.png 对比图
-
-用法：
-    # 先启动服务
-    python deploy/simple_awq_server.py
-
-    # 再运行压测
-    python deploy/benchmark_awq_server.py
+  - output/vllm_wsl_benchmark/benchmark_results.json
+  - output/vllm_wsl_benchmark/*.png
 """
 
 import json
@@ -27,22 +21,17 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import requests
 
-plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "Arial Unicode MS"]
-plt.rcParams["axes.unicode_minus"] = False
-
-BASE_URL = "http://127.0.0.1:8000"
-CHAT_URL = f"{BASE_URL}/v1/chat/completions"
-HEALTH_URL = f"{BASE_URL}/health"
-
-OUTPUT_DIR = Path("output/vllm_benchmark")
+BASE_URL = "http://127.0.0.1:8002"
+OUTPUT_DIR = Path("output/vllm_wsl_benchmark")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# --------------------------- 真实选品 prompt ---------------------------
 REAL_PROMPTS = [
-    "请分析跨境电商平台 dog chew toys 类目的市场机会、竞品卖点与主要风险。",
+    "分析跨境电商平台 dog chew toys 类目的市场机会、竞品卖点与主要风险。",
     "对比 yoga mat 在亚马逊美国站的价格带、评论痛点与供应链集中度。",
     "评估 portable blender 在 TikTok Shop 的爆款潜力，给出定价与卖点建议。",
     "分析 cat water fountain 的季节性趋势、退货原因与头部供应商分布。",
@@ -50,64 +39,65 @@ REAL_PROMPTS = [
 ]
 
 
-def wait_for_server(timeout: int = 120):
-    print("[Bench] Waiting for server ...", flush=True)
+def send_request(prompt: str, max_tokens: int = 256) -> dict:
     start = time.time()
-    while time.time() - start < timeout:
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/v1/chat/completions",
+            json={
+                "model": "/home/b2cuser/models/qwen2.5-7b-ecommerce-awq-v3",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": 0.7,
+                "top_p": 0.9,
+            },
+            timeout=300,
+        )
+        latency = time.time() - start
+        data = resp.json()
+        if resp.status_code == 200:
+            choice = data.get("choices", [{}])[0]
+            content = choice.get("message", {}).get("content", "")
+            usage = data.get("usage", {})
+            completion_tokens = usage.get("completion_tokens", 0)
+            return {
+                "status": "success",
+                "latency_s": round(latency, 3),
+                "completion_tokens": completion_tokens,
+                "tokens_per_sec": round(completion_tokens / latency, 1) if latency > 0 else 0,
+                "content_preview": content[:80],
+            }
+        else:
+            return {"status": "error", "latency_s": round(latency, 3), "error": data}
+    except Exception as e:
+        return {"status": "error", "latency_s": round(time.time() - start, 3), "error": str(e)}
+
+
+def wait_for_server(timeout: int = 60):
+    print("[Bench] Waiting for vLLM server ...", flush=True)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
         try:
-            r = requests.get(HEALTH_URL, timeout=2)
+            r = requests.get(f"{BASE_URL}/v1/models", timeout=5)
             if r.status_code == 200:
-                print(f"[Bench] Server ready: {r.json()}", flush=True)
-                return True
+                print("[Bench] Server ready.", flush=True)
+                return
         except Exception:
             pass
         time.sleep(1)
-    raise RuntimeError("Server not available")
-
-
-def send_request(prompt: str, max_tokens: int = 256) -> dict:
-    payload = {
-        "model": "awq-qwen2.5-7b-ecommerce",
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
-        "temperature": 0.7,
-        "top_p": 0.9,
-    }
-    start = time.time()
-    try:
-        r = requests.post(CHAT_URL, json=payload, timeout=120)
-        latency = time.time() - start
-        if r.status_code == 200:
-            data = r.json()
-            return {
-                "status": "success",
-                "latency_s": latency,
-                "prompt_tokens": data["usage"]["prompt_tokens"],
-                "completion_tokens": data["usage"]["completion_tokens"],
-                "total_tokens": data["usage"]["total_tokens"],
-            }
-        else:
-            return {"status": "error", "latency_s": latency, "error": r.text}
-    except Exception as e:
-        return {"status": "error", "latency_s": time.time() - start, "error": str(e)}
+    raise RuntimeError("Server not ready")
 
 
 def run_single_latency_test(repeats: int = 5) -> dict:
-    print(f"\n[Bench] Single-request latency test (repeats={repeats})", flush=True)
+    print(f"\n[Bench] Single request latency test: {repeats} repeats", flush=True)
     latencies = []
     tokens_per_sec = []
     for i in range(repeats):
-        res = send_request(REAL_PROMPTS[i % len(REAL_PROMPTS)], max_tokens=256)
-        if res["status"] == "success":
-            latencies.append(res["latency_s"])
-            if res["completion_tokens"] > 0:
-                tokens_per_sec.append(res["completion_tokens"] / res["latency_s"])
-            print(f"  Run {i+1}: latency={res['latency_s']:.3f}s, "
-                  f"output_tokens={res['completion_tokens']}, "
-                  f"tokens/s={res['completion_tokens']/res['latency_s']:.1f}", flush=True)
-        else:
-            print(f"  Run {i+1}: ERROR {res.get('error')}", flush=True)
-
+        r = send_request(REAL_PROMPTS[i % len(REAL_PROMPTS)], 256)
+        print(f"  Repeat {i+1}: {r['status']}, latency={r['latency_s']}s, tokens/s={r.get('tokens_per_sec')}", flush=True)
+        if r["status"] == "success":
+            latencies.append(r["latency_s"])
+            tokens_per_sec.append(r["tokens_per_sec"])
     return {
         "avg_latency_s": round(statistics.mean(latencies), 3) if latencies else None,
         "min_latency_s": round(min(latencies), 3) if latencies else None,
@@ -116,7 +106,7 @@ def run_single_latency_test(repeats: int = 5) -> dict:
     }
 
 
-def run_concurrency_test(concurrency_levels: list = [1, 2, 4, 8]) -> list:
+def run_concurrency_test(concurrency_levels: list = [1, 2, 4, 8, 12, 16]) -> list:
     print(f"\n[Bench] Concurrency throughput test: {concurrency_levels}", flush=True)
     results = []
     for conc in concurrency_levels:
@@ -152,11 +142,14 @@ def run_concurrency_test(concurrency_levels: list = [1, 2, 4, 8]) -> list:
               f"success_rate={result['success_rate']}%, "
               f"throughput={result['throughput_req_per_s']} req/s, "
               f"avg_latency={result['avg_latency_s']}s", flush=True)
+        # 如果成功率低于 80%，停止继续加压
+        if success_rate < 0.8:
+            print(f"    [STOP] success rate below 80% at concurrency={conc}", flush=True)
+            break
     return results
 
 
-def run_batch_throughput_test(batch_sizes: list = [1, 2, 4, 8]) -> list:
-    """多 batch 吞吐测试：模拟一次性提交 N 个选品请求的作业场景。"""
+def run_batch_throughput_test(batch_sizes: list = [1, 2, 4, 8, 16]) -> list:
     print(f"\n[Bench] Multi-batch throughput test: {batch_sizes}", flush=True)
     results = []
     for batch_size in batch_sizes:
@@ -175,13 +168,11 @@ def run_batch_throughput_test(batch_sizes: list = [1, 2, 4, 8]) -> list:
         latencies = [r["latency_s"] for r in success]
         total_output_tokens = sum(r["completion_tokens"] for r in success)
 
-        # 并行收益分析：
-        # ideal_serial_time = 单条平均延迟 * batch_size（完全串行所需时间）
-        # speedup_vs_serial = ideal_serial_time / total_time；>1 表示并发更快，<1 表示并发更慢
         single_avg_lat = statistics.mean(latencies) if latencies else 0
-        ideal_serial_time = single_avg_lat * batch_size
-        speedup_vs_serial = round(ideal_serial_time / total_time, 2) if total_time > 0 else 0.0
-        contention_factor = round(single_avg_lat / latencies[0] if latencies else 1.0, 2)
+        baseline_single = results[0]["avg_latency_s"] if results else single_avg_lat
+        ideal_vs_single = baseline_single * batch_size
+        speedup_vs_baseline_single = round(ideal_vs_single / total_time, 2) if total_time > 0 else 0.0
+        contention_factor = round(single_avg_lat / baseline_single, 2) if baseline_single > 0 else 1.0
 
         result = {
             "batch_size": batch_size,
@@ -194,8 +185,7 @@ def run_batch_throughput_test(batch_sizes: list = [1, 2, 4, 8]) -> list:
             "avg_latency_s": round(single_avg_lat, 3) if latencies else None,
             "p50_latency_s": round(statistics.median(latencies), 3) if latencies else None,
             "p95_latency_s": round(sorted(latencies)[int(len(latencies) * 0.95)] if len(latencies) > 1 else latencies[0], 3) if latencies else None,
-            "ideal_serial_time_s": round(ideal_serial_time, 3),
-            "speedup_vs_serial": speedup_vs_serial,
+            "speedup_vs_baseline_single": speedup_vs_baseline_single,
             "contention_factor": contention_factor,
         }
         results.append(result)
@@ -203,8 +193,40 @@ def run_batch_throughput_test(batch_sizes: list = [1, 2, 4, 8]) -> list:
               f"success_rate={result['success_rate']}%, "
               f"throughput={result['throughput_req_per_s']} req/s, "
               f"avg_latency={result['avg_latency_s']}s, "
-              f"speedup_vs_serial={speedup_vs_serial}x", flush=True)
+              f"speedup_vs_baseline_single={speedup_vs_baseline_single}x", flush=True)
+        if success_rate < 0.8:
+            print(f"    [STOP] success rate below 80% at batch_size={batch_size}", flush=True)
+            break
     return results
+
+
+def run_max_concurrency_test() -> dict:
+    """逐步加压，找到 vLLM 在 current config 下的最大稳定并发量。"""
+    print("\n[Bench] Max concurrency stress test", flush=True)
+    for conc in [8, 12, 16, 24, 32, 48, 64]:
+        print(f"\n  Stress concurrency={conc}", flush=True)
+        prompts = [REAL_PROMPTS[i % len(REAL_PROMPTS)] for i in range(conc)]
+        start = time.time()
+        responses = []
+        with ThreadPoolExecutor(max_workers=conc) as executor:
+            futures = [executor.submit(send_request, p, 256) for p in prompts]
+            for fut in as_completed(futures):
+                responses.append(fut.result())
+        total_time = time.time() - start
+        success = [r for r in responses if r["status"] == "success"]
+        success_rate = len(success) / len(responses) if responses else 0
+        print(f"    success={len(success)}/{len(prompts)}, rate={success_rate*100:.1f}%, time={total_time:.2f}s", flush=True)
+        if success_rate < 0.95:
+            return {
+                "max_stable_concurrency": conc - 8 if conc > 8 else 0,
+                "failure_concurrency": conc,
+                "failure_success_rate": round(success_rate * 100, 1),
+            }
+    return {
+        "max_stable_concurrency": 64,
+        "failure_concurrency": None,
+        "failure_success_rate": None,
+    }
 
 
 def save_charts(single: dict, concurrency: list, batch: list):
@@ -218,9 +240,9 @@ def save_charts(single: dict, concurrency: list, batch: list):
     plt.plot(concs, throughputs, marker="o", linewidth=2, color="#3b82f6")
     for x, y in zip(concs, throughputs):
         plt.text(x, y, f"{y:.2f}", ha="center", va="bottom", fontsize=10)
-    plt.xlabel("并发数", fontsize=12)
+    plt.xlabel("Concurrency", fontsize=12)
     plt.ylabel("Throughput (req/s)", fontsize=12)
-    plt.title("AWQ 服务并发请求吞吐", fontsize=14, fontweight="bold")
+    plt.title("vLLM WSL Concurrency Throughput", fontsize=14, fontweight="bold")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "01_concurrency_throughput.png", dpi=150)
@@ -231,9 +253,9 @@ def save_charts(single: dict, concurrency: list, batch: list):
     plt.plot(concs, avg_lats, marker="s", linewidth=2, color="#ef4444")
     for x, y in zip(concs, avg_lats):
         plt.text(x, y, f"{y:.2f}s", ha="center", va="bottom", fontsize=10)
-    plt.xlabel("并发数", fontsize=12)
-    plt.ylabel("平均延迟 (s)", fontsize=12)
-    plt.title("AWQ 服务平均延迟随并发变化", fontsize=14, fontweight="bold")
+    plt.xlabel("Concurrency", fontsize=12)
+    plt.ylabel("Avg Latency (s)", fontsize=12)
+    plt.title("vLLM WSL Avg Latency by Concurrency", fontsize=14, fontweight="bold")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "02_concurrency_latency.png", dpi=150)
@@ -244,14 +266,14 @@ def save_charts(single: dict, concurrency: list, batch: list):
     plt.bar(concs, token_throughputs, color="#16a34a")
     for x, y in zip(concs, token_throughputs):
         plt.text(x, y, f"{y:.1f}", ha="center", va="bottom", fontsize=10)
-    plt.xlabel("并发数", fontsize=12)
+    plt.xlabel("Concurrency", fontsize=12)
     plt.ylabel("Token Throughput (tokens/s)", fontsize=12)
-    plt.title("AWQ 服务 Token 吞吐", fontsize=14, fontweight="bold")
+    plt.title("vLLM WSL Token Throughput", fontsize=14, fontweight="bold")
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "03_concurrency_token_throughput.png", dpi=150)
     plt.close()
 
-    # 4. 单请求延迟仪表盘
+    # 4. 单请求延迟
     fig, ax = plt.subplots(figsize=(6, 4))
     metrics = ["avg_latency_s", "min_latency_s", "max_latency_s"]
     labels = ["avg", "min", "max"]
@@ -266,54 +288,72 @@ def save_charts(single: dict, concurrency: list, batch: list):
     plt.savefig(OUTPUT_DIR / "04_single_request_latency.png", dpi=150)
     plt.close()
 
-    # 5. 多 batch 吞吐与延迟
-    batch_sizes = [r["batch_size"] for r in batch]
-    batch_throughputs = [r["throughput_req_per_s"] for r in batch]
-    batch_avg_lats = [r["avg_latency_s"] for r in batch]
-    batch_efficiency = [r["parallel_efficiency"] for r in batch]
+    # 5. batch 吞吐 vs 延迟
+    if batch:
+        batch_sizes = [r["batch_size"] for r in batch]
+        batch_throughputs = [r["throughput_req_per_s"] for r in batch]
+        batch_avg_lats = [r["avg_latency_s"] for r in batch]
 
-    fig, ax1 = plt.subplots(figsize=(8, 5))
-    color = "#3b82f6"
-    ax1.set_xlabel("Batch Size", fontsize=12)
-    ax1.set_ylabel("Throughput (req/s)", color=color, fontsize=12)
-    ax1.plot(batch_sizes, batch_throughputs, marker="o", linewidth=2, color=color)
-    for x, y in zip(batch_sizes, batch_throughputs):
-        ax1.text(x, y, f"{y:.2f}", ha="center", va="bottom", fontsize=10, color=color)
-    ax1.tick_params(axis="y", labelcolor=color)
+        fig, ax1 = plt.subplots(figsize=(8, 5))
+        color = "#3b82f6"
+        ax1.set_xlabel("Batch Size", fontsize=12)
+        ax1.set_ylabel("Throughput (req/s)", color=color, fontsize=12)
+        ax1.plot(batch_sizes, batch_throughputs, marker="o", linewidth=2, color=color)
+        for x, y in zip(batch_sizes, batch_throughputs):
+            ax1.text(x, y, f"{y:.2f}", ha="center", va="bottom", fontsize=10, color=color)
+        ax1.tick_params(axis="y", labelcolor=color)
 
-    ax2 = ax1.twinx()
-    color = "#ef4444"
-    ax2.set_ylabel("Avg Latency (s)", color=color, fontsize=12)
-    ax2.plot(batch_sizes, batch_avg_lats, marker="s", linewidth=2, color=color, linestyle="--")
-    for x, y in zip(batch_sizes, batch_avg_lats):
-        ax2.text(x, y, f"{y:.1f}s", ha="center", va="top", fontsize=10, color=color)
-    ax2.tick_params(axis="y", labelcolor=color)
+        ax2 = ax1.twinx()
+        color = "#ef4444"
+        ax2.set_ylabel("Avg Latency (s)", color=color, fontsize=12)
+        ax2.plot(batch_sizes, batch_avg_lats, marker="s", linewidth=2, color=color, linestyle="--")
+        for x, y in zip(batch_sizes, batch_avg_lats):
+            ax2.text(x, y, f"{y:.2f}s", ha="center", va="top", fontsize=10, color=color)
+        ax2.tick_params(axis="y", labelcolor=color)
 
-    plt.title("Multi-Batch Throughput vs Latency", fontsize=14, fontweight="bold")
-    fig.tight_layout()
-    plt.savefig(OUTPUT_DIR / "07_batch_throughput_latency.png", dpi=150)
-    plt.close()
+        plt.title("vLLM WSL Multi-Batch Throughput vs Latency", fontsize=14, fontweight="bold")
+        fig.tight_layout()
+        plt.savefig(OUTPUT_DIR / "05_batch_throughput_latency.png", dpi=150)
+        plt.close()
 
-    # 6. 并行效率
-    plt.figure(figsize=(8, 5))
-    plt.bar(batch_sizes, batch_efficiency, color="#8b5cf6")
-    for x, y in zip(batch_sizes, batch_efficiency):
-        plt.text(x, y, f"{y:.1f}%", ha="center", va="bottom", fontsize=10)
-    plt.xlabel("Batch Size", fontsize=12)
-    plt.ylabel("Parallel Efficiency (%)", fontsize=12)
-    plt.title("Batch Parallel Efficiency (Ideal Linear Speedup = 100%)", fontsize=14, fontweight="bold")
-    plt.ylim(0, 110)
-    plt.axhline(100, color="gray", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / "08_batch_parallel_efficiency.png", dpi=150)
-    plt.close()
+    # 6. batch speedup vs baseline single
+    if batch:
+        batch_sizes = [r["batch_size"] for r in batch]
+        speedups = [r["speedup_vs_baseline_single"] for r in batch]
+        contentions = [r["contention_factor"] for r in batch]
+
+        fig, ax1 = plt.subplots(figsize=(8, 5))
+        color = "#8b5cf6"
+        ax1.set_xlabel("Batch Size", fontsize=12)
+        ax1.set_ylabel("Speedup vs Baseline Single", color=color, fontsize=12)
+        bars = ax1.bar(batch_sizes, speedups, color=color, alpha=0.8)
+        for bar, val in zip(bars, speedups):
+            ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.2f}x", ha="center", va="bottom", fontsize=10)
+        ax1.axhline(1.0, color="gray", linestyle="--", alpha=0.5, label="break-even")
+        ax1.tick_params(axis="y", labelcolor=color)
+        ax1.set_ylim(0, max(speedups + [1.2]))
+
+        ax2 = ax1.twinx()
+        color = "#f59e0b"
+        ax2.set_ylabel("Latency Contention Factor", color=color, fontsize=12)
+        ax2.plot(batch_sizes, contentions, marker="o", linewidth=2, color=color)
+        for x, y in zip(batch_sizes, contentions):
+            ax2.text(x, y, f"{y:.1f}x", ha="center", va="bottom", fontsize=10, color=color)
+        ax2.tick_params(axis="y", labelcolor=color)
+
+        plt.title("vLLM WSL Batch Speedup & Contention", fontsize=14, fontweight="bold")
+        fig.tight_layout()
+        plt.savefig(OUTPUT_DIR / "06_batch_speedup.png", dpi=150)
+        plt.close()
 
 
 def main():
     wait_for_server()
     single_result = run_single_latency_test(repeats=5)
-    concurrency_results = run_concurrency_test(concurrency_levels=[1, 2, 4, 8])
-    batch_results = run_batch_throughput_test(batch_sizes=[1, 2, 4, 8])
+    concurrency_results = run_concurrency_test(concurrency_levels=[1, 2, 4, 8, 12, 16])
+    batch_results = run_batch_throughput_test(batch_sizes=[1, 2, 4, 8, 16])
+    max_concurrency_result = run_max_concurrency_test()
 
     results = {
         "test_time": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -321,6 +361,7 @@ def main():
         "single_request": single_result,
         "concurrency": concurrency_results,
         "batch": batch_results,
+        "max_concurrency": max_concurrency_result,
     }
     results_path = OUTPUT_DIR / "benchmark_results.json"
     with open(results_path, "w", encoding="utf-8") as f:

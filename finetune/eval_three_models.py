@@ -47,22 +47,14 @@ def compute_logprob(model, tokenizer, text: str, device: str = "cuda") -> float:
     return outputs.loss.item()
 
 
-def _ensure_awq_model(quant_model_path: str, modelscope_id: str = "Qwen/Qwen2.5-7B-Instruct-AWQ"):
-    """若本地 AWQ 模型不存在，从 ModelScope 魔塔下载官方 AWQ 作为参考。"""
+def _ensure_awq_model(quant_model_path: str):
+    """检查本地 AWQ 模型是否存在；仅使用本地路径，不再重复下载。"""
     local_path = Path(quant_model_path)
     if local_path.exists():
         return str(local_path)
 
     print(f"[AWQ] 本地模型不存在: {quant_model_path}")
-    print(f"[AWQ] 尝试从 ModelScope 下载: {modelscope_id}")
-    try:
-        from modelscope import snapshot_download
-        downloaded = snapshot_download(modelscope_id, cache_dir=str(local_path.parent))
-        print(f"[AWQ] 下载完成: {downloaded}")
-        return downloaded
-    except Exception as e:
-        print(f"[AWQ] ModelScope 下载失败: {e}")
-        return None
+    return None
 
 
 def evaluate_model(model_path: str, test_data: list, device: str = "cuda",
@@ -144,9 +136,9 @@ def main():
         except ImportError:
             pass
 
-    base_model = os.getenv("BASE_MODEL", "./models/qwen/Qwen2.5-7B")
-    merged_model = os.getenv("MERGED_MODEL", "./models/qwen2.5-7b-ecommerce-merged")
-    quant_model = os.getenv("QUANT_MODEL", "./models/qwen2.5-7b-ecommerce-awq")
+    base_model = os.getenv("BASE_MODEL", "E:/models/qwen/Qwen2.5-7B")
+    merged_model = os.getenv("MERGED_MODEL", "E:/models/qwen2.5-7b-ecommerce-merged")
+    quant_model = os.getenv("QUANT_MODEL", "E:/models/qwen2.5-7b-ecommerce-awq-v3")
     test_data_path = os.getenv("ORPO_TEST_DATA", "./finetune/data/orpo_test.jsonl")
     device = "cuda" if torch.cuda.is_available() else "cpu"
 

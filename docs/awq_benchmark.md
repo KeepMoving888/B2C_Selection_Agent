@@ -27,7 +27,7 @@
 | Merged（QLoRA 合并后） | FP16 | 100% | 1.6610 | +74.1% | — |
 | AWQ INT4（官方参考 AWQ） | INT4 | 100% | 1.1421 | +19.7% | -31.2% |
 
-> 注：当前 AWQ 行评测的是 Qwen/Qwen2.5-7B-Instruct-AWQ 官方量化模型。若本地已导出 `qwen2.5-7b-ecommerce-awq`，运行 `finetune/eval_three_models.py` 后会自动替换为实际部署模型指标。
+> 注：当前 AWQ 行评测的是 Qwen/Qwen2.5-7B-Instruct-AWQ 官方量化模型。若本地已导出 `qwen2.5-7b-ecommerce-awq-v3`，运行 `finetune/eval_three_models.py` 后会自动替换为实际部署模型指标。
 
 ## 关键结论
 
@@ -43,17 +43,16 @@
 ```bash
 # 1. 合并 LoRA adapter
 python finetune/export_for_vllm.py \
-    --base_model ./models/qwen/Qwen2.5-7B \
-    --adapter ./output/qwen2.5-7b-orpo-ecommerce-v1/adapter \
-    --output ./models/qwen2.5-7b-ecommerce-merged \
+    --base_model E:/models/qwen/Qwen2.5-7B \
+    --adapter E:/models/qwen2.5-7b-orpo-adapter \
+    --output E:/models/qwen2.5-7b-ecommerce-merged \
     --quantize awq --bits 4
 
 # 2. 三模型对比评测
 python finetune/eval_three_models.py
 
-# 3. 启动 vLLM 服务
-vllm serve ./models/qwen2.5-7b-ecommerce-merged-awq \
-    --quantization awq \
+# 3. 启动 vLLM 服务（优先使用 FP16 合并模型；显存受限时可改用 AWQ INT4）
+vllm serve E:/models/qwen2.5-7b-ecommerce-merged \
     --max-model-len 4096 \
     --gpu-memory-utilization 0.85
 ```
