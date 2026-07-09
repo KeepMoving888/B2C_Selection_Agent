@@ -34,6 +34,13 @@ python-dotenv>=1.0.0     # auto load .env
 prometheus-client>=0.20.0
 # wandb>=0.17.0
 
+# -- SaaS API dependencies --
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.9
+pydantic-settings>=2.1.0
+
 # -- frontend dependencies (optional) --
 streamlit>=1.40.0
 plotly>=5.20.0

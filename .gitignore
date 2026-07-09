@@ -76,6 +76,7 @@ logs/
 
 # ── 历史报告产物（保留示例，其余运行残留排除）──
 output/*.json
+output/execution_summary*.md
 !output/.gitkeep
 !output/qwen2.5-7b-orpo-ecommerce-v1/
 
