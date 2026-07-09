@@ -29,12 +29,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Scan secrets with TruffleHog
+      - name: Scan secrets with TruffleHog (PR)
+        if: github.event_name == 'pull_request'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event_name == 'pull_request' && 'main' || github.event.before }}
-          head: ${{ github.sha }}
+          base: main
+          head: HEAD
+          extra_args: --only-verified
+
+      - name: Scan secrets with TruffleHog (Push)
+        if: github.event_name == 'push'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
           extra_args: --only-verified
 
       - name: Check commit messages for sensitive words
