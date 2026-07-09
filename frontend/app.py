@@ -609,7 +609,7 @@ def inject_custom_css():
             line-height: 1.1;
         }
 
-        /* 利润优化模拟器卡片 */
+        /* 利润优化分析卡片 */
         .simulator-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -2487,12 +2487,12 @@ def render_profit_analysis(report: Dict):
                 unsafe_allow_html=True,
             )
 
-    # 利润优化模拟器 + 关键假设
+    # 利润优化分析 + 关键假设
     st.markdown("<br>", unsafe_allow_html=True)
     sim_col, assumption_col = st.columns([3, 2])
 
     with sim_col:
-        st.markdown("<div class='info-card-title'>利润优化模拟器</div>", unsafe_allow_html=True)
+        st.markdown("<div class='info-card-title'>利润优化分析</div>", unsafe_allow_html=True)
         prod_cost = breakdown.get("产品成本", 0)
         ad_cost = breakdown.get("广告费用", 0)
         fba_cost = breakdown.get("FBA 费用", 0)
