@@ -114,7 +114,7 @@ AWQ 量化脚本与完整复现见 [`finetune/quantize_awq_with_metrics.py`](fin
 项目提供自动校验脚本，检查 `E:/models/` 下所有关键模型的 shard 文件、元数据文件与总大小是否异常：
 
 ```bash
-python deploy/verify_model_integrity.py
+python scripts/verify_model_integrity.py
 ```
 
 校验结果会输出到 `output/model_integrity/integrity_report.md` 与 `01_model_size_integrity.png`。
@@ -271,7 +271,7 @@ vllm serve E:/models/qwen2.5-7b-ecommerce-awq-v3 --quantization awq --max-model-
 
 #### 1.1 重新校验结果
 
-运行 `python deploy/verify_model_integrity.py` 后，`E:/models/` 下关键模型全部通过完整性校验：
+运行 `python scripts/verify_model_integrity.py` 后，`E:/models/` 下关键模型全部通过完整性校验：
 
 | 模型 | 路径 | 总大小 | 状态 |
 |------|------|--------|------|

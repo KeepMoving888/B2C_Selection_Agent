@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-deploy/verify_model_integrity.py
-==============================
+scripts/verify_model_integrity.py
+=================================
 校验 E:\models 中关键模型文件的完整性。
 
 检查项：
