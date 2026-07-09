@@ -474,6 +474,189 @@ def inject_custom_css():
             font-size: 13px;
             line-height: 1.75;
         }
+
+        /* 利润测算页：单件成本明细 */
+        .cost-breakdown-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 4px 14px rgba(15,23,42,0.05);
+        }
+        .cost-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid #bfdbfe;
+            border-radius: 14px;
+        }
+        .cost-total-label {
+            font-size: 13px;
+            font-weight: 800;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .cost-total-value {
+            font-size: 32px;
+            font-weight: 900;
+            color: #1e3a8a;
+            line-height: 1;
+        }
+        .cost-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.18s ease, border-radius 0.18s ease;
+            border-radius: 0;
+        }
+        .cost-row:last-child { border-bottom: none; }
+        .cost-row:hover {
+            background-color: #f8fafc;
+            border-radius: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin-left: -10px;
+            margin-right: -10px;
+        }
+        .cost-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.8), 0 2px 5px rgba(0,0,0,0.08);
+        }
+        .cost-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .cost-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        .cost-bar-wrapper {
+            position: relative;
+            height: 18px;
+            background-color: #e2e8f0;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        .cost-bar-fill {
+            height: 100%;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 11px;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+            white-space: nowrap;
+            transition: width 0.3s ease;
+        }
+        .cost-row:hover .cost-bar-fill { filter: brightness(1.08); }
+        .cost-tooltip {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+            opacity: 0;
+            transform: translateY(-3px);
+            transition: all 0.2s ease;
+        }
+        .cost-row:hover .cost-tooltip {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 关键假设数据卡片 */
+        .assumption-card {
+            flex: 1 1 calc(50% - 8px);
+            min-width: 110px;
+            text-align: center;
+            padding: 16px 10px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(15,23,42,0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .assumption-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(15,23,42,0.07);
+        }
+        .assumption-label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 8px;
+        }
+        .assumption-value {
+            font-size: 19px;
+            font-weight: 900;
+            line-height: 1.1;
+        }
+
+        /* 利润优化模拟器卡片 */
+        .simulator-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 4px 14px rgba(15,23,42,0.05);
+        }
+        .simulator-result {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-top: 18px;
+        }
+
+        /* 加载态 */
+        .loading-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 响应式：小屏幕堆叠 */
+        @media (max-width: 640px) {
+            .cost-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .cost-total-value { font-size: 26px; }
+            .assumption-card { flex: 1 1 100%; }
+            .simulator-grid { grid-template-columns: 1fr !important; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -2022,17 +2205,94 @@ def render_review_insights(report: Dict):
             st.info(opp)
 
 
+# 利润测算页：成本项统一配色
+_COST_COLORS = {
+    "产品成本": "#1e3a8a",  # 深蓝
+    "头程物流": "#06b6d4",  # 青色
+    "FBA 费用": "#f97316",  # 橙色
+    "平台佣金": "#8b5cf6",  # 紫色
+    "广告费用": "#ef4444",  # 红色
+    "退货预留": "#eab308",  # 黄色
+    "其他杂费": "#6b7280",  # 灰色
+}
+
+
+def _cost_color(item: str) -> str:
+    return _COST_COLORS.get(item, "#3b82f6")
+
+
+def _roi_color(roi: float) -> str:
+    if roi < 20:
+        return "#dc2626"
+    if roi < 40:
+        return "#f97316"
+    if roi < 60:
+        return "#eab308"
+    return "#16a34a"
+
+
+def _assumption_risk_color(name: str, value, total: Optional[float] = None) -> str:
+    """根据关键假设的数值返回风险颜色（红/黄/绿）。"""
+    if name in ("平台佣金", "广告占比", "退货预留"):
+        try:
+            pct = float(value)
+        except (TypeError, ValueError):
+            return "#64748b"
+        if pct >= 15:
+            return "#dc2626"
+        if pct >= 10:
+            return "#eab308"
+        return "#16a34a"
+    if name == "FBA 费用":
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return "#64748b"
+        if v >= 5.5:
+            return "#dc2626"
+        if v >= 4.0:
+            return "#eab308"
+        return "#16a34a"
+    if name == "头程物流":
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return "#64748b"
+        if v >= 3.5:
+            return "#dc2626"
+        if v >= 2.5:
+            return "#eab308"
+        return "#16a34a"
+    if name == "盈亏平衡":
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return "#64748b"
+        if v >= 400:
+            return "#dc2626"
+        if v >= 200:
+            return "#eab308"
+        return "#16a34a"
+    return "#2563eb"
+
+
 def _cost_row(item: str, value: float, pct: str, total: float, bar_color: str) -> str:
     width = min(100, max(0, value / total * 100)) if total else 0
+    pct_clean = pct.replace("%", "")
+    try:
+        pct_num = float(pct_clean)
+    except ValueError:
+        pct_num = 0.0
+    text_color = "#ffffff" if width > 18 else bar_color
     return (
-        f'<div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f9;">'
-        f'<div style="width:10px; height:10px; border-radius:50%; background:{bar_color}; flex-shrink:0;"></div>'
-        f'<div style="flex:1; min-width:0;">'
-        f'<div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#0f172a;">'
-        f'<span>{item}</span><span>${value:.2f}</span></div>'
-        f'<div class="big-bar-bg" style="height:8px; margin-top:5px;">'
-        f'<div class="big-bar-fill" style="width:{width}%; background:{bar_color};"></div></div>'
-        f'<div style="font-size:11px; color:#64748b; margin-top:2px;">{pct} 成本占比</div>'
+        f'<div class="cost-row">'
+        f'<div class="cost-dot" style="background:{bar_color};"></div>'
+        f'<div class="cost-info">'
+        f'<div class="cost-meta"><span>{item}</span><span>USD {value:.2f}</span></div>'
+        f'<div class="cost-bar-wrapper">'
+        f'<div class="cost-bar-fill" style="width:{width}%; background:{bar_color}; color:{text_color};">'
+        f'{pct_num:.1f}%</div></div>'
+        f'<div class="cost-tooltip">成本构成：USD {value:.2f} ({pct_num:.1f}%)</div>'
         f'</div></div>'
     )
 
@@ -2067,22 +2327,61 @@ def render_profit_analysis(report: Dict):
     profit = report["profit_analysis"]
     profile = report["market_analysis"]["market_profile"]
 
+    # 基础数据
+    selling_price = profit["selling_price"]
+    unit_cost = profit["unit_cost"]
+    gross_profit = profit["gross_profit_per_unit"]
+    total_cost = profit["total_cost_per_unit"]
+    margin = profit["gross_margin"]
+    breakdown = profit["cost_breakdown"]
+    breakdown_pct = profit["cost_breakdown_pct"]
+    scenarios = profit["roi_scenarios"]
+
+    # 固定投资与 ROI 曲线数据
+    investment = unit_cost * 500 + 2000
+    volumes = list(range(100, 601, 10))
+    roi_values = [v * gross_profit / investment * 100 for v in volumes]
+
+    # 最佳 ROI 情景
+    best_name = max(scenarios, key=lambda k: scenarios[k]["ROI"])
+    best_data = scenarios[best_name]
+    best_action_map = {
+        "保守": "优先降本控风险，验证最小订单模型",
+        "中性": "按中性节奏备货，稳步扩大投放",
+        "乐观": "积极备货并加大广告，抢占旺季窗口",
+    }
+    best_action = best_action_map.get(best_name, "结合市场节奏推进")
+
+    # 顶部总结指标栏
+    st.markdown(
+        f'<div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:1px solid #bfdbfe; '
+        f'border-radius:16px; padding:18px 22px; margin-bottom:22px; display:flex; align-items:center; '
+        f'justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 4px 14px rgba(37,99,235,0.08);">'
+        f'<div>'
+        f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; '
+        f'letter-spacing:0.04em; margin-bottom:5px;">当前最佳 ROI 情景</div>'
+        f'<div style="font-size:22px; font-weight:900; color:#1e40af;">'
+        f'{best_name}情景 · ROI {best_data["ROI"]:.2f}% · 月毛利 USD {best_data["月毛利"]:,.2f}'
+        f'</div></div>'
+        f'<div style="background:#ffffff; border-radius:12px; padding:12px 18px; font-size:14px; '
+        f'font-weight:800; color:#1e40af; box-shadow:0 2px 8px rgba(0,0,0,0.05);">'
+        f'建议操作：{best_action}'
+        f'</div></div>',
+        unsafe_allow_html=True,
+    )
+
     col1, col2 = st.columns([2, 3])
     with col1:
         st.markdown("<div class='info-card-title'>单件成本明细</div>", unsafe_allow_html=True)
-        breakdown = profit["cost_breakdown"]
-        breakdown_pct = profit["cost_breakdown_pct"]
-        total = profit["total_cost_per_unit"]
-        colors = ["#1e40af", "#2563eb", "#3b82f6", "#0891b2", "#7c3aed", "#f59e0b", "#64748b"]
         rows = "".join(
-            _cost_row(item, value, breakdown_pct.get(item, "0%"), total, colors[i % len(colors)])
-            for i, (item, value) in enumerate(breakdown.items())
+            _cost_row(item, value, breakdown_pct.get(item, "0%"), total_cost, _cost_color(item))
+            for item, value in breakdown.items()
         )
         st.markdown(
-            f'<div class="info-card">'
-            f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">'
-            f'<span style="font-size:13px; font-weight:700; color:#64748b;">总成本</span>'
-            f'<span style="font-size:18px; font-weight:800; color:#0f172a;">{profile["currency"]}{total:.2f}</span></div>'
+            f'<div class="cost-breakdown-card">'
+            f'<div class="cost-total-row">'
+            f'<span class="cost-total-label">总成本</span>'
+            f'<span class="cost-total-value">USD {total_cost:.2f}</span></div>'
             f'{rows}'
             f'</div>',
             unsafe_allow_html=True,
@@ -2090,89 +2389,236 @@ def render_profit_analysis(report: Dict):
 
     with col2:
         st.markdown("<div class='info-card-title'>ROI 情景分析</div>", unsafe_allow_html=True)
-        scenario_colors = {
-            "保守": {"border": "#cbd5e1", "bg": "#f1f5f9", "pill": "#475569", "accent": "#64748b", "value": "#334155"},
-            "中性": {"border": "#22d3ee", "bg": "#ecfeff", "pill": "#0891b2", "accent": "#06b6d4", "value": "#0e7490"},
-            "乐观": {"border": "#86efac", "bg": "#f0fdf4", "pill": "#16a34a", "accent": "#22c55e", "value": "#15803d"},
-        }
-        cards = "".join(
-            _scenario_card(name, data, scenario_colors.get(name, {"border": "#e2e8f0", "bg": "#ffffff", "pill": "#334155", "accent": "#334155", "value": "#334155"}), profile["currency"])
-            for name, data in profit["roi_scenarios"].items()
+
+        current_volume = st.slider(
+            "当前月销量",
+            min_value=100,
+            max_value=600,
+            value=300,
+            step=10,
+            key="roi_volume_slider",
         )
+        current_roi = current_volume * gross_profit / investment * 100
+        current_color = _roi_color(current_roi)
+
         st.markdown(
-            f'<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:18px;">'
-            f'{cards}'
+            f'<div style="display:flex; gap:18px; flex-wrap:wrap; margin-bottom:12px;">'
+            f'<div style="flex:1; min-width:140px; background:#ffffff; border:1px solid #e2e8f0; '
+            f'border-radius:12px; padding:12px 16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);">'
+            f'<div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; '
+            f'letter-spacing:0.03em; margin-bottom:4px;">当前月销量</div>'
+            f'<div style="font-size:20px; font-weight:900; color:#0f172a;">{current_volume} 件</div></div>'
+            f'<div style="flex:1; min-width:140px; background:#ffffff; border:1px solid #e2e8f0; '
+            f'border-radius:12px; padding:12px 16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);">'
+            f'<div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; '
+            f'letter-spacing:0.03em; margin-bottom:4px;">当前 ROI</div>'
+            f'<div style="font-size:20px; font-weight:900; color:{current_color};">{current_roi:.2f}%</div></div>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
-        # 利润优化建议与关键假设
-        margin = profit["gross_margin"]
-        breakdown = profit["cost_breakdown"]
-        top_cost = max(breakdown, key=breakdown.get)
-        top_cost_pct = profit["cost_breakdown_pct"].get(top_cost, "0%")
-        tips = []
-        if margin < 0.15:
-            tips.append(f"毛利率仅 <strong>{profit['gross_margin_pct']}</strong>，建议优先压缩<strong>{top_cost}</strong>（占比 {top_cost_pct}）或上调售价 5-10%。")
+        if PLOTLY_AVAILABLE:
+            fig = go.Figure()
+            fig.add_trace(
+                go.Scatter(
+                    x=volumes,
+                    y=roi_values,
+                    mode="lines",
+                    name="ROI 趋势",
+                    line=dict(color="#3b82f6", width=3),
+                    fill="tozeroy",
+                    fillcolor="rgba(59,130,246,0.08)",
+                    hovertemplate="月销量：%{x}<br>ROI：%{y:.2f}%<extra></extra>",
+                )
+            )
+            # 当前滑块位置
+            fig.add_trace(
+                go.Scatter(
+                    x=[current_volume],
+                    y=[current_roi],
+                    mode="markers",
+                    name="当前销量",
+                    marker=dict(size=14, color=current_color, line=dict(color="#ffffff", width=2)),
+                    hovertemplate="当前<br>月销量：%{x}<br>ROI：%{y:.2f}%<extra></extra>",
+                )
+            )
+            # 三个情景关键点
+            scenario_points = {"保守": 100, "中性": 300, "乐观": 600}
+            for s_name, s_vol in scenario_points.items():
+                s_roi = s_vol * gross_profit / investment * 100
+                fig.add_trace(
+                    go.Scatter(
+                        x=[s_vol],
+                        y=[s_roi],
+                        mode="markers+text",
+                        name=f"{s_name}情景",
+                        text=[s_name],
+                        textposition="top center",
+                        textfont=dict(size=11, color="#475569"),
+                        marker=dict(size=10, color=_roi_color(s_roi), line=dict(color="#ffffff", width=2)),
+                        hovertemplate=f"{s_name}情景<br>月销量：%{{x}}<br>ROI：%{{y:.2f}}%<extra></extra>",
+                    )
+                )
+            # ROI 阈值参考线
+            for threshold, t_color, t_label in [(20, "#dc2626", "20%"), (40, "#f97316", "40%"), (60, "#eab308", "60%")]:
+                fig.add_hline(
+                    y=threshold,
+                    line=dict(color=t_color, width=1, dash="dash"),
+                    annotation_text=t_label,
+                    annotation_position="right",
+                    annotation_font=dict(size=10, color=t_color),
+                    opacity=0.6,
+                )
+            fig.update_layout(
+                height=340,
+                margin=dict(l=20, r=50, t=20, b=40),
+                paper_bgcolor="#ffffff",
+                plot_bgcolor="#f8fafc",
+                font=dict(color="#1e293b"),
+                xaxis=dict(gridcolor="#e2e8f0", tickfont=dict(size=12), title="月销量"),
+                yaxis=dict(gridcolor="#e2e8f0", tickfont=dict(size=12), title="ROI %", ticksuffix="%"),
+                showlegend=False,
+                hovermode="x unified",
+            )
+            st.plotly_chart(fig, use_container_width=True, config=dict(displayModeBar=False))
         else:
-            tips.append(f"毛利率 <strong>{profit['gross_margin_pct']}</strong> 健康，可重点优化<strong>{top_cost}</strong>（占比 {top_cost_pct}）以扩大利润安全垫。")
-        if breakdown.get("广告费用", 0) / profit["total_cost_per_unit"] > 0.12:
-            tips.append("广告费用占比较高，建议通过关键词精准投放、A/B 测试主图与 A+ 内容提升转化率，降低 ACoS。")
-        else:
-            tips.append("广告占比可控，可适度增加预算抢占头部关键词排名，放大销量规模。")
-        if breakdown.get("FBA 费用", 0) > 4:
-            tips.append("FBA 费用较大，可优化包装尺寸/重量，或评估轻小商品计划（Small and Light）降本。")
-        else:
-            tips.append("FBA 费用处于合理区间，关注库存周转，避免长期仓储费侵蚀利润。")
-        tips.append(f"按 {profile['name']} 市场佣金与物流假设，盈亏平衡销量约为 <strong>{profit['breakeven_units']} 件/月</strong>。")
+            st.markdown(
+                '<div class="loading-overlay"><div class="spinner"></div>正在加载 ROI 图表...</div>',
+                unsafe_allow_html=True,
+            )
 
-        # 利润优化建议：改为带图标的卡片列表，与整体 SaaS 风格统一
-        tip_items = [
-            ("💰", tips[0], "#eff6ff", "#2563eb"),
-            ("📢", tips[1], "#fef3c7", "#d97706"),
-            ("📦", tips[2], "#e0f2fe", "#0891b2"),
-            ("⚖️", tips[3], "#f3e8ff", "#7c3aed"),
-        ]
-        tips_html = "".join(
-            f'<div style="display:flex; align-items:flex-start; gap:12px; background:{bg}; border:1px solid {bg}; border-radius:12px; padding:12px 14px; margin-bottom:10px;">'
-            f'<div style="flex-shrink:0; width:32px; height:32px; border-radius:10px; background:#ffffff; color:{color}; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 2px 6px rgba(0,0,0,0.04);">{icon}</div>'
-            f'<div style="color:#334155; font-size:13px; line-height:1.65; font-weight:500;">{t}</div></div>'
-            for icon, t, bg, color in tip_items
-        )
+    # 利润优化模拟器 + 关键假设
+    st.markdown("<br>", unsafe_allow_html=True)
+    sim_col, assumption_col = st.columns([3, 2])
 
-        assumptions = [
-            ("平台佣金", f"{profit['cost_breakdown_pct'].get('平台佣金', '—')}", "#eff6ff", "#2563eb"),
-            ("FBA 费用", f"${breakdown.get('FBA 费用', 0):.2f}", "#e0f2fe", "#0891b2"),
-            ("广告占比", f"{profit['cost_breakdown_pct'].get('广告费用', '—')}", "#fef3c7", "#d97706"),
-            ("退货预留", f"{profit['cost_breakdown_pct'].get('退货预留', '—')}", "#fee2e2", "#dc2626"),
-            ("头程物流", f"${breakdown.get('头程物流', 0):.2f}", "#f3e8ff", "#7c3aed"),
-            ("盈亏平衡", f"{profit['breakeven_units']} 件/月", "#f0fdf4", "#16a34a"),
-        ]
-        assumptions_html = "".join(
-            f'<div style="flex:1 1 calc(50% - 5px); min-width:100px; text-align:center; padding:12px 6px; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 2px 6px rgba(15,23,42,0.03);">'
-            f'<div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px;">{k}</div>'
-            f'<div style="font-size:17px; color:{color}; font-weight:900; line-height:1;">{v}</div></div>'
-            for k, v, _, color in assumptions
-        )
+    with sim_col:
+        st.markdown("<div class='info-card-title'>利润优化模拟器</div>", unsafe_allow_html=True)
+        prod_cost = breakdown.get("产品成本", 0)
+        ad_cost = breakdown.get("广告费用", 0)
+        fba_cost = breakdown.get("FBA 费用", 0)
 
-        section_title = (
-            '<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; '
-            'letter-spacing:0.05em; margin-bottom:12px; display:flex; align-items:center; gap:6px;">'
-            '<span style="display:inline-block; width:4px; height:14px; background:#2563eb; border-radius:2px;"></span>{title}</div>'
-        )
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            cost_reduction = st.slider(
+                "产品成本优化 (USD)",
+                min_value=0.0,
+                max_value=round(min(2.0, prod_cost * 0.3), 2),
+                value=0.0,
+                step=0.1,
+                key="cost_reduction_slider",
+                help="降低采购或生产成本",
+            )
+            ad_reduction = st.slider(
+                "广告费用优化 (USD)",
+                min_value=0.0,
+                max_value=round(min(1.0, ad_cost * 0.3), 2),
+                value=0.0,
+                step=0.05,
+                key="ad_reduction_slider",
+                help="通过精准投放降低 ACoS",
+            )
+        with sc2:
+            fba_reduction = st.slider(
+                "FBA 费用优化 (USD)",
+                min_value=0.0,
+                max_value=round(min(1.0, fba_cost * 0.3), 2),
+                value=0.0,
+                step=0.05,
+                key="fba_reduction_slider",
+                help="优化包装或入仓方案",
+            )
+            price_increase = st.slider(
+                "售价提升 (USD)",
+                min_value=0.0,
+                max_value=5.0,
+                value=0.0,
+                step=0.1,
+                key="price_increase_slider",
+                help="在不影响转化的前提下提价",
+            )
+
+        # 实时重算
+        new_total_cost = total_cost - cost_reduction - ad_reduction - fba_reduction
+        new_selling_price = selling_price + price_increase
+        new_gross_profit = new_selling_price - new_total_cost
+        new_margin = new_gross_profit / new_selling_price if new_selling_price > 0 else 0
+        base_monthly_profit = 300 * gross_profit
+        new_monthly_profit = 300 * new_gross_profit
+        monthly_increase_raw = new_monthly_profit - base_monthly_profit
+        monthly_increase = 0.0 if abs(monthly_increase_raw) < 0.005 else round(monthly_increase_raw, 2)
+        impact_color = "#16a34a" if monthly_increase > 0 else "#dc2626" if monthly_increase < 0 else "#64748b"
 
         st.markdown(
-            f'<div class="info-card">'
-            f'<div class="info-card-title">🚀 利润优化建议与关键假设</div>'
-            f'<div style="display:grid; grid-template-columns: 1.35fr 1fr; gap:22px; align-items:stretch;">'
+            f'<div class="simulator-result">'
+            f'<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">'
             f'<div>'
-            f'{section_title.format(title="优化方向")}'
-            f'{tips_html}'
-            f'</div>'
+            f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; '
+            f'letter-spacing:0.03em; margin-bottom:4px;">优化后毛利率</div>'
+            f'<div style="font-size:26px; font-weight:900; color:#15803d;">{new_margin:.2%}</div></div>'
             f'<div>'
-            f'{section_title.format(title="关键假设")}'
-            f'<div style="display:flex; flex-wrap:wrap; gap:10px;">{assumptions_html}</div>'
-            f'</div></div></div>',
+            f'<div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; '
+            f'letter-spacing:0.03em; margin-bottom:4px;">月利润变化</div>'
+            f'<div style="font-size:26px; font-weight:900; color:{impact_color};">'
+            f'{"+" if monthly_increase > 0 else ""}USD {monthly_increase:,.2f}'
+            f'</div></div></div>'
+            f'<div style="margin-top:10px; font-size:13px; color:#475569; font-weight:500;">'
+            f'基于 300 件/月销量估算 · 优化后单件毛利 USD {new_gross_profit:.2f}'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+
+        # 逐项变化说明
+        impact_lines = []
+        if cost_reduction > 0:
+            impact_lines.append(f"产品成本降低 USD {cost_reduction:.2f}")
+        if ad_reduction > 0:
+            impact_lines.append(f"广告费用降低 USD {ad_reduction:.2f}")
+        if fba_reduction > 0:
+            impact_lines.append(f"FBA 费用降低 USD {fba_reduction:.2f}")
+        if price_increase > 0:
+            impact_lines.append(f"售价提升 USD {price_increase:.2f}")
+        if impact_lines:
+            st.markdown(
+                f'<div style="margin-top:12px; font-size:13px; color:#334155; font-weight:500; line-height:1.7;">'
+                f'{" · ".join(impact_lines)}，毛利率从 {margin:.2%} 提升至 {new_margin:.2%}。'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    with assumption_col:
+        st.markdown("<div class='info-card-title'>关键假设</div>", unsafe_allow_html=True)
+        commission_val = breakdown.get("平台佣金", 0)
+        fba_val = breakdown.get("FBA 费用", 0)
+        ad_val = breakdown.get("广告费用", 0)
+        return_val = breakdown.get("退货预留", 0)
+        shipping_val = breakdown.get("头程物流", 0)
+        be_units = profit.get("breakeven_units", 0)
+
+        assumptions = [
+            ("平台佣金", commission_val / total_cost * 100 if total_cost else 0, "%"),
+            ("FBA 费用", fba_val, "USD"),
+            ("广告占比", ad_val / total_cost * 100 if total_cost else 0, "%"),
+            ("退货预留", return_val / total_cost * 100 if total_cost else 0, "%"),
+            ("头程物流", shipping_val, "USD"),
+            ("盈亏平衡", be_units, "units"),
+        ]
+        cards_html = ""
+        for label, raw, fmt in assumptions:
+            if fmt == "%":
+                value_text = f"{raw:.2f}%"
+            elif fmt == "USD":
+                value_text = f"USD {raw:.2f}"
+            else:
+                value_text = f"{int(raw)} 件/月"
+            color = _assumption_risk_color(label, raw, total_cost)
+            cards_html += (
+                f'<div class="assumption-card">'
+                f'<div class="assumption-label">{label}</div>'
+                f'<div class="assumption-value" style="color:{color} !important;">{value_text}</div>'
+                f'</div>'
+            )
+        st.markdown(
+            f'<div style="display:flex; flex-wrap:wrap; gap:10px;">{cards_html}</div>',
             unsafe_allow_html=True,
         )
 
