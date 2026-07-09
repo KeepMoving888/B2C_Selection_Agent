@@ -1,5 +1,4 @@
 import {
-  AreaChartOutlined,
   BarChartOutlined,
   CommentOutlined,
   DashboardOutlined,

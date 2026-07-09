@@ -17,7 +17,7 @@ export default function MainLayout() {
     <ConfigProvider
       theme={{
         algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
-        ...lightTheme.token,
+        ...(isDark ? darkTheme.token : lightTheme.token),
       }}
     >
       <Layout style={{ minHeight: '100vh' }}>

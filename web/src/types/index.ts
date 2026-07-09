@@ -3,6 +3,7 @@ export interface AnalysisReport {
   market: string;
   budget: string;
   verdict: string;
+  verdict_color: string;
   grade: string;
   overall_score: number;
   max_score: number;
@@ -12,7 +13,10 @@ export interface AnalysisReport {
     avg_rating: number;
     avg_reviews: number;
     competitors: any[];
-    market_profile: any;
+    market_profile: {
+      name: string;
+      currency: string;
+    };
   };
   profit_analysis: {
     selling_price: number;
@@ -24,14 +28,52 @@ export interface AnalysisReport {
     cost_breakdown: Record<string, number>;
     cost_breakdown_pct: Record<string, string>;
     roi_scenarios: Record<string, any>;
-    breakeven_units: number;
+    breakeven_units: number | null;
   };
-  trend_analysis: any;
-  review_insights: any;
+  trend_analysis: {
+    trend_direction: string;
+    series: {
+      months: string[];
+      values: number[];
+      last_year_values: number[];
+      forecast_values: number[];
+      forecast_months: string[];
+    };
+    peak_months: number[];
+    entry_windows: number[];
+    season_narrative: {
+      peak_months: string;
+      entry_months: string;
+      season_desc: string;
+      trend_desc: string;
+    };
+  };
+  review_insights: {
+    pain_points: string[];
+    praised_features: string[];
+    opportunities: string[];
+  };
   suppliers: any[];
-  compliance: any;
+  compliance: {
+    certifications: string[];
+    risk_level: string;
+    estimated_cert_cost: number;
+    estimated_cert_time: string;
+    category_risks: string[];
+    design_patent_risks: string[];
+    brand_risks: string[];
+    industry_patent_risks: string[];
+    market_specific: string[];
+    market: string;
+  };
   trending_products: any[];
-  next_steps: any[];
+  next_steps: {
+    phase: string;
+    title: string;
+    owner: string;
+    tasks: string[];
+    value: string;
+  }[];
 }
 
 export interface ProfitResult {
@@ -46,6 +88,15 @@ export interface ProfitResult {
   roi_scenarios: Record<string, any>;
   breakeven_units: number | null;
   suggestions: string[];
+}
+
+export interface AnalysisHistoryItem {
+  id: string;
+  keyword: string;
+  market: string;
+  grade: string;
+  overall_score: number;
+  created_at: string;
 }
 
 export interface UserInfo {
