@@ -1,0 +1,10 @@
+# ============================================================
+# deploy/requirements-gateway.txt — API Gateway 专用依赖
+#
+# 用途：构建 deploy/Dockerfile.gateway 镜像
+# 注意：不包含 vLLM/AWQ 等重型推理依赖
+# ============================================================
+
+flask>=3.0.0
+requests>=2.31.0
+prometheus-client>=0.20.0
