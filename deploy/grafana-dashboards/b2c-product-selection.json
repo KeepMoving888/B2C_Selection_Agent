@@ -1,0 +1,114 @@
+{
+  "id": null,
+  "title": "B2C 选品系统生产监控",
+    "tags": ["b2c", "vllm", "product-selection"],
+    "timezone": "Asia/Shanghai",
+    "schemaVersion": 36,
+    "refresh": "15s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Backend Availability",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "gateway_backend_availability",
+            "legendFormat": "{{backend}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Gateway Requests/sec",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(gateway_requests_total[1m])",
+            "legendFormat": "{{backend}} - {{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Gateway Latency (p50/p95/p99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(gateway_request_duration_seconds_bucket[1m]))",
+            "legendFormat": "p50 {{backend}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(gateway_request_duration_seconds_bucket[1m]))",
+            "legendFormat": "p95 {{backend}}"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(gateway_request_duration_seconds_bucket[1m]))",
+            "legendFormat": "p99 {{backend}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "vLLM Token Throughput",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "vllm:avg_prompt_throughput",
+            "legendFormat": "prompt {{model_name}}"
+          },
+          {
+            "expr": "vllm:avg_generation_throughput",
+            "legendFormat": "generation {{model_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "vLLM Latency (TTFT / TPOT)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(vllm:time_to_first_token_seconds_bucket[1m]))",
+            "legendFormat": "TTFT p99"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(vllm:time_per_output_token_seconds_bucket[1m]))",
+            "legendFormat": "TPOT p99"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "vLLM GPU Cache Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "vllm:gpu_cache_usage_perc",
+            "legendFormat": "GPU cache {{model_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "vLLM Requests Running/Waiting",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "vllm:num_requests_running",
+            "legendFormat": "running {{model_name}}"
+          },
+          {
+            "expr": "vllm:num_requests_waiting",
+            "legendFormat": "waiting {{model_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ]
+}
