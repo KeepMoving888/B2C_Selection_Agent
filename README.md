@@ -6,6 +6,7 @@
 [![License MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![vLLM](https://img.shields.io/badge/Inference-vLLM-orange)](https://github.com/vllm-project/vllm)
 [![MCP](https://img.shields.io/badge/Protocol-MCP-blue)](https://modelcontextprotocol.io)
+[![CI](https://github.com/KeepMoving888/B2C_Selection_Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/KeepMoving888/B2C_Selection_Agent/actions/workflows/ci.yml)
 
 面向跨境电商企业的智能选品决策系统，通过 **Multi-Agent 协作 + 领域微调大模型 + 实时数据闭环**，将传统需要 1-2 周的市场调研、供应链评估、合规审查、利润测算、趋势预测流程压缩到 **5-15 分钟**。
 
