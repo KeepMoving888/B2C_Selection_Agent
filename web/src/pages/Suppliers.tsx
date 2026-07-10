@@ -1,5 +1,13 @@
+import {
+  ClockCircleOutlined,
+  DownloadOutlined,
+  FireOutlined,
+  ShopOutlined,
+  StarFilled,
+  SwapOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
 import { Button, Card, Select, Spin } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
@@ -15,72 +23,97 @@ const sortOptions = [
   { value: 'response_desc', label: '响应率从高到低' },
 ];
 
+function MiniBar({ value, color, label }: { value: number; color: string; label: React.ReactNode }) {
+  return (
+    <div className="supplier-mini-bar">
+      <span className="supplier-mini-bar-label">{label}</span>
+      <div className="supplier-mini-bar-track">
+        <div
+          className="supplier-mini-bar-fill"
+          style={{
+            width: `${Math.min(100, Math.max(0, value))}%`,
+            background: color,
+          }}
+        />
+      </div>
+      <span className="supplier-mini-bar-value">{value.toFixed(0)}%</span>
+    </div>
+  );
+}
+
 function SupplierCard({ supplier, index }: { supplier: any; index: number }) {
   const rank = index + 1;
   const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
   const ratingPct = Math.min(100, (supplier.rating / 5) * 100);
-  const responsePct = supplier.response_rate;
-  const ratingColor = 'linear-gradient(90deg, #ea580c, #fbbf24)';
-  const responseColor = 'linear-gradient(90deg, #0f766e, #2dd4bf)';
 
   return (
-    <div className="product-card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <div className={`supplier-rank ${rankClass}`}>{rank}</div>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <div className="product-title" style={{ fontSize: 16, marginBottom: 5 }}>{supplier.name}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-            <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8' }}>{supplier.moq}</span>
-            <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>交期 {supplier.lead_time}</span>
-            <span className="badge" style={{ background: '#f1f5f9', color: '#334155' }}>{supplier.capacity}</span>
-            <span className="badge" style={{ background: '#ecfdf5', color: '#047857' }}>打样 {supplier.sample_days} 天</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 120 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>评分</span>
-              <div className="big-bar-bg"><div className="big-bar-fill" style={{ width: `${ratingPct}%`, background: ratingColor }} /></div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>{supplier.rating}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 120 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>响应</span>
-              <div className="big-bar-bg"><div className="big-bar-fill" style={{ width: `${responsePct}%`, background: responseColor }} /></div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>{supplier.response_rate}%</span>
+    <div className="supplier-card">
+      <div className="supplier-card-top">
+        <div className="supplier-identity">
+          <div className={`supplier-rank ${rankClass}`}>{rank}</div>
+          <div className="supplier-title-block">
+            <div className="supplier-name">{supplier.name}</div>
+            <div className="supplier-tags">
+              <span className="badge" style={{ background: 'var(--primary-50)', color: 'var(--saas-primary)' }}>
+                {supplier.moq}
+              </span>
+              <span className="badge" style={{ background: 'var(--gray-100)', color: 'var(--gray-600)' }}>
+                <ClockCircleOutlined style={{ fontSize: 10 }} /> 交期 {supplier.lead_time}
+              </span>
+              <span className="badge" style={{ background: 'var(--success-50)', color: 'var(--saas-success)' }}>
+                打样 {supplier.sample_days} 天
+              </span>
+              <span className="badge" style={{ background: 'var(--purple-50)', color: 'var(--saas-purple)' }}>
+                {supplier.capacity}
+              </span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>主营热卖：</span>
-            {supplier.hot_categories?.map((c: string, i: number) => (
-              <span key={i} className="badge" style={{ background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' }}>🔥 {c}</span>
+        </div>
+
+        <a href={supplier.link_1688 || '#'} target="_blank" rel="noreferrer" className="supplier-product-link">
+          <img src={supplier.hot_product_image} alt="" className="supplier-product-img" />
+          <div className="supplier-product-info">
+            <div className="supplier-product-title">{supplier.hot_product_name || '热卖品'}</div>
+            <div className="supplier-product-action">1688 搜索 →</div>
+          </div>
+        </a>
+      </div>
+
+      <div className="supplier-card-middle">
+        <div className="supplier-metric-compact">
+          <span className="supplier-metric-compact-label">单价</span>
+          <span className="supplier-metric-compact-value" style={{ color: 'var(--saas-primary)' }}>
+            ${supplier.unit_cost}
+          </span>
+        </div>
+        <div className="supplier-metric-compact">
+          <span className="supplier-metric-compact-label">样品</span>
+          <span className="supplier-metric-compact-value">${supplier.sample_cost}</span>
+        </div>
+        <div className="supplier-metric-compact">
+          <span className="supplier-metric-compact-label">经营年限</span>
+          <span className="supplier-metric-compact-value">{supplier.years} 年</span>
+        </div>
+        <div className="supplier-metric-compact">
+          <span className="supplier-metric-compact-label">成交数</span>
+          <span className="supplier-metric-compact-value">{supplier.transactions}</span>
+        </div>
+      </div>
+
+      <div className="supplier-card-bottom">
+        <div className="supplier-bars-group">
+          <MiniBar value={ratingPct} color="#f59e0b" label={<><StarFilled style={{ fontSize: 10, marginRight: 4 }} />评分 {supplier.rating}</>} />
+          <MiniBar value={supplier.response_rate} color="#0891b2" label={<><TeamOutlined style={{ fontSize: 10, marginRight: 4 }} />响应率</>} />
+        </div>
+        {supplier.hot_categories?.length > 0 && (
+          <div className="supplier-categories-row">
+            {supplier.hot_categories.map((c: string, i: number) => (
+              <span key={i} className="badge" style={{ background: 'var(--warning-50)', color: 'var(--saas-warning)', border: '1px solid #fde68a' }}>
+                <FireOutlined style={{ fontSize: 10 }} /> {c}
+              </span>
             ))}
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <div className="supplier-metric">
-              <div className="supplier-metric-value" style={{ color: '#2563eb' }}>${supplier.unit_cost}</div>
-              <div className="supplier-metric-label">单价</div>
-            </div>
-            <div className="supplier-metric">
-              <div className="supplier-metric-value">${supplier.sample_cost}</div>
-              <div className="supplier-metric-label">样品</div>
-            </div>
-            <div className="supplier-metric">
-              <div className="supplier-metric-value">{supplier.years}年</div>
-              <div className="supplier-metric-label">经营</div>
-            </div>
-            <div className="supplier-metric">
-              <div className="supplier-metric-value">{supplier.transactions}</div>
-              <div className="supplier-metric-label">成交</div>
-            </div>
-          </div>
-          <a href={supplier.link_1688 || '#'} target="_blank" rel="noreferrer" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: '8px 12px', minWidth: 150 }}>
-            <img src={supplier.hot_product_image} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', background: '#fff' }} />
-            <div style={{ textAlign: 'left', minWidth: 0 }}>
-              <div style={{ color: '#9a3412', fontWeight: 800, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{supplier.hot_product_name || '热卖品'}</div>
-              <div style={{ color: '#d97706', fontWeight: 800, fontSize: 12 }}>1688 搜索 →</div>
-            </div>
-          </a>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -121,15 +154,25 @@ export default function Suppliers() {
 
   return (
     <div className="page-container">
-      <div className="page-header">供应商</div>
-      <Card style={{ borderRadius: 16, marginBottom: 24 }}>
+      <div className="page-hero">
+        <div>
+          <div className="page-header">供应商</div>
+          <div className="page-subtitle">综合评分、产能、响应、报价多维度对比，锁定优质供应商</div>
+        </div>
+        {report && (
+          <span className="section-badge">
+            <ShopOutlined /> 当前分析：{report.keyword}
+          </span>
+        )}
+      </div>
+      <Card className="search-card">
         <AnalysisSearchForm initialValues={lastSearch} onSubmit={analyze} loading={loading} />
       </Card>
 
       {loading && (
         <div style={{ textAlign: 'center', padding: 80 }}>
           <Spin size="large" />
-          <div style={{ marginTop: 16, color: '#64748b' }}>正在匹配供应商...</div>
+          <div style={{ marginTop: 16, color: 'var(--saas-text-muted)', fontWeight: 500 }}>正在匹配供应商...</div>
         </div>
       )}
 
@@ -137,26 +180,31 @@ export default function Suppliers() {
 
       {!loading && report && (
         <>
-          <div className="info-card" style={{ marginBottom: 16, padding: '18px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div className="info-card" style={{ marginBottom: 20, padding: '18px 22px' }}>
+            <div className="supplier-header-row">
               <div>
-                <div className="info-card-title" style={{ marginBottom: 4 }}>🏭 供应商竞争力 TOP10</div>
-                <div style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>综合评分 · 产能 · 响应 · 报价多维度对比</div>
+                <div className="info-card-title" style={{ marginBottom: 4, paddingBottom: 0, borderBottom: 'none' }}>
+                  <ShopOutlined style={{ color: 'var(--saas-primary)' }} /> 供应商竞争力 TOP{report.suppliers.length}
+                </div>
+                <div style={{ color: 'var(--saas-text-muted)', fontSize: 13, fontWeight: 500 }}>
+                  已匹配 <strong style={{ color: 'var(--saas-text)' }}>{report.suppliers.length}</strong> 家供应商 · 按综合评分排序
+                </div>
               </div>
-              <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8' }}>已匹配 {report.suppliers.length} 家</span>
+              <div className="supplier-sort">
+                <SwapOutlined style={{ color: 'var(--saas-text-muted)' }} />
+                <Select value={sortBy} options={sortOptions} onChange={setSortBy} style={{ width: 180 }} />
+              </div>
             </div>
           </div>
 
-          <div style={{ marginBottom: 16, maxWidth: 280 }}>
-            <Select value={sortBy} options={sortOptions} onChange={setSortBy} style={{ width: '100%' }} />
+          <div className="supplier-list">
+            {sortedSuppliers.map((s, i) => (
+              <SupplierCard key={i} supplier={s} index={i} />
+            ))}
           </div>
 
-          {sortedSuppliers.map((s, i) => (
-            <SupplierCard key={i} supplier={s} index={i} />
-          ))}
-
           <div style={{ marginTop: 24, textAlign: 'right' }}>
-            <Button type="primary" icon={<DownloadOutlined />} onClick={() => exportSuppliersCsv(report, sortedSuppliers)}>
+            <Button type="primary" icon={<DownloadOutlined />} onClick={() => exportSuppliersCsv(report, sortedSuppliers)} size="large">
               导出供应商对比表 (CSV)
             </Button>
           </div>

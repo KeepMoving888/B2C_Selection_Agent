@@ -3,11 +3,9 @@ import {
   DatabaseOutlined,
   GlobalOutlined,
   KeyOutlined,
-  SunOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 import {
-  Breadcrumb,
   Button,
   Card,
   Col,
@@ -25,13 +23,10 @@ import {
   message,
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { setPageTitle } from '../store/slices/uiSlice'
-import { toggleTheme } from '../store/slices/uiSlice'
-import type { RootState } from '../store'
 
-const { Title, Text } = Typography
+const { Text } = Typography
 
 interface AppSettings {
   weights: {
@@ -64,7 +59,6 @@ const defaultSettings: AppSettings = {
 
 export default function Settings() {
   const dispatch = useDispatch()
-  const { theme } = useSelector((state: RootState) => state.ui)
   const [settings, setSettings] = useState<AppSettings>(defaultSettings)
 
   useEffect(() => {
@@ -320,37 +314,12 @@ export default function Settings() {
         </Card>
       ),
     },
-    {
-      key: 'theme',
-      label: (
-        <span>
-          <SunOutlined /> 主题切换
-        </span>
-      ),
-      children: (
-        <Card title="外观主题">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: '#f8fafc', borderRadius: 8 }}>
-            <div>
-              <Text strong>深色模式</Text>
-              <div><Text type="secondary">切换系统浅色/深色主题</Text></div>
-            </div>
-            <Switch checked={theme === 'dark'} onChange={() => dispatch(toggleTheme())} checkedChildren="深色" unCheckedChildren="浅色" />
-          </div>
-        </Card>
-      ),
-    },
-  ], [settings, theme])
+  ], [settings])
 
   return (
-    <div>
-      <Breadcrumb
-        items={[
-          { title: <Link to="/dashboard">首页</Link> },
-          { title: '设置' },
-        ]}
-        style={{ marginBottom: 16 }}
-      />
-      <Title level={3}>系统设置</Title>
+    <div className="page-container">
+      <div className="page-header">系统设置</div>
+      <div className="page-subtitle">管理账户、分析参数、通知偏好与数据导出</div>
 
       <Tabs
         defaultActiveKey="account"

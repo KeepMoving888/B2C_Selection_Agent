@@ -1,27 +1,21 @@
-import { SearchOutlined } from '@ant-design/icons';
-import { Button, Empty, Typography } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { BarChartOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Typography } from 'antd';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 export default function EmptyReport({ pageName }: { pageName: string }) {
-  const navigate = useNavigate();
-
   return (
-    <Empty
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-      description={
-        <div>
-          <Text strong>暂无分析报告</Text>
-          <br />
-          <Text type="secondary">请先在「首页雷达」输入关键词进行分析，再查看{pageName}。</Text>
-        </div>
-      }
-      style={{ padding: 80 }}
-    >
-      <Button type="primary" icon={<SearchOutlined />} onClick={() => navigate('/dashboard')}>
-        去首页分析
+    <div className="empty-report">
+      <div className="empty-report-icon">
+        <BarChartOutlined />
+      </div>
+      <Title level={4} className="empty-report-title">暂无{pageName}数据</Title>
+      <Text className="empty-report-desc">
+        在上方搜索框输入关键词并点击「开始分析」，即可查看 {pageName} 的完整分析结果。
+      </Text>
+      <Button type="primary" icon={<SearchOutlined />} size="large" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ marginTop: 24 }}>
+        去搜索分析
       </Button>
-    </Empty>
+    </div>
   );
 }

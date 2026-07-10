@@ -1,5 +1,5 @@
 import { Button, Card, Col, Row, Spin } from 'antd';
-import { CarryOutOutlined, DownloadOutlined } from '@ant-design/icons';
+import { CarryOutOutlined, DownloadOutlined, PushpinOutlined, SolutionOutlined, UserOutlined, CheckCircleOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
@@ -8,7 +8,7 @@ import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
 
-const accents = ['#2563eb', '#0891b2', '#7c3aed', '#16a34a', '#d97706'];
+const accents = ['var(--saas-primary)', 'var(--saas-info)', 'var(--saas-purple)', 'var(--saas-success)', 'var(--saas-warning)'];
 
 interface ActionStepItem {
   phase: string;
@@ -18,21 +18,39 @@ interface ActionStepItem {
   value: string;
 }
 
-function ActionStep({ step, accent }: { step: ActionStepItem; accent: string }) {
+const phaseIcons: Record<string, React.ReactNode> = {
+  '市场验证': <PushpinOutlined />,
+  '供应链': <SolutionOutlined />,
+  '利润测算': <CarryOutOutlined />,
+  '合规': <CheckCircleOutlined />,
+  '上线准备': <ThunderboltOutlined />,
+};
+
+function ActionStep({ step, accent, index }: { step: ActionStepItem; accent: string; index: number }) {
   return (
-    <div className="action-step" style={{ borderLeft: `4px solid ${accent}`, marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={{ background: '#eff6ff', color: '#1d4ed8', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 800 }}>{step.phase}</span>
-        <span style={{ color: '#0f172a', fontWeight: 800, fontSize: 15 }}>{step.title}</span>
+    <div className="action-step-card" style={{ ['--step-accent' as string]: accent } as React.CSSProperties}>
+      <div className="action-step-marker">
+        <div className="action-step-number">{index + 1}</div>
+        <div className="action-step-line" />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <span style={{ background: '#f1f5f9', color: '#64748b', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>👤 {step.owner}</span>
-      </div>
-      <ul style={{ margin: '0 0 10px 18px', padding: 0, color: '#475569', fontSize: 13, lineHeight: 1.7 }}>
-        {step.tasks.map((t: string, i: number) => <li key={i}>{t}</li>)}
-      </ul>
-      <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13, color: '#334155', fontWeight: 600 }}>
-        ✅ 价值：{step.value}
+      <div className="action-step-body">
+        <div className="action-step-header">
+          <span className="action-step-phase">
+            {phaseIcons[step.phase] || <CarryOutOutlined />}
+            {step.phase}
+          </span>
+          <span className="action-step-owner">
+            <UserOutlined /> {step.owner}
+          </span>
+        </div>
+        <div className="action-step-title">{step.title}</div>
+        <ul className="action-step-tasks">
+          {step.tasks.map((t: string, i: number) => <li key={i}>{t}</li>)}
+        </ul>
+        <div className="action-step-value">
+          <CheckCircleOutlined style={{ color: 'var(--saas-success)' }} />
+          价值：{step.value}
+        </div>
       </div>
     </div>
   );
@@ -93,20 +111,29 @@ export default function ActionPlan() {
     setApprovalNo(no);
   };
 
-  const leftSteps = report?.next_steps.filter((_s: ActionStepItem, i: number) => i % 2 === 0) || [];
-  const rightSteps = report?.next_steps.filter((_s: ActionStepItem, i: number) => i % 2 === 1) || [];
+  const steps = report?.next_steps || [];
 
   return (
     <div className="page-container">
-      <div className="page-header">行动计划</div>
-      <Card style={{ borderRadius: 16, marginBottom: 24 }}>
+      <div className="page-hero">
+        <div>
+          <div className="page-header">行动计划</div>
+          <div className="page-subtitle">基于分析结果拆解为可执行步骤，明确责任人、验收标准与业务价值</div>
+        </div>
+        {report && (
+          <span className="section-badge">
+            <CarryOutOutlined /> 当前分析：{report.keyword}
+          </span>
+        )}
+      </div>
+      <Card className="search-card">
         <AnalysisSearchForm initialValues={lastSearch} onSubmit={analyze} loading={loading} />
       </Card>
 
       {loading && (
         <div style={{ textAlign: 'center', padding: 80 }}>
           <Spin size="large" />
-          <div style={{ marginTop: 16, color: '#64748b' }}>正在生成行动计划...</div>
+          <div style={{ marginTop: 16, color: 'var(--saas-text-muted)', fontWeight: 500 }}>正在生成行动计划...</div>
         </div>
       )}
 
@@ -114,25 +141,22 @@ export default function ActionPlan() {
 
       {!loading && report && (
         <>
-          <div className="info-card-title" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CarryOutOutlined />
-            可落地行动计划
+          <div className="info-card" style={{ marginBottom: 24 }}>
+            <div className="info-card-title">
+              <CarryOutOutlined style={{ color: 'var(--saas-primary)' }} />
+              可落地行动计划
+            </div>
+            <div className="section-desc">
+              以下是为「{report.keyword}」生成的执行路径，共 {steps.length} 个阶段。每个阶段已标注负责角色与预期价值，可直接用于团队排期或飞书审批。
+            </div>
+            <div className="action-timeline">
+              {steps.map((step: ActionStepItem, i: number) => (
+                <ActionStep key={i} step={step} accent={accents[i % accents.length]} index={i} />
+              ))}
+            </div>
           </div>
 
           <Row gutter={[24, 24]}>
-            <Col xs={24} lg={12}>
-              {leftSteps.map((step: ActionStepItem, i: number) => (
-                <ActionStep key={i} step={step} accent={accents[(i * 2) % accents.length]} />
-              ))}
-            </Col>
-            <Col xs={24} lg={12}>
-              {rightSteps.map((step: ActionStepItem, i: number) => (
-                <ActionStep key={i} step={step} accent={accents[(i * 2 + 1) % accents.length]} />
-              ))}
-            </Col>
-          </Row>
-
-          <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
             <Col xs={24} md={12}>
               <Button type="default" icon={<DownloadOutlined />} block size="large" onClick={() => downloadReport(report)}>
                 导出分析报告
@@ -143,7 +167,7 @@ export default function ActionPlan() {
                 推送飞书审批
               </Button>
               {approvalNo && (
-                <div style={{ marginTop: 12, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, color: '#15803d', fontWeight: 600 }}>
+                <div className="action-approval-toast">
                   审批实例已创建：{approvalNo}，请在飞书审批中心查看进度。
                 </div>
               )}

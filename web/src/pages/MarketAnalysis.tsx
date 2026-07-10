@@ -1,4 +1,5 @@
-import { Card, Col, Row, Spin, Typography } from 'antd';
+import { Card, Col, Row, Spin, Tag } from 'antd';
+import { BarChartOutlined, StarFilled, ShoppingOutlined, LinkOutlined } from '@ant-design/icons';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import { useEffect, useMemo } from 'react';
@@ -9,9 +10,7 @@ import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
 
-const { Text } = Typography;
-
-const softPalette = ['#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8'];
+const softPalette = ['#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'];
 
 function PriceSalesChart({ report }: { report: AnalysisReport }) {
   const competitors = report.market_analysis.competitors;
@@ -21,30 +20,31 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
     const maxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
 
     return {
-      tooltip: { trigger: 'axis' },
-      legend: { orient: 'horizontal', top: 0, right: 0 },
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: 'var(--saas-border)', textStyle: { color: 'var(--saas-text)' } },
+      legend: { orient: 'horizontal', top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700 } },
       grid: { left: 20, right: 60, top: 50, bottom: 20, containLabel: true },
-      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#64748b' } },
+      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
       yAxis: [
-        { type: 'value', name: '售价 (USD)', max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#64748b' } },
-        { type: 'value', name: '月销量', max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: '#64748b' } },
+        { type: 'value', name: '售价 (USD)', max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
+        { type: 'value', name: '月销量', max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
       ],
       series: [
         {
           type: 'bar',
           name: '售价',
-          data: competitors.map((p, i) => ({ value: p.price, itemStyle: { color: softPalette[i % softPalette.length] } })),
+          data: competitors.map((p, i) => ({ value: p.price, itemStyle: { color: softPalette[i % softPalette.length], borderRadius: [6, 6, 0, 0] } })),
           barWidth: '45%',
-          label: { show: true, position: 'top', formatter: '${c}', color: '#0f172a', fontSize: 10 },
+          label: { show: true, position: 'top', formatter: '${c}', color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
         },
         {
           type: 'line',
           name: '月销量',
           yAxisIndex: 1,
           data: competitors.map((p) => p.estimated_monthly_sales),
-          lineStyle: { color: '#f59e0b', width: 2.5 },
-          itemStyle: { color: '#f59e0b' },
-          label: { show: true, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10 },
+          smooth: true,
+          lineStyle: { color: '#f59e0b', width: 3 },
+          itemStyle: { color: '#f59e0b', borderColor: '#fff', borderWidth: 2 },
+          label: { show: true, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
         },
       ],
     };
@@ -56,38 +56,29 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
 function CompetitorCard({ product, index }: { product: any; index: number }) {
   const parts = product.subtitle?.split(' · ') || [];
   const subtitle = parts[1] || product.subtitle || '';
+  const accent = softPalette[index % softPalette.length];
 
   return (
-    <div className="product-card" style={{ borderLeft: `4px solid ${softPalette[index % softPalette.length]}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <a href={product.link} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
-          <img src={product.image} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', background: '#f1f5f9', border: '1px solid #e2e8f0' }} />
+    <div className="competitor-card" style={{ ['--competitor-accent' as string]: accent } as React.CSSProperties}>
+      <div className="competitor-rank">{index + 1}</div>
+      <a href={product.link} target="_blank" rel="noreferrer" className="competitor-image-link">
+        <img src={product.image} alt="" className="competitor-image" />
+      </a>
+      <div className="competitor-info">
+        <a href={product.link} target="_blank" rel="noreferrer" className="competitor-title-link">
+          <div className="competitor-title">{product.title}</div>
         </a>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <a href={product.link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="product-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.title}</div>
-          </a>
-          <div className="product-meta" style={{ fontSize: 12, marginBottom: 5 }}>{product.store} · {subtitle}</div>
-          <div className="product-meta">
-            <strong style={{ color: '#2563eb' }}>${product.price}</strong> ·
-            ⭐ {product.rating} · {product.review_count.toLocaleString()} 评论 · 月销 {product.estimated_monthly_sales.toLocaleString()}
-          </div>
+        <div className="competitor-store">{product.store} · {subtitle}</div>
+        <div className="competitor-metrics">
+          <Tag className="competitor-price-tag">${product.price}</Tag>
+          <span className="competitor-metric"><StarFilled style={{ color: '#f59e0b' }} /> {product.rating}</span>
+          <span className="competitor-metric">{product.review_count.toLocaleString()} 评论</span>
+          <span className="competitor-metric"><ShoppingOutlined style={{ color: 'var(--saas-primary)' }} /> 月销 {product.estimated_monthly_sales.toLocaleString()}</span>
         </div>
-        <a href={product.link} target="_blank" rel="noreferrer" style={{
-          textDecoration: 'none',
-          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-          color: '#fff',
-          padding: '8px 14px',
-          borderRadius: 10,
-          fontSize: 12,
-          fontWeight: 700,
-          flexShrink: 0,
-          whiteSpace: 'nowrap',
-          boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
-        }}>
-          查看链接 →
-        </a>
       </div>
+      <a href={product.link} target="_blank" rel="noreferrer" className="competitor-link-btn">
+        <LinkOutlined /> 查看
+      </a>
     </div>
   );
 }
@@ -102,15 +93,25 @@ export default function MarketAnalysis() {
 
   return (
     <div className="page-container">
-      <div className="page-header">市场分析</div>
-      <Card style={{ borderRadius: 16, marginBottom: 24 }}>
+      <div className="page-hero">
+        <div>
+          <div className="page-header">市场分析</div>
+          <div className="page-subtitle">竞品价格带、销量分布与头部 Listing 对比，定位市场机会</div>
+        </div>
+        {report && (
+          <span className="section-badge">
+            <BarChartOutlined /> 当前分析：{report.keyword}
+          </span>
+        )}
+      </div>
+      <Card className="search-card">
         <AnalysisSearchForm initialValues={lastSearch} onSubmit={analyze} loading={loading} />
       </Card>
 
       {loading && (
         <div style={{ textAlign: 'center', padding: 80 }}>
           <Spin size="large" />
-          <div style={{ marginTop: 16, color: '#64748b' }}>正在分析市场数据...</div>
+          <div style={{ marginTop: 16, color: 'var(--saas-text-muted)', fontWeight: 500 }}>正在分析市场数据...</div>
         </div>
       )}
 
@@ -118,21 +119,34 @@ export default function MarketAnalysis() {
 
       {!loading && report && (
         <>
-          <div className="verdict-banner" style={{ marginBottom: 24 }}>
-            <Text strong style={{ fontSize: 18 }}>{report.keyword.toUpperCase()}</Text>
-            <span className="badge" style={{ marginLeft: 12, background: '#eff6ff', color: '#1d4ed8' }}>{report.market_analysis.market_profile.name}</span>
+          <div className="market-summary-banner">
+            <div className="market-summary-main">
+              <div className="market-summary-label">分析对象</div>
+              <div className="market-summary-title">{report.keyword} · {report.market_analysis.market_profile.name}</div>
+              <div className="market-summary-tags">
+                <span className="market-summary-tag">市场 {report.market}</span>
+                <span className="market-summary-tag">均价 USD {report.market_analysis.avg_price}</span>
+                <span className="market-summary-tag">平均评分 {report.market_analysis.avg_rating} / 5.0</span>
+              </div>
+            </div>
           </div>
 
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={15}>
               <div className="info-card">
                 <div className="info-card-title">竞品价格带与月销量分布</div>
+                <div className="section-desc">
+                  柱状图展示头部竞品售价，折线叠加月销量；识别高价高销与低价走量的机会区间。
+                </div>
                 <PriceSalesChart report={report} />
               </div>
             </Col>
             <Col xs={24} lg={9}>
-              <div className="info-card" style={{ maxHeight: 620, overflow: 'auto' }}>
+              <div className="info-card" style={{ maxHeight: 640, overflow: 'auto' }}>
                 <div className="info-card-title">头部竞品 TOP10</div>
+                <div className="section-desc" style={{ marginBottom: 14 }}>
+                  按销量与 relevance 排序的头部 Listing，点击可跳转亚马逊详情页。
+                </div>
                 {report.market_analysis.competitors.map((p: any, i: number) => (
                   <CompetitorCard key={i} product={p} index={i} />
                 ))}

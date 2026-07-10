@@ -15,12 +15,30 @@ interface UIState {
   lastSearch: SearchParams;
 }
 
+const savedReport = (() => {
+  try {
+    const raw = localStorage.getItem('current_report');
+    return raw ? (JSON.parse(raw) as AnalysisReport) : null;
+  } catch {
+    return null;
+  }
+})();
+
+const savedSearch = (() => {
+  try {
+    const raw = localStorage.getItem('last_search');
+    return raw ? (JSON.parse(raw) as SearchParams) : null;
+  } catch {
+    return null;
+  }
+})();
+
 const initialState: UIState = {
   sidebarCollapsed: false,
-  theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
+  theme: 'light', // 参赛版本固定浅色主题，保证自定义 CSS 视觉统一
   pageTitle: '',
-  currentReport: null,
-  lastSearch: { keyword: '', market: 'US', budget: '5000-10000' },
+  currentReport: savedReport,
+  lastSearch: savedSearch || { keyword: '', market: 'US', budget: '5000-10000' },
 };
 
 const uiSlice = createSlice({

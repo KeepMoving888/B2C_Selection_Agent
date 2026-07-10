@@ -8,7 +8,6 @@ import {
   ShareAltOutlined,
 } from '@ant-design/icons'
 import {
-  Breadcrumb,
   Button,
   Card,
   Empty,
@@ -24,12 +23,12 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { analysisApi } from '../services/api'
 import { setPageTitle } from '../store/slices/uiSlice'
 import type { AnalysisHistoryItem } from '../types'
 
-const { Title, Text } = Typography
+const { Text } = Typography
 
 export default function ReportCenter() {
   const dispatch = useDispatch()
@@ -113,12 +112,14 @@ export default function ReportCenter() {
   }
 
   const columns = [
-    { title: '关键词', dataIndex: 'keyword', key: 'keyword' },
-    { title: '市场', dataIndex: 'market', key: 'market' },
+    { title: '关键词', dataIndex: 'keyword', key: 'keyword', width: 180, ellipsis: true },
+    { title: '市场', dataIndex: 'market', key: 'market', width: 90, align: 'center' as const },
     {
       title: '等级',
       dataIndex: 'grade',
       key: 'grade',
+      width: 80,
+      align: 'center' as const,
       render: (v: string) => (
         <Tag color={v === 'A' ? '#4caf50' : v === 'B' ? '#1976d2' : v === 'C' ? '#ff9800' : '#f44336'}>{v}</Tag>
       ),
@@ -127,6 +128,8 @@ export default function ReportCenter() {
       title: '评分',
       dataIndex: 'overall_score',
       key: 'overall_score',
+      width: 90,
+      align: 'center' as const,
       render: (v: number) => (
         <Text strong style={{ color: v >= 70 ? '#4caf50' : v >= 50 ? '#ff9800' : '#f44336' }}>
           {v}
@@ -137,13 +140,15 @@ export default function ReportCenter() {
       title: '时间',
       dataIndex: 'created_at',
       key: 'created_at',
+      width: 170,
       render: (v: string) => new Date(v).toLocaleString(),
     },
     {
       title: '操作',
       key: 'action',
+      width: 200,
       render: (_: unknown, record: AnalysisHistoryItem) => (
-        <Space>
+        <Space size="small">
           <Button type="link" icon={<EyeOutlined />} onClick={() => showDetail(record.id)}>
             详情
           </Button>
@@ -159,17 +164,11 @@ export default function ReportCenter() {
   ]
 
   return (
-    <div>
-      <Breadcrumb
-        items={[
-          { title: <Link to="/dashboard">首页</Link> },
-          { title: '报告中心' },
-        ]}
-        style={{ marginBottom: 16 }}
-      />
-      <Title level={3}>报告中心</Title>
+    <div className="page-container">
+      <div className="page-header">报告中心</div>
+      <div className="page-subtitle">管理历史分析报告，支持筛选、导出与分享</div>
 
-      <Card style={{ marginBottom: 24 }} title={<><FilterOutlined /> 筛选</>}>
+      <Card className="search-card" style={{ borderRadius: 'var(--radius-lg)', marginBottom: 24, boxShadow: 'var(--shadow-card)' }} title={<><FilterOutlined /> 筛选</>}>
         <Form layout="inline">
           <Form.Item label="关键词">
             <Input placeholder="搜索关键词" value={filterKeyword} onChange={(e) => setFilterKeyword(e.target.value)} allowClear />
@@ -183,7 +182,7 @@ export default function ReportCenter() {
             </Select>
           </Form.Item>
           <Form.Item>
-            <Button icon={<FileTextOutlined />} onClick={() => navigate('/product-analysis')}>
+            <Button icon={<FileTextOutlined />} onClick={() => navigate('/dashboard')}>
               新建分析
             </Button>
           </Form.Item>

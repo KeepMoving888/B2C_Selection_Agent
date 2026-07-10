@@ -26,21 +26,20 @@ const budgets = [
 export default function AnalysisSearchForm({ initialValues, onSubmit, loading }: Props) {
   return (
     <Form
-      layout="inline"
       initialValues={initialValues || { keyword: '', market: 'US', budget: '5000-10000' }}
       onFinish={onSubmit}
-      style={{ flexWrap: 'wrap', gap: '0 8px' }}
+      className="analysis-search-form"
     >
-      <Form.Item name="keyword" rules={[{ required: true, message: '请输入关键词' }]} style={{ flex: '1 1 280px', minWidth: 200 }}>
+      <Form.Item name="keyword" rules={[{ required: true, message: '请输入关键词' }]} className="analysis-search-keyword">
         <Input placeholder="输入关键词，如 dog chew toys" allowClear />
       </Form.Item>
-      <Form.Item name="market" style={{ width: 140 }}>
+      <Form.Item name="market" className="analysis-search-market">
         <Select options={markets} />
       </Form.Item>
-      <Form.Item name="budget" style={{ width: 180 }}>
+      <Form.Item name="budget" className="analysis-search-budget">
         <Select options={budgets} />
       </Form.Item>
-      <Form.Item>
+      <Form.Item className="analysis-search-submit">
         <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={loading}>
           开始分析
         </Button>

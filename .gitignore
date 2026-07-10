@@ -104,3 +104,7 @@ data/
 
 # ── Jupyter Notebook checkpoint ──
 .ipynb_checkpoints/
+
+# ── 运行时截图与临时产物 ──
+web/screenshots/
+lark_auth_qr.png

@@ -40,17 +40,18 @@ export default function AppSidebar() {
   const location = useLocation();
   const { sidebarCollapsed } = useSelector((state: RootState) => state.ui);
   const { token } = antTheme.useToken();
+  const isDark = false;
 
   return (
     <Sider
       trigger={null}
       collapsible
       collapsed={sidebarCollapsed}
-      width={240}
+      width={250}
       collapsedWidth={80}
       style={{
-        background: token.colorBgContainer,
-        boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
+        background: isDark ? '#0f172a' : '#ffffff',
+        borderRight: `1px solid ${isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)'}`,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -62,13 +63,28 @@ export default function AppSidebar() {
         selectedKeys={[location.pathname]}
         items={menuItems}
         onClick={({ key }) => navigate(key)}
-        style={{ borderRight: 0, paddingTop: 8 }}
+        inlineIndent={16}
+        style={{
+          borderRight: 0,
+          padding: '12px 14px',
+          background: 'transparent',
+          fontWeight: 700,
+        }}
+        theme={isDark ? 'dark' : 'light'}
       />
       <Menu
         mode="inline"
         selectable={false}
         items={bottomItems}
-        style={{ borderRight: 0, borderTop: `1px solid ${token.colorBorderSecondary}` }}
+        onClick={({ key }) => navigate(key)}
+        style={{
+          borderRight: 0,
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          padding: '12px 14px',
+          background: 'transparent',
+          fontWeight: 700,
+        }}
+        theme={isDark ? 'dark' : 'light'}
       />
     </Sider>
   );

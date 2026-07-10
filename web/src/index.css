@@ -1,21 +1,106 @@
 :root {
-  --saas-bg: #f1f5f9;
+  /* 品牌色 */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* 语义色 */
+  --success-50: #ecfdf5;
+  --success-100: #d1fae5;
+  --success-500: #10b981;
+  --success-600: #059669;
+  --success-700: #047857;
+  --warning-50: #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --danger-50: #fef2f2;
+  --danger-100: #fee2e2;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --info-50: #ecfeff;
+  --info-100: #cffafe;
+  --info-500: #06b6d4;
+  --info-600: #0891b2;
+  --info-700: #0f766e;
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --teal-500: #14b8a6;
+  --teal-600: #0d9488;
+
+  /* 中性色 */
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  /* SaaS 主题别名 */
+  --saas-bg: #f8fafc;
+  --saas-surface: #f1f5f9;
   --saas-card: #ffffff;
-  --saas-text: #0f172a;
+  --saas-text: #1e293b;
   --saas-text-secondary: #475569;
   --saas-text-muted: #64748b;
-  --saas-border: #e2e8f0;
+  --saas-border: #d1d5db;
+  --saas-border-subtle: #e2e8f0;
   --saas-primary: #2563eb;
-  --saas-primary-dark: #1d4ed8;
-  --saas-success: #16a34a;
-  --saas-warning: #f59e0b;
-  --saas-danger: #ef4444;
+  --saas-primary-light: #3b82f6;
+  --saas-success: #059669;
+  --saas-warning: #d97706;
+  --saas-danger: #dc2626;
   --saas-info: #0891b2;
   --saas-purple: #7c3aed;
+  --saas-teal: #14b8a6;
 
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* 阴影 */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 12px 24px -8px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* 字体 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+
+  font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--saas-text);
   background: var(--saas-bg);
   font-synthesis: none;
@@ -40,6 +125,8 @@ h1, h2, h3, h4, h5 {
   margin: 0;
   font-weight: 700;
   color: var(--saas-text);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 p {
@@ -48,4 +135,121 @@ p {
 
 * {
   box-sizing: border-box;
+}
+
+/* 全局滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
+/* Ant Design 组件覆盖 */
+.ant-card {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-card) !important;
+  border: 1px solid var(--saas-border-subtle) !important;
+  transition: box-shadow 0.25s ease, transform 0.25s ease !important;
+  background: var(--saas-card) !important;
+}
+.ant-card:hover {
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.ant-card-head {
+  border-bottom: 1px solid var(--saas-border-subtle) !important;
+  min-height: 52px !important;
+}
+
+.ant-card-head-title {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: var(--saas-text) !important;
+  letter-spacing: -0.01em !important;
+}
+
+.ant-btn {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+}
+.ant-btn-primary {
+  background: linear-gradient(135deg, var(--saas-primary) 0%, var(--saas-primary-light) 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+}
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%) !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
+}
+
+.ant-select-selector,
+.ant-input {
+  border-radius: var(--radius-sm) !important;
+}
+
+.ant-menu-inline {
+  border-right: none !important;
+}
+
+.ant-slider-track {
+  border-radius: 4px !important;
+}
+
+.ant-slider-handle {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--gray-50) !important;
+  color: var(--saas-text-muted) !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.ant-table-tbody > tr > td {
+  color: var(--saas-text-secondary) !important;
+  font-size: 13px !important;
+}
+
+.ant-empty-description {
+  color: var(--saas-text-muted) !important;
+  font-weight: 500 !important;
+}
+
+/* 页面切换动画 */
+.page-fade-in {
+  animation: pageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 骨架屏闪烁 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
 }

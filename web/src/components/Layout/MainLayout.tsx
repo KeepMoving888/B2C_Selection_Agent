@@ -1,25 +1,19 @@
-import { ConfigProvider, Grid, Layout, theme as antTheme } from 'antd';
-import { useSelector } from 'react-redux';
+import { ConfigProvider, Layout, theme as antTheme } from 'antd';
 import { Outlet } from 'react-router-dom';
-import { darkTheme, lightTheme } from '../../theme';
+import { lightTheme } from '../../theme';
 import AppFooter from './AppFooter';
 import AppHeader from './AppHeader';
 import AppSidebar from './AppSidebar';
-import type { RootState } from '../../store';
 
 const { Content } = Layout;
-const { useBreakpoint } = Grid;
 
 export default function MainLayout() {
-  const { theme } = useSelector((state: RootState) => state.ui);
-  const isDark = theme === 'dark';
-  const screens = useBreakpoint();
-
+  // 参赛版本强制浅色主题：保证自定义 CSS 全部生效，视觉统一
   return (
     <ConfigProvider
       theme={{
-        algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
-        ...(isDark ? darkTheme.token : lightTheme.token),
+        algorithm: antTheme.defaultAlgorithm,
+        ...lightTheme.token,
       }}
     >
       <Layout style={{ minHeight: '100vh' }}>
@@ -29,8 +23,8 @@ export default function MainLayout() {
           <Layout style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <Content
               style={{
-                padding: screens.xl ? 32 : screens.lg ? 24 : screens.md ? 20 : 16,
-                background: isDark ? '#0f172a' : '#f1f5f9',
+                padding: 32,
+                background: '#f8fafc',
                 flex: 1,
                 overflow: 'auto',
                 minWidth: 0,
