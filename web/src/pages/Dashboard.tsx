@@ -17,7 +17,7 @@ import { Card, Col, Row, Spin } from 'antd';
 import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
@@ -36,7 +36,7 @@ const MAX_VALUES: Record<string, number> = {
 
 const SCORE_COLORS: Record<string, { start: string; end: string; bg: string }> = {
   利润空间: { start: '#059669', end: '#34d399', bg: '#ecfdf5' },
-  趋势热度: { start: '#7c3aed', end: '#a78bfa', bg: '#f5f3ff' },
+  趋势热度: { start: '#dc2626', end: '#f87171', bg: '#fef2f2' },
   竞争强度: { start: '#0891b2', end: '#22d3ee', bg: '#ecfeff' },
   评论洞察: { start: '#2563eb', end: '#60a5fa', bg: '#eff6ff' },
   供应链稳定性: { start: '#d97706', end: '#fbbf24', bg: '#fffbeb' },
@@ -169,9 +169,10 @@ function KpiCards({ report }: { report: AnalysisReport }) {
           <div className="metric-value" style={{ color: m.accent.color }}>
             {m.value}
           </div>
-          <div className="metric-sub" style={{ color: m.accent.color }}>{m.sub}</div>
+          <div className="metric-sub">{m.sub}</div>
           <div className="metric-trend">
-            <span style={{ color: m.accent.color }}>●</span> {m.trend}
+            <span style={{ color: m.accent.color }}>●</span>
+            <span style={{ color: 'var(--saas-text-muted)' }}>{m.trend}</span>
           </div>
         </div>
       ))}
@@ -360,6 +361,10 @@ function RadarChart({ report }: { report: AnalysisReport }) {
 
 function ScoreBreakdown({ report }: { report: AnalysisReport }) {
   const total = Object.values(report.score_breakdown).reduce((a, b) => a + b, 0);
+  const sortedDimensions = Object.entries(report.score_breakdown)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name]) => name);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -391,10 +396,14 @@ function ScoreBreakdown({ report }: { report: AnalysisReport }) {
         </div>
         <div className="dashboard-insight-box" style={{ marginTop: 'auto', flexShrink: 0 }}>
           <strong>综合判定：</strong>
-          该品类在 <span style={{ color: '#059669', fontWeight: 800 }}>利润空间</span>、
-          <span style={{ color: '#7c3aed', fontWeight: 800 }}>趋势热度</span> 与
-          <span style={{ color: '#d97706', fontWeight: 800 }}>供应链稳定性</span> 等五维表现综合决定评级，
-          建议结合评论洞察进一步验证差异化机会。
+          该品类在{' '}
+          {sortedDimensions.map((name, idx) => (
+            <React.Fragment key={name}>
+              <span style={{ color: SCORE_COLORS[name].start, fontWeight: 800 }}>{name}</span>
+              {idx < sortedDimensions.length - 1 ? '、' : ''}
+            </React.Fragment>
+          ))}
+          {' '}等维度表现突出；建议结论由五维加权与毛利率共同决定，若趋势/竞争/供应链任一维度偏弱，会下调评级。
         </div>
       </div>
     </div>
@@ -435,6 +444,27 @@ export default function Dashboard() {
   useEffect(() => {
     dispatch(setPageTitle('首页概览'));
   }, [dispatch]);
+
+  // 支持从 URL 参数自动发起分析（如细分关键词点击“在新页面分析”）
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const auto = params.get('auto') === '1';
+    const keyword = params.get('keyword')?.trim();
+    const market = params.get('market')?.trim();
+    const budget = params.get('budget')?.trim();
+    if (auto && keyword) {
+      analyze({
+        keyword,
+        market: market || lastSearch?.market || 'US',
+        budget: budget || lastSearch?.budget || '5000-10000',
+      }).then(() => {
+        // 分析完成后清理 auto 参数，避免刷新重复触发
+        const next = new URLSearchParams(window.location.search);
+        next.delete('auto');
+        window.history.replaceState({}, '', `${window.location.pathname}?${next.toString()}`);
+      });
+    }
+  }, [analyze, lastSearch]);
 
   return (
     <div className="page-container">

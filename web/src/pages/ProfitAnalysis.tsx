@@ -647,55 +647,55 @@ export default function ProfitAnalysis() {
                   <DollarOutlined style={{ color: 'var(--saas-warning)' }} /> 利润优化模拟器
                 </div>
                 <div className="section-desc">
-                  拖动滑块模拟成本优化与售价提升对利润的影响。各优化项上限基于当前单件成本的合理优化空间（通常为该项成本的 30%）。
+                  拖动滑块模拟成本优化与售价提升对利润的影响。优化上限按实际业务空间设定：成本/FBA 可下探 30-40%、广告可优化 50%、售价可上浮 20%，并保留最低可调区间。
                 </div>
                 <Row gutter={[32, 0]}>
                   <Col xs={24} md={12}>
                     <SimulatorSlider
                       label="产品成本优化"
                       value={costReduction}
-                      max={Math.min(2, report.profit_analysis.cost_breakdown['产品成本'] * 0.3)}
+                      max={Math.max(3, report.profit_analysis.cost_breakdown['产品成本'] * 0.3)}
                       step={0.1}
                       onChange={setCostReduction}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#2563eb"
                       icon={<PieChartOutlined />}
-                      hint="通过谈判/工艺/包装优化降低的单件采购成本"
+                      hint="通过谈判/工艺/包装优化降低的单件采购成本（上限为当前成本的 30%）"
                     />
                     <SimulatorSlider
                       label="广告费用优化"
                       value={adReduction}
-                      max={Math.min(1, (report.profit_analysis.cost_breakdown['广告费用'] || 0) * 0.3)}
+                      max={Math.max(2, (report.profit_analysis.cost_breakdown['广告费用'] || 0) * 0.5)}
                       step={0.05}
                       onChange={setAdReduction}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#dc2626"
                       icon={<RiseOutlined />}
-                      hint="通过精准投放/自然流量提升降低的单件广告支出"
+                      hint="通过精准投放/自然流量提升降低的单件广告支出（上限为当前广告费的 50%）"
                     />
                   </Col>
                   <Col xs={24} md={12}>
                     <SimulatorSlider
                       label="FBA 费用优化"
                       value={fbaReduction}
-                      max={Math.min(1, (report.profit_analysis.cost_breakdown['FBA 费用'] || 0) * 0.3)}
+                      max={Math.max(2, (report.profit_analysis.cost_breakdown['FBA 费用'] || 0) * 0.4)}
                       step={0.05}
                       onChange={setFbaReduction}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#d97706"
                       icon={<SafetyOutlined />}
-                      hint="通过尺寸优化/轻小计划等降低的单件FBA费用"
+                      hint="通过尺寸优化/轻小计划等降低的单件FBA费用（上限为当前FBA费的 40%）"
                     />
                     <SimulatorSlider
                       label="售价提升"
                       value={priceIncrease}
-                      max={5}
+                      max={Math.max(5, report.profit_analysis.selling_price * 0.2)}
                       step={0.1}
                       onChange={setPriceIncrease}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#059669"
                       icon={<DollarOutlined />}
-                      hint="通过品牌溢价/套装升级/差异化提升的单件售价"
+                      hint="通过品牌溢价/套装升级/差异化提升的单件售价（上限为当前售价的 20%）"
                     />
                   </Col>
                 </Row>

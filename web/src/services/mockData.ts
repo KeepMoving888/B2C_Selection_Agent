@@ -570,6 +570,15 @@ const MARKET_PROFILES: Record<string, MarketProfile> = {
   CA: { name: '加拿大站', currency: 'CAD', price_mult: 1.0, review_mult: 0.6, shipping_premium: 0.35, fba_premium: 0.2, referral_adj: 0.0 },
 };
 
+// 相对市场规模指数，用于生成各国走势时区分量级（非真实销量，仅反映相对热度）
+const MARKET_SIZE_INDEX: Record<string, number> = {
+  US: 100,
+  UK: 60,
+  DE: 55,
+  JP: 50,
+  CA: 42,
+};
+
 // ------------------------------------------------------------------
 // 工具函数
 // ------------------------------------------------------------------
@@ -894,6 +903,25 @@ function buildSeasonNarrative(peakMonths: number[], entryMonths: number[], trend
     season_desc: seasonDesc,
     trend_desc: trendDesc,
   };
+}
+
+// ------------------------------------------------------------------
+// 全球市场走势（多国家对比）
+// ------------------------------------------------------------------
+function buildGlobalTrends(keyword: string, archetype: ProductArchetype) {
+  return Object.entries(MARKET_PROFILES).map(([code, profile]) => {
+    const rng = seededRng(keyword, code);
+    const series = generateTrendSeries(rng, archetype);
+    const size = MARKET_SIZE_INDEX[code] || 60;
+    const scale = size / 100;
+    return {
+      code,
+      name: profile.name,
+      months: series.months,
+      values: series.values.map((v) => Math.round(v * scale)),
+      market_size_index: size,
+    };
+  });
 }
 
 // ------------------------------------------------------------------
@@ -1312,6 +1340,83 @@ function buildKeywordOpportunities(
 }
 
 // ------------------------------------------------------------------
+// 关键词关系网络与拓品建议
+// ------------------------------------------------------------------
+const SEGMENT_RULES = [
+  { key: 'quality', label: '品质升级型', words: ['best', 'top rated', 'premium', 'professional', 'salon grade', 'heavy duty', 'durable', 'top'] },
+  { key: 'price', label: '性价比/组合型', words: ['affordable', 'cheap', 'budget', 'bundle', 'set of', 'value', 'pack', 'deal'] },
+  { key: 'feature', label: '功能创新型', words: ['wireless', 'bluetooth', 'noise cancelling', 'fast charging', 'magnetic', 'adjustable', 'foldable', 'compact', 'automatic', 'interactive', 'smart', 'portable', 'rechargeable', 'waterproof', 'leak proof', 'insulated', 'collapsible', 'with'] },
+  { key: 'use_case', label: '场景细分型', words: ['for', 'gym', 'running', 'cycling', 'travel', 'kitchen', 'baby', 'cat', 'dog', 'toddler', 'newborn', 'camping', 'sports', 'fitness', 'outdoor', 'home', 'office'] },
+  { key: 'material', label: '材质安全型', words: ['organic', 'vegan', 'bpa free', 'bpa-free', 'non toxic', 'non-toxic', 'silicone', 'cruelty free', 'cruelty-free', 'hypoallergenic', 'natural', 'stainless steel', 'glass'] },
+  { key: 'size', label: '规格尺寸型', words: ['large', 'small', '32 oz', 'large capacity', 'mini', 'compact'] },
+];
+
+function inferSegment(keyword: string, rootKeyword: string): string {
+  const modifier = keyword.toLowerCase().replace(rootKeyword.toLowerCase(), '').trim();
+  const first = modifier.split(' ')[0];
+  for (const rule of SEGMENT_RULES) {
+    if (rule.words.some((w) => modifier.includes(w) || first === w)) return rule.label;
+  }
+  return '其他细分型';
+}
+
+type KeywordRelationships = NonNullable<AnalysisReport['market_analysis']['keyword_relationships']>;
+
+function buildKeywordRelationships(
+  keyword: string,
+  opportunities: AnalysisReport['market_analysis']['keyword_opportunities'],
+  summary: AnalysisReport['market_analysis']['keyword_summary']
+): KeywordRelationships {
+  if (!opportunities || opportunities.length === 0) {
+    return { nodes: [], links: [], expansion_suggestions: [] };
+  }
+  const rootVolume = summary?.search_volume || 50000;
+  const nodes: KeywordRelationships['nodes'] = [
+    { id: 'root', name: keyword, value: rootVolume, type: 'root' },
+  ];
+  const links: KeywordRelationships['links'] = [];
+
+  for (const opp of opportunities) {
+    const segment = inferSegment(opp.keyword, keyword);
+    nodes.push({
+      id: opp.keyword,
+      name: opp.keyword,
+      value: opp.search_volume,
+      type: 'niche',
+      trend: opp.trend,
+      competition: opp.competition,
+      opportunity_score: opp.opportunity_score,
+      segment,
+    });
+    links.push({ source: 'root', target: opp.keyword, value: opp.opportunity_score });
+  }
+
+  const segmentGroups: Record<string, NonNullable<AnalysisReport['market_analysis']['keyword_opportunities']>> = {};
+  for (const opp of opportunities) {
+    const seg = inferSegment(opp.keyword, keyword);
+    if (!segmentGroups[seg]) segmentGroups[seg] = [];
+    segmentGroups[seg].push(opp);
+  }
+
+  const expansion_suggestions = Object.entries(segmentGroups)
+    .map(([segment, list]) => {
+      const avg = Math.round(list.reduce((s, o) => s + o.opportunity_score, 0) / list.length);
+      const rising = list.filter((o) => o.trend === 'rising').length;
+      const lowComp = list.filter((o) => o.competition === 'low').length;
+      return {
+        segment,
+        keywords: list.sort((a, b) => b.opportunity_score - a.opportunity_score).slice(0, 5).map((o) => o.keyword),
+        avg_score: avg,
+        rationale: `该细分方向包含 ${list.length} 个关键词，平均机会分 ${avg}；其中 ${rising} 个呈上升趋势、${lowComp} 个竞争较低，${avg >= 60 ? '具备较好的拓品与广告测试价值' : '可作为长尾补充观察'}。`,
+      };
+    })
+    .sort((a, b) => b.avg_score - a.avg_score)
+    .slice(0, 4);
+
+  return { nodes, links, expansion_suggestions };
+}
+
+// ------------------------------------------------------------------
 // 主函数：生成报告
 // ------------------------------------------------------------------
 export function generateMockReport(
@@ -1353,11 +1458,13 @@ export function generateMockReport(
   const keywordSummary = {
     search_volume: rng.randint(8500, 95000),
     trend: archetype.trend,
-    competition: avgReviews > 8000 ? 'high' : avgReviews > 2000 ? 'medium' : 'low',
+    competition: (avgReviews > 8000 ? 'high' : avgReviews > 2000 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
     cpc: Math.round(rng.uniform(0.65, 3.8) * 100) / 100,
     opportunity_score: Math.round(Math.min(100, (marginScore / 40) * 60 + (archetype.trend === 'rising' ? 25 : 15))),
     top_niche_keywords: (keywordOpportunities || []).slice(0, 5).map((o) => o.keyword),
   };
+  const globalTrends = buildGlobalTrends(keyword, archetype);
+  const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary);
   const competitionScore = avgReviews < 1500 ? 20 : avgReviews < 8000 ? 12 : 5;
   const insightScore = archetype.pain_points.length > 0 ? 15 : 8;
   // 供应链稳定性：基于供应商平均评分、响应率与交期综合评估
@@ -1368,14 +1475,15 @@ export function generateMockReport(
   ) / 10;
   const totalScore = Math.round((marginScore + trendScore + competitionScore + insightScore + supplyScore) * 10) / 10;
 
+  // 综合判定：不再只看毛利率，而是基于五维总分（利润+趋势+竞争+洞察+供应链）
   let verdict: string;
   let verdictColor: string;
   let grade: string;
-  if (grossMargin >= 0.20) {
+  if (totalScore >= 75) {
     verdict = '推荐进入';
     verdictColor = '#16a34a';
     grade = 'A';
-  } else if (grossMargin >= 0.10) {
+  } else if (totalScore >= 48) {
     verdict = '谨慎进入';
     verdictColor = '#d97706';
     grade = 'B';
@@ -1442,6 +1550,8 @@ export function generateMockReport(
       competitors,
       keyword_summary: keywordSummary,
       keyword_opportunities: keywordOpportunities,
+      global_trends: globalTrends,
+      keyword_relationships: keywordRelationships,
       data_quality: '智能分析引擎',
       market_profile: profile,
     },

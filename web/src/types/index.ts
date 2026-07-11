@@ -35,6 +35,32 @@ export interface AnalysisReport {
       name: string;
       currency: string;
     };
+    global_trends?: {
+      code: string;
+      name: string;
+      months: string[];
+      values: number[];
+      market_size_index: number;
+    }[];
+    keyword_relationships?: {
+      nodes: {
+        id: string;
+        name: string;
+        value: number;
+        type: 'root' | 'niche';
+        trend?: 'rising' | 'stable' | 'falling';
+        competition?: 'low' | 'medium' | 'high';
+        opportunity_score?: number;
+        segment?: string;
+      }[];
+      links: { source: string; target: string; value: number }[];
+      expansion_suggestions: {
+        segment: string;
+        keywords: string[];
+        avg_score: number;
+        rationale: string;
+      }[];
+    };
   };
   profit_analysis: {
     selling_price: number;

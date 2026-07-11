@@ -1,4 +1,5 @@
 import {
+  ApartmentOutlined,
   BarChartOutlined,
   BulbOutlined,
   CalendarOutlined,
@@ -14,6 +15,7 @@ import {
   FileTextOutlined,
   FilterOutlined,
   FlagOutlined,
+  GlobalOutlined,
   RiseOutlined,
   SafetyOutlined,
   ShareAltOutlined,
@@ -60,6 +62,16 @@ const GRADE_COLORS: Record<string, string> = {
   C: '#d97706',
   D: '#dc2626',
 }
+
+const COUNTRY_COLORS: Record<string, string> = {
+  US: '#dc2626',
+  UK: '#2563eb',
+  DE: '#f59e0b',
+  JP: '#0891b2',
+  CA: '#7c3aed',
+}
+
+const SEGMENT_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#64748b']
 
 export default function ReportCenter() {
   const dispatch = useDispatch()
@@ -503,6 +515,62 @@ function ReportOverviewTab({ report }: { report: AnalysisReport }) {
   )
 }
 
+function GlobalTrendsMiniChart({ trends }: { trends: NonNullable<AnalysisReport['market_analysis']['global_trends']> }) {
+  const option = useMemo(() => {
+    const months = trends[0].months
+    return {
+      tooltip: { trigger: 'axis' as const, backgroundColor: 'rgba(255,255,255,0.95)', borderColor: 'var(--saas-border)', textStyle: { color: 'var(--saas-text)' } },
+      legend: { data: trends.map((t) => t.name), top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontSize: 11, fontWeight: 700 } },
+      grid: { left: 10, right: 10, top: 34, bottom: 10, containLabel: true },
+      xAxis: { type: 'category' as const, data: months, axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontSize: 11 } },
+      yAxis: { type: 'value' as const, name: '热度', min: 0, max: 100, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontSize: 11 } },
+      series: trends.map((t) => ({
+        type: 'line' as const,
+        name: t.name,
+        data: t.values,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 2, color: COUNTRY_COLORS[t.code] || '#64748b' },
+        itemStyle: { color: COUNTRY_COLORS[t.code] || '#64748b' },
+      })),
+    }
+  }, [trends])
+
+  return <ReactECharts option={option} style={{ height: 200 }} />
+}
+
+function KeywordRelationSuggestions({ rel }: { rel: NonNullable<AnalysisReport['market_analysis']['keyword_relationships']> }) {
+  return (
+    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+      {rel.expansion_suggestions.map((s, i) => (
+        <div
+          key={i}
+          style={{
+            padding: 10,
+            background: '#f8fafc',
+            border: '1px solid var(--saas-border-subtle)',
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--saas-text)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+            {s.segment}
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>平均机会分 {s.avg_score}</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--saas-text-secondary)', lineHeight: 1.5, marginBottom: 6 }}>{s.rationale}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {s.keywords.map((kw, j) => (
+              <Tag key={j} style={{ fontSize: 10, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                {kw}
+              </Tag>
+            ))}
+          </div>
+        </div>
+      ))}
+    </Space>
+  )
+}
+
 function ReportMarketTab({ market }: { market: AnalysisReport['market_analysis'] }) {
   const top5 = market.competitors.slice(0, 5)
   const data = top5.map((c: any, i: number) => ({
@@ -544,6 +612,24 @@ function ReportMarketTab({ market }: { market: AnalysisReport['market_analysis']
           <MiniMetric label="平均评论" value={market.avg_reviews.toLocaleString()} />
         </Col>
       </Row>
+      {market.global_trends && market.global_trends.length > 0 && (
+        <Row gutter={[16, 16]}>
+          <Col xs={24}>
+            <Card size="small" title={<><GlobalOutlined style={{ color: 'var(--saas-primary)' }} /> 全球市场走势</>}>
+              <GlobalTrendsMiniChart trends={market.global_trends} />
+            </Card>
+          </Col>
+        </Row>
+      )}
+      {market.keyword_relationships && market.keyword_relationships.expansion_suggestions.length > 0 && (
+        <Row gutter={[16, 16]}>
+          <Col xs={24}>
+            <Card size="small" title={<><ApartmentOutlined style={{ color: 'var(--saas-primary)' }} /> 关键词关系与拓品建议</>}>
+              <KeywordRelationSuggestions rel={market.keyword_relationships} />
+            </Card>
+          </Col>
+        </Row>
+      )}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
           <Card size="small" title="TOP5 竞品">
@@ -790,8 +876,8 @@ function getPrintStyles(report: AnalysisReport) {
     .p-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid; }
     .p-header h1 { margin: 0 0 8px; font-size: 24px; color: #1e293b; }
     .p-header .p-meta { color: #64748b; font-size: 12px; }
-    .p-section { margin-bottom: 20px; }
-    .p-section > * { page-break-inside: avoid; break-inside: avoid; padding-bottom: 6px; }
+    .p-section { margin-bottom: 20px; color: #1e293b; }
+    .p-section > * { page-break-inside: avoid; break-inside: avoid; padding-bottom: 6px; color: #1e293b; }
     .p-title { font-size: 15px; font-weight: 900; color: #1e293b; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
     .p-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
     .p-metric { flex: 1 1 120px; min-width: 120px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 12px 16px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
@@ -829,6 +915,10 @@ function ReportPdfContent({ report }: { report: AnalysisReport }) {
 
 async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: boolean) => void) {
   setLoading?.(true)
+  // 先让 UI 线程渲染加载态，再执行 PDF 生成，降低“卡住”感知
+  const hideLoading = message.loading('正在生成 PDF，请稍候...', 0)
+  await new Promise((resolve) => setTimeout(resolve, 80))
+
   const container = document.createElement('div')
   container.style.position = 'absolute'
   container.style.left = '-9999px'
@@ -840,11 +930,12 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
   const root = createRoot(container)
   root.render(<ReportPdfContent report={report} />)
 
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  await new Promise((resolve) => setTimeout(resolve, 120))
 
   try {
+    // scale 降至 1.5 可显著减少渲染耗时，同时保持打印清晰度
     const canvas = await html2canvas(container, {
-      scale: 2,
+      scale: 1.5,
       backgroundColor: '#ffffff',
       useCORS: true,
       logging: false,
@@ -902,8 +993,10 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     })
 
     pdf.save(`${report.keyword.replace(/\s+/g, '_').toLowerCase()}_${report.market.toLowerCase()}_report.pdf`)
+    hideLoading()
     message.success('PDF 导出成功')
   } catch (error) {
+    hideLoading()
     message.error('PDF 导出失败，请重试')
     console.error('PDF export error:', error)
   } finally {

@@ -1,10 +1,13 @@
-import { Button, Card, Col, Row, Spin, Tag } from 'antd';
+import { Button, Card, Col, Row, Select, Space, Spin, Tag } from 'antd';
 import {
+  ApartmentOutlined,
   BarChartOutlined,
+  BulbOutlined,
   DollarOutlined,
   DownloadOutlined,
   FallOutlined,
   FireOutlined,
+  GlobalOutlined,
   LinkOutlined,
   RiseOutlined,
   SearchOutlined,
@@ -14,7 +17,7 @@ import {
 } from '@ant-design/icons';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
 import EmptyReport from '../components/EmptyReport';
@@ -23,6 +26,16 @@ import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
 
 const softPalette = ['#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'];
+
+const COUNTRY_COLORS: Record<string, string> = {
+  US: '#dc2626',
+  UK: '#2563eb',
+  DE: '#f59e0b',
+  JP: '#0891b2',
+  CA: '#7c3aed',
+};
+
+const SEGMENT_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#64748b'];
 
 function PriceSalesChart({ report }: { report: AnalysisReport }) {
   const competitors = report.market_analysis.competitors.slice(0, 10);
@@ -217,24 +230,40 @@ function KeywordSummary({ report }: { report: AnalysisReport }) {
   );
 }
 
-function KeywordOpportunityRow({ opp, index }: { opp: any; index: number }) {
+function KeywordOpportunityRow({ opp, index, market, budget }: { opp: any; index: number; market: string; budget: string }) {
   const trend = TREND_COLORS[opp.trend];
   const comp = COMPETITION_COLORS[opp.competition];
-  const scoreColor = opp.opportunity_score >= 70 ? '#dc2626' : opp.opportunity_score >= 45 ? '#d97706' : '#059669';
+  // 关键词统一使用柔和蓝灰色调，避免刺眼红色
+  const keywordAccent = '#2563eb';
   const displayProduct = opp.products[0];
+
+  const openNewAnalysis = () => {
+    const params = new URLSearchParams({
+      keyword: opp.keyword,
+      market,
+      budget,
+      auto: '1',
+    });
+    window.open(`/dashboard?${params.toString()}`, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div key={index} className="keyword-opportunity-card">
-      <div className="keyword-opportunity-rank" style={{ color: scoreColor, background: scoreColor + '10' }}>
+      <div className="keyword-opportunity-rank" style={{ color: '#475569', background: '#f1f5f9' }}>
         <div className="keyword-opportunity-rank-num">{index + 1}</div>
         <div className="keyword-opportunity-rank-label">TOP</div>
       </div>
 
       <div className="keyword-opportunity-keyword-block">
-        <div className="keyword-opportunity-keyword" style={{ color: scoreColor }} title={opp.keyword}>
+        <button
+          className="keyword-opportunity-keyword keyword-opportunity-keyword-link"
+          style={{ color: keywordAccent }}
+          title={`点击分析「${opp.keyword}」`}
+          onClick={openNewAnalysis}
+        >
           {opp.keyword}
-        </div>
-        <div className="keyword-opportunity-score" style={{ color: scoreColor }}>
+        </button>
+        <div className="keyword-opportunity-score" style={{ color: '#64748b' }}>
           <TrophyOutlined /> 机会分 {opp.opportunity_score}
         </div>
       </div>
@@ -288,9 +317,245 @@ function KeywordOpportunities({ report }: { report: AnalysisReport }) {
       </div>
       <div className="keyword-opportunity-grid">
         {opportunities.map((opp, i) => (
-          <KeywordOpportunityRow key={i} opp={opp} index={i} />
+          <KeywordOpportunityRow key={i} opp={opp} index={i} market={report.market} budget={report.budget} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
+  const trends = useMemo(() => report.market_analysis.global_trends || [], [report.market_analysis.global_trends]);
+  const [selected, setSelected] = useState<string[]>(() => trends.map((t) => t.code));
+
+  const options = useMemo(
+    () =>
+      trends.map((t) => ({
+        value: t.code,
+        label: `${t.name}（规模指数 ${t.market_size_index}）`,
+      })),
+    [trends]
+  );
+
+  const chartOption: EChartsOption = useMemo(() => {
+    const months = trends[0]?.months || [];
+    const active = trends.filter((t) => selected.includes(t.code));
+    return {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: 'var(--saas-border)',
+        textStyle: { color: 'var(--saas-text)' },
+      },
+      legend: {
+        data: active.map((t) => t.name),
+        top: 0,
+        right: 0,
+        textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700 },
+      },
+      grid: { left: 20, right: 20, top: 50, bottom: 20, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: months,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: 'var(--saas-border)' } },
+        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 },
+      },
+      yAxis: {
+        type: 'value',
+        name: '搜索热度指数',
+        min: 0,
+        max: 100,
+        splitLine: { lineStyle: { color: 'var(--saas-border)' } },
+        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 },
+      },
+      series: active.map((t) => {
+        const color = COUNTRY_COLORS[t.code] || '#64748b';
+        return {
+          type: 'line' as const,
+          name: t.name,
+          data: t.values,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 3, color },
+          itemStyle: { color },
+          areaStyle: { opacity: 0.08, color },
+        };
+      }),
+    };
+  }, [trends, selected]);
+
+  if (trends.length === 0) return null;
+
+  return (
+    <div className="info-card" style={{ marginBottom: 24 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <div className="info-card-title" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>
+          <GlobalOutlined style={{ color: 'var(--saas-primary)' }} /> 全球市场走势
+        </div>
+        <Select
+          mode="multiple"
+          allowClear
+          placeholder="选择国家/地区"
+          style={{ minWidth: 280, maxWidth: '100%' }}
+          value={selected}
+          onChange={setSelected}
+          options={options}
+          maxTagCount={3}
+          size="middle"
+        />
+      </div>
+      <div className="section-desc" style={{ marginBottom: 14 }}>
+        对比「{report.keyword}」在主要目标市场的月度搜索热度走势；数值为相对热度指数，可通过上方多选筛选重点国家。
+      </div>
+      <ReactECharts option={chartOption} style={{ height: 360 }} />
+    </div>
+  );
+}
+
+function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
+  const rel = report.market_analysis.keyword_relationships;
+
+  const categories = useMemo(() => {
+    const segs = Array.from(new Set((rel?.nodes || []).filter((n) => n.segment).map((n) => n.segment!)));
+    return segs.map((name) => ({ name }));
+  }, [rel]);
+
+  const chartOption: EChartsOption = useMemo(() => {
+    const nodes = rel?.nodes || [];
+    if (nodes.length === 0) return {};
+    const links = rel?.links || [];
+    const maxVal = Math.max(...nodes.map((n) => n.value), 1);
+    const data = nodes.map((n) => {
+      const isRoot = n.type === 'root';
+      const catIndex = categories.findIndex((c) => c.name === (n.segment || '其他细分型'));
+      return {
+        id: n.id,
+        name: n.name,
+        value: n.value,
+        category: isRoot ? undefined : catIndex >= 0 ? catIndex : undefined,
+        symbolSize: isRoot ? 48 : Math.max(18, (n.value / maxVal) * 36),
+        label: {
+          show: true,
+          fontSize: isRoot ? 13 : 10,
+          fontWeight: isRoot ? 800 : 600,
+          color: 'var(--saas-text)',
+        },
+        itemStyle: { color: isRoot ? '#dc2626' : undefined },
+      };
+    });
+
+    return {
+      tooltip: {
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: 'var(--saas-border)',
+        textStyle: { color: 'var(--saas-text)' },
+        formatter: (params: any) => {
+          if (params.dataType === 'edge') {
+            return `${params.data.source} → ${params.data.target}<br/>关联机会分 ${params.data.value}`;
+          }
+          const node = nodes.find((x) => x.id === params.data.id);
+          if (!node) return params.data.name;
+          if (node.type === 'root') {
+            return `<strong>${node.name}</strong><br/>搜索量 ${node.value.toLocaleString()}`;
+          }
+          const trendLabel = node.trend === 'rising' ? '上升' : node.trend === 'falling' ? '下滑' : '稳定';
+          const compLabel = node.competition === 'low' ? '低' : node.competition === 'high' ? '高' : '中';
+          return `<strong>${node.name}</strong><br/>搜索量 ${node.value.toLocaleString()} · 机会分 ${node.opportunity_score}<br/>趋势 ${trendLabel} · 竞争 ${compLabel}<br/>类型 ${node.segment || '其他'}`;
+        },
+      },
+      legend: {
+        data: categories.map((c) => c.name),
+        top: 0,
+        left: 0,
+        orient: 'horizontal',
+        textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700 },
+      },
+      series: [
+        {
+          type: 'graph' as const,
+          layout: 'force',
+          data,
+          links,
+          categories,
+          roam: true,
+          label: { show: true, position: 'right' },
+          force: { repulsion: 320, edgeLength: [60, 130] },
+          lineStyle: { color: 'source', curveness: 0.2, width: 2, opacity: 0.6 },
+          emphasis: { focus: 'adjacency', lineStyle: { width: 4 } },
+        },
+      ],
+    };
+  }, [rel, categories]);
+
+  if (!rel || rel.nodes.length === 0) return null;
+
+  return (
+    <div className="info-card" style={{ marginBottom: 24 }}>
+      <div className="info-card-title">
+        <ApartmentOutlined style={{ color: 'var(--saas-primary)' }} /> 关键词关系网络与拓品建议
+      </div>
+      <div className="section-desc">
+        以「{report.keyword}」为中心连接潜在细分关键词；节点大小代表搜索量，连线粗细代表机会分。右侧为基于聚类的拓品方向建议。
+      </div>
+      <Row gutter={[24, 24]}>
+        <Col xs={24} lg={16}>
+          <ReactECharts option={chartOption} style={{ height: 420 }} />
+        </Col>
+        <Col xs={24} lg={8}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            {(rel?.expansion_suggestions || []).map((s, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: 14,
+                  background: '#f8fafc',
+                  border: '1px solid var(--saas-border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: 'var(--saas-text)',
+                    marginBottom: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                  {s.segment}
+                  <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
+                    平均机会分 {s.avg_score}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
+                  {s.rationale}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {s.keywords.map((kw, j) => (
+                    <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                      {kw}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
 }
@@ -308,7 +573,7 @@ export default function MarketAnalysis() {
       <div className="page-hero">
         <div>
           <div className="page-header">市场分析</div>
-          <div className="page-subtitle">竞品价格带、销量分布与头部 Listing 对比，定位市场机会</div>
+          <div className="page-subtitle">全球市场走势、关键词关系网络、细分机会与竞品格局综合分析，支撑选品决策</div>
         </div>
         {report && (
           <span className="section-badge">
@@ -344,6 +609,12 @@ export default function MarketAnalysis() {
           </div>
 
           <KeywordSummary report={report} />
+
+          <GlobalTrendsChart report={report} />
+
+          <KeywordRelationshipGraph report={report} />
+
+          <KeywordOpportunities report={report} />
 
           <div className="info-card" style={{ marginBottom: 24, padding: '18px 22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
@@ -381,12 +652,6 @@ export default function MarketAnalysis() {
                   <CompetitorCard key={i} product={p} index={i} />
                 ))}
               </div>
-            </Col>
-          </Row>
-
-          <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-            <Col xs={24}>
-              <KeywordOpportunities report={report} />
             </Col>
           </Row>
         </>
