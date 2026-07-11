@@ -55,7 +55,13 @@ export default function AppSidebar() {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        minHeight: 'calc(100vh - 64px)',
+        position: 'sticky',
+        top: 68,
+        height: 'calc(100vh - 68px)',
+        maxHeight: 'calc(100vh - 68px)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        alignSelf: 'flex-start',
       }}
     >
       <Menu

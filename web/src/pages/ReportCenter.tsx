@@ -149,11 +149,12 @@ export default function ReportCenter() {
       const local = localStorage.getItem(`xuanpin_report_detail_${id}`)
       if (local) {
         const parsed = JSON.parse(local) as AnalysisReport
-        if (parsed.version === 2) {
+        const hasEnoughOpportunities = (parsed.market_analysis?.keyword_opportunities?.length || 0) >= 10
+        if (parsed.version === 3 && hasEnoughOpportunities) {
           setDetail(parsed)
           return
         }
-        // 旧版本报告迁移
+        // 旧版本或数据不完整报告迁移
         if (parsed.keyword && parsed.market && parsed.budget) {
           const migrated = generateMockReport(parsed.keyword, parsed.market, parsed.budget)
           localStorage.setItem(`xuanpin_report_detail_${id}`, JSON.stringify(migrated))
@@ -786,41 +787,43 @@ function getPrintStyles(report: AnalysisReport) {
     @page { size: A4; margin: 18mm; }
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 0; font-size: 12px; }
-    .p-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px; }
+    .p-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid; }
     .p-header h1 { margin: 0 0 8px; font-size: 24px; color: #1e293b; }
     .p-header .p-meta { color: #64748b; font-size: 12px; }
-    .p-section { margin-bottom: 20px; page-break-inside: avoid; }
-    .p-title { font-size: 15px; font-weight: 900; color: #1e293b; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+    .p-section { margin-bottom: 20px; }
+    .p-section > * { page-break-inside: avoid; break-inside: avoid; padding-bottom: 6px; }
+    .p-title { font-size: 15px; font-weight: 900; color: #1e293b; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
     .p-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
-    .p-metric { flex: 1 1 120px; min-width: 120px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+    .p-metric { flex: 1 1 120px; min-width: 120px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 12px 16px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
     .p-metric-label { font-size: 11px; color: #64748b; font-weight: 800; margin-bottom: 6px; }
     .p-metric-value { font-size: 18px; font-weight: 900; color: #2563eb; }
     .p-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    .p-table th, .p-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; font-size: 11px; }
+    .p-table th, .p-table td { border: 1px solid #e2e8f0; padding: 8px 10px 10px; text-align: left; font-size: 11px; }
     .p-table th { background: #f1f5f9; font-weight: 800; }
+    .p-table tr { page-break-inside: avoid; break-inside: avoid; }
     .p-list { margin: 0; padding-left: 18px; }
-    .p-list li { margin-bottom: 6px; }
+    .p-list li { margin-bottom: 6px; padding-bottom: 4px; page-break-inside: avoid; break-inside: avoid; }
     .p-tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; margin-right: 6px; margin-bottom: 6px; }
+    .p-action { page-break-inside: avoid; break-inside: avoid; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 12px 16px; margin-bottom: 10px; }
+    .p-action-title { font-weight: 900; margin-bottom: 4px; }
     .p-verdict { color: ${report.verdict_color}; font-weight: 900; }
     .p-grade { display: inline-block; padding: 4px 12px; border-radius: 14px; background: ${report.verdict_color}; color: #fff; font-weight: 900; font-size: 14px; }
-    .p-score-row { display: flex; align-items: center; margin-bottom: 10px; }
+    .p-score-row { display: flex; align-items: center; margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }
     .p-score-name { width: 90px; font-weight: 800; font-size: 11px; }
     .p-score-bar { flex: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
     .p-score-fill { height: 100%; border-radius: 5px; }
     .p-score-value { width: 70px; text-align: right; font-weight: 900; font-size: 11px; }
-    .p-action { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-    .p-action-title { font-weight: 900; margin-bottom: 4px; }
     .p-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 10px; text-align: center; }
   `
 }
 
 function ReportPdfContent({ report }: { report: AnalysisReport }) {
   return (
-    <>
+    <div style={{ width: '794px', padding: '16mm', backgroundColor: '#ffffff', boxSizing: 'border-box' }}>
       <style dangerouslySetInnerHTML={{ __html: getPrintStyles(report) }} />
       <ReportPrintContent report={report} />
       <div className="p-footer">本报告由跨境电商智能选品决策系统生成 · 仅供参考</div>
-    </>
+    </div>
   )
 }
 
@@ -852,18 +855,51 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const pdfHeight = 297
     const imgWidth = pdfWidth
     const imgHeight = (canvas.height * pdfWidth) / canvas.width
-    let heightLeft = imgHeight
-    let position = 0
+    const pxToMm = pdfWidth / canvas.width
+    const pageHeightPx = pdfHeight / pxToMm
 
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pdfHeight
+    // 智能分页：只在块级元素下边界处切割，避免段落/表格行/列表项被截断或重复
+    const protectedSelectors = ['.p-section', '.p-section > *', '.p-action', '.p-table tr', '.p-list li', '.p-header', '.p-title', '.p-metric']
+    const candidateBreaks = new Set<number>()
+    candidateBreaks.add(0)
+    protectedSelectors.forEach((sel) => {
+      container.querySelectorAll(sel).forEach((el) => {
+        const htmlEl = el as HTMLElement
+        candidateBreaks.add(Math.round(htmlEl.offsetTop + htmlEl.offsetHeight))
+      })
+    })
+    const sortedBreaks = Array.from(candidateBreaks).sort((a, b) => a - b)
 
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight
-      pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pdfHeight
+    const minPageHeight = pageHeightPx * 0.55
+    const safetyMargin = 12
+    const breaks: number[] = []
+    let currentTop = 0
+    while (currentTop + pageHeightPx < container.scrollHeight) {
+      const targetBottom = currentTop + pageHeightPx
+      // 优先找不超过（目标底部 - 安全边距）的最大候选边界，留出缓冲避免贴底截字
+      let bestBreak = targetBottom
+      for (const b of sortedBreaks) {
+        if (b > currentTop + safetyMargin && b <= targetBottom - safetyMargin) {
+          bestBreak = b
+        }
+      }
+      // 若最佳切分点导致页面过短，则在目标底部硬切
+      if (bestBreak - currentTop < minPageHeight) {
+        bestBreak = targetBottom
+      }
+      // 确保分页点确实向前推进，防止死循环
+      if (bestBreak <= currentTop + safetyMargin) {
+        bestBreak = targetBottom
+      }
+      breaks.push(bestBreak)
+      currentTop = bestBreak
     }
+
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+    breaks.forEach((breakY) => {
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, -breakY * pxToMm, imgWidth, imgHeight)
+    })
 
     pdf.save(`${report.keyword.replace(/\s+/g, '_').toLowerCase()}_${report.market.toLowerCase()}_report.pdf`)
     message.success('PDF 导出成功')

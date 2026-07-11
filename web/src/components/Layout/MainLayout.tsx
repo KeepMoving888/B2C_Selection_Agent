@@ -18,9 +18,9 @@ export default function MainLayout() {
     >
       <Layout style={{ minHeight: '100vh' }}>
         <AppHeader />
-        <Layout>
+        <Layout style={{ height: 'calc(100vh - 68px)', overflow: 'hidden' }}>
           <AppSidebar />
-          <Layout style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Layout style={{ display: 'flex', flexDirection: 'column', minWidth: 0, height: 'calc(100vh - 68px)' }}>
             <Content
               style={{
                 padding: 32,

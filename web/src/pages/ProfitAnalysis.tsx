@@ -76,6 +76,62 @@ function assumptionRiskBg(color: string) {
   return '#ecfdf5';
 }
 
+// C 端真实 ROI 模型：ROI = 月净利润 / 月总投资
+// 月净利润 = 月销量 × 单件净利 - 月度固定运营费用
+// 月总投资 = 安全库存投资 + 月度固定运营费用
+// 销量上升时，变动成本（产品/物流/FBA/佣金/广告/退货）随销量线性增加，固定费用被摊薄，
+// ROI 会逐步上升并趋近于理论上限 = 单件净利 / (安全库存月数 × 到岸成本)
+function calculateOptimizedRoiModel(
+  report: AnalysisReport,
+  costReduction: number,
+  adReduction: number,
+  fbaReduction: number,
+  priceIncrease: number
+) {
+  const profit = report.profit_analysis;
+  const shipping = profit.cost_breakdown['头程物流'] || 2;
+  const commission = profit.cost_breakdown['平台佣金'] || 0;
+  const returns = profit.cost_breakdown['退货预留'] || 0;
+  const other = profit.cost_breakdown['其他杂费'] || 0;
+
+  const newUnitCost = Math.max(0, profit.unit_cost - costReduction);
+  const newAdCost = Math.max(0, (profit.cost_breakdown['广告费用'] || 0) - adReduction);
+  const newFbaCost = Math.max(0, (profit.cost_breakdown['FBA 费用'] || 0) - fbaReduction);
+  const newSellingPrice = profit.selling_price + priceIncrease;
+
+  // 单件变动成本：销量越高，这些成本总额越高，但单件保持不变
+  const variableCostPerUnit = newUnitCost + shipping + newFbaCost + commission + newAdCost + returns + other;
+  const netProfitPerUnit = newSellingPrice - variableCostPerUnit;
+  const landingCost = newUnitCost + shipping;
+
+  const inventoryMonths = 2;
+  // 月度固定费用：含人员、仓储租金、软件、办公等，不随销量线性变化
+  const monthlyFixed = 2000;
+  const volumes = Array.from({ length: 51 }, (_, i) => 100 + i * 10);
+
+  const roiValues = volumes.map((sales) => {
+    const monthlyNetProfit = sales * netProfitPerUnit - monthlyFixed;
+    const inventoryInvestment = sales * inventoryMonths * landingCost;
+    const totalInvestment = inventoryInvestment + monthlyFixed;
+    return totalInvestment > 0 ? (monthlyNetProfit / totalInvestment) * 100 : 0;
+  });
+
+  const asymptoticRoi = landingCost > 0 && inventoryMonths > 0
+    ? (netProfitPerUnit / (landingCost * inventoryMonths)) * 100
+    : 0;
+
+  return {
+    volumes,
+    roiValues,
+    netProfitPerUnit,
+    variableCostPerUnit,
+    newSellingPrice,
+    landingCost,
+    asymptoticRoi,
+    monthlyFixed,
+  };
+}
+
 function CostRow({ item, value, pct, total }: { item: string; value: number; pct: string; total: number }) {
   const width = total > 0 ? Math.min(100, Math.max(0, (value / total) * 100)) : 0;
   const pctNum = parseFloat(pct.replace('%', '')) || 0;
@@ -175,13 +231,30 @@ function ScenarioCard({ name, data }: { name: string; data: any }) {
 
 function RoiChart({ report, currentVolume, setCurrentVolume }: { report: AnalysisReport; currentVolume: number; setCurrentVolume: (v: number) => void }) {
   const profit = report.profit_analysis;
-  const investment = profit.unit_cost * 500 + 2000;
-  const grossProfit = profit.gross_profit_per_unit;
+  const shipping = profit.cost_breakdown['头程物流'] || 2;
+  const commission = profit.cost_breakdown['平台佣金'] || 0;
+  const returns = profit.cost_breakdown['退货预留'] || 0;
+  const other = profit.cost_breakdown['其他杂费'] || 0;
+  const variableCostPerUnit = profit.unit_cost + shipping + (profit.cost_breakdown['FBA 费用'] || 0) + commission + (profit.cost_breakdown['广告费用'] || 0) + returns + other;
+  const netProfitPerUnit = profit.selling_price - variableCostPerUnit;
+  const landingCost = profit.unit_cost + shipping;
 
-  const option: EChartsOption = useMemo(() => {
+  const chartData = useMemo(() => {
+    const inventoryMonths = 2;
+    const monthlyFixed = 2000;
     const volumes = Array.from({ length: 51 }, (_, i) => 100 + i * 10);
-    const roiValues = volumes.map((v) => v * grossProfit / investment * 100);
-    const currentRoi = currentVolume * grossProfit / investment * 100;
+    const roiValues = volumes.map((sales) => {
+      const monthlyNetProfit = sales * netProfitPerUnit - monthlyFixed;
+      const inventoryInvestment = sales * inventoryMonths * landingCost;
+      const totalInvestment = inventoryInvestment + monthlyFixed;
+      return totalInvestment > 0 ? (monthlyNetProfit / totalInvestment) * 100 : 0;
+    });
+    const currentRoi = (() => {
+      const monthlyNetProfit = currentVolume * netProfitPerUnit - monthlyFixed;
+      const inventoryInvestment = currentVolume * inventoryMonths * landingCost;
+      const totalInvestment = inventoryInvestment + monthlyFixed;
+      return totalInvestment > 0 ? (monthlyNetProfit / totalInvestment) * 100 : 0;
+    })();
     const scenarioPoints: Record<string, number> = { 保守: 100, 中性: 300, 乐观: 600 };
 
     const series: any[] = [
@@ -218,7 +291,10 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
     ];
 
     Object.entries(scenarioPoints).forEach(([sName, sVol]) => {
-      const sRoi = sVol * grossProfit / investment * 100;
+      const monthlyNetProfit = sVol * netProfitPerUnit - monthlyFixed;
+      const inventoryInvestment = sVol * inventoryMonths * landingCost;
+      const totalInvestment = inventoryInvestment + monthlyFixed;
+      const sRoi = totalInvestment > 0 ? (monthlyNetProfit / totalInvestment) * 100 : 0;
       series.push({
         type: 'scatter',
         name: `${sName}情景`,
@@ -229,7 +305,7 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
       });
     });
 
-    return {
+    const option: EChartsOption = {
       backgroundColor: '#ffffff',
       tooltip: {
         trigger: 'axis',
@@ -258,9 +334,11 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
       },
       series,
     };
-  }, [currentVolume, grossProfit, investment]);
+    return { option, currentRoi };
+  }, [currentVolume, netProfitPerUnit, landingCost]);
 
-  const currentRoi = currentVolume * grossProfit / investment * 100;
+  const option = chartData.option;
+  const currentRoi = chartData.currentRoi;
 
   return (
     <div>
@@ -280,7 +358,89 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
   );
 }
 
-function SimulatorSlider({ label, value, max, step, onChange, formatter, accent, icon }: { label: string; value: number; max: number; step: number; onChange: (v: number) => void; formatter: (v?: number) => string; accent?: string; icon?: React.ReactNode }) {
+function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, priceIncrease }: {
+  report: AnalysisReport;
+  costReduction: number;
+  adReduction: number;
+  fbaReduction: number;
+  priceIncrease: number;
+}) {
+  const { option } = useMemo(() => {
+    const base = calculateOptimizedRoiModel(report, 0, 0, 0, 0);
+    const optimized = calculateOptimizedRoiModel(report, costReduction, adReduction, fbaReduction, priceIncrease);
+
+    const hasOptimization = costReduction > 0 || adReduction > 0 || fbaReduction > 0 || priceIncrease > 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const option: EChartsOption = {
+      backgroundColor: '#ffffff',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
+        textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
+        formatter: (params: any) => {
+          const lines = params.map((p: any) => `${p.seriesName}: ${p.data[1]?.toFixed?.(2) ?? p.data.toFixed(2)}%`);
+          return `<div style="font-weight:800;margin-bottom:4px">月销量 ${params[0].axisValue}</div>${lines.join('<br/>')}`;
+        },
+      },
+      legend: {
+        data: hasOptimization ? ['原始 ROI', '优化后 ROI'] : ['原始 ROI'],
+        top: 0,
+        left: 'center',
+        textStyle: { color: '#64748b', fontWeight: 700, fontFamily: 'var(--font-sans)' },
+      },
+      grid: { left: 16, right: 24, top: 36, bottom: 24, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: base.volumes,
+        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { color: '#64748b', fontFamily: 'var(--font-sans)' },
+        name: '月销量',
+        nameTextStyle: { color: '#64748b', fontFamily: 'var(--font-sans)' },
+        splitLine: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: '#f1f5f9' } },
+        axisLabel: { color: '#64748b', formatter: '{value}%', fontFamily: 'var(--font-sans)' },
+        name: 'ROI %',
+        nameTextStyle: { color: '#64748b', fontFamily: 'var(--font-sans)' },
+      },
+      series: [
+        {
+          type: 'line',
+          name: '原始 ROI',
+          data: base.roiValues,
+          smooth: true,
+          lineStyle: { color: '#94a3b8', width: 2.5, type: 'dashed' },
+          symbol: 'none',
+          areaStyle: { color: 'rgba(148, 163, 184, 0.06)' },
+        },
+        ...(hasOptimization ? [{
+          type: 'line' as const,
+          name: '优化后 ROI',
+          data: optimized.roiValues,
+          smooth: true,
+          lineStyle: { color: '#059669', width: 3 },
+          symbol: 'none',
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(5, 150, 105, 0.18)' },
+              { offset: 1, color: 'rgba(5, 150, 105, 0.02)' },
+            ]),
+          },
+        }] : []),
+      ],
+    };
+    return { option };
+  }, [report, costReduction, adReduction, fbaReduction, priceIncrease]);
+
+  return <ReactECharts option={option} style={{ height: 280 }} />;
+}
+
+function SimulatorSlider({ label, value, max, step, onChange, formatter, accent, icon, hint }: { label: string; value: number; max: number; step: number; onChange: (v: number) => void; formatter: (v?: number) => string; accent?: string; icon?: React.ReactNode; hint?: string }) {
   return (
     <div className="simulator-slider">
       <div className="simulator-slider-header">
@@ -290,6 +450,7 @@ function SimulatorSlider({ label, value, max, step, onChange, formatter, accent,
         </span>
         <span className="simulator-slider-value" style={{ color: accent }}>{formatter(value)}</span>
       </div>
+      {hint && <div className="simulator-slider-hint">{hint}</div>}
       <Slider min={0} max={max} step={step} value={value} onChange={onChange} tooltip={{ formatter }} trackStyle={{ background: accent }} handleStyle={{ borderColor: accent }} />
     </div>
   );
@@ -486,7 +647,7 @@ export default function ProfitAnalysis() {
                   <DollarOutlined style={{ color: 'var(--saas-warning)' }} /> 利润优化模拟器
                 </div>
                 <div className="section-desc">
-                  拖动滑块模拟成本优化与售价提升对毛利率的影响，探索利润提升空间。
+                  拖动滑块模拟成本优化与售价提升对利润的影响。各优化项上限基于当前单件成本的合理优化空间（通常为该项成本的 30%）。
                 </div>
                 <Row gutter={[32, 0]}>
                   <Col xs={24} md={12}>
@@ -499,6 +660,7 @@ export default function ProfitAnalysis() {
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#2563eb"
                       icon={<PieChartOutlined />}
+                      hint="通过谈判/工艺/包装优化降低的单件采购成本"
                     />
                     <SimulatorSlider
                       label="广告费用优化"
@@ -509,6 +671,7 @@ export default function ProfitAnalysis() {
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#dc2626"
                       icon={<RiseOutlined />}
+                      hint="通过精准投放/自然流量提升降低的单件广告支出"
                     />
                   </Col>
                   <Col xs={24} md={12}>
@@ -521,6 +684,7 @@ export default function ProfitAnalysis() {
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#d97706"
                       icon={<SafetyOutlined />}
+                      hint="通过尺寸优化/轻小计划等降低的单件FBA费用"
                     />
                     <SimulatorSlider
                       label="售价提升"
@@ -531,20 +695,23 @@ export default function ProfitAnalysis() {
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#059669"
                       icon={<DollarOutlined />}
+                      hint="通过品牌溢价/套装升级/差异化提升的单件售价"
                     />
                   </Col>
                 </Row>
                 {(() => {
                   const profit = report.profit_analysis;
-                  const newTotalCost = Math.max(0, profit.total_cost_per_unit - costReduction - adReduction - fbaReduction);
-                  const newSellingPrice = profit.selling_price + priceIncrease;
-                  const newGrossProfit = newSellingPrice - newTotalCost;
-                  const newMargin = newSellingPrice > 0 ? newGrossProfit / newSellingPrice : 0;
-                  const baseMonthly = 300 * profit.gross_profit_per_unit;
-                  const newMonthly = 300 * newGrossProfit;
-                  const rawIncrease = newMonthly - baseMonthly;
-                  const monthlyIncrease = Math.abs(rawIncrease) < 0.005 ? 0 : rawIncrease;
+                  const base = calculateOptimizedRoiModel(report, 0, 0, 0, 0);
+                  const optimized = calculateOptimizedRoiModel(report, costReduction, adReduction, fbaReduction, priceIncrease);
+                  const newMargin = optimized.newSellingPrice > 0 ? optimized.netProfitPerUnit / optimized.newSellingPrice : 0;
+                  const baseMonthlyNet = 300 * base.netProfitPerUnit - base.monthlyFixed;
+                  const newMonthlyNet = 300 * optimized.netProfitPerUnit - optimized.monthlyFixed;
+                  const monthlyIncrease = newMonthlyNet - baseMonthlyNet;
                   const impactColor = monthlyIncrease > 0 ? '#059669' : monthlyIncrease < 0 ? '#dc2626' : '#64748b';
+
+                  const baseRoiAt300 = base.roiValues[20];
+                  const optimizedRoiAt300 = optimized.roiValues[20];
+                  const roiDelta = optimizedRoiAt300 - baseRoiAt300;
 
                   const impactLines = [];
                   if (costReduction > 0) impactLines.push(`产品成本降低 USD ${costReduction.toFixed(2)}`);
@@ -561,11 +728,17 @@ export default function ProfitAnalysis() {
                             <div className="simulator-result-value" style={{ color: '#059669' }}>{(newMargin * 100).toFixed(2)}%</div>
                           </div>
                           <div>
-                            <div className="simulator-result-label">月利润变化</div>
+                            <div className="simulator-result-label">月净利润变化（300件）</div>
                             <div className="simulator-result-value" style={{ color: impactColor }}>{monthlyIncrease > 0 ? '+' : ''}USD {monthlyIncrease.toFixed(2)}</div>
                           </div>
+                          <div>
+                            <div className="simulator-result-label">300件 ROI 变化</div>
+                            <div className="simulator-result-value" style={{ color: impactColor }}>{roiDelta > 0 ? '+' : ''}{roiDelta.toFixed(2)}%</div>
+                          </div>
                         </div>
-                        <div className="simulator-result-note">基于 300 件/月销量估算 · 优化后单件毛利 USD {newGrossProfit.toFixed(2)}</div>
+                        <div className="simulator-result-note">
+                          当前单件净利 USD {optimized.netProfitPerUnit.toFixed(2)} · 到岸成本 USD {optimized.landingCost.toFixed(2)} · 月度固定费用 USD {optimized.monthlyFixed.toLocaleString()} · 稳态 ROI {optimized.asymptoticRoi.toFixed(2)}%
+                        </div>
                       </div>
                       {impactLines.length > 0 && (
                         <div className="simulator-impact">
@@ -573,6 +746,28 @@ export default function ProfitAnalysis() {
                           {impactLines.join(' · ')}，毛利率从 {profit.gross_margin_pct} 提升至 {(newMargin * 100).toFixed(2)}%。
                         </div>
                       )}
+                      <div style={{ marginTop: 20 }}>
+                        <div className="info-card-title" style={{ fontSize: 13, marginBottom: 8 }}>
+                          <RiseOutlined style={{ color: 'var(--saas-success)' }} /> 优化前后 ROI 曲线对比
+                        </div>
+                        <OptimizedRoiChart
+                          report={report}
+                          costReduction={costReduction}
+                          adReduction={adReduction}
+                          fbaReduction={fbaReduction}
+                          priceIncrease={priceIncrease}
+                        />
+                      </div>
+                      <div className="simulator-explain">
+                        <div className="simulator-explain-title">ROI 计算逻辑与销量关系</div>
+                        <div className="simulator-explain-body">
+                          本系统采用 C 端真实 ROI 模型：<strong>ROI = 月净利润 ÷ 月总投资</strong>。<br />
+                          其中：月净利润 = 月销量 × 单件净利 - 月度固定运营费用 USD {optimized.monthlyFixed.toLocaleString()}；<br />
+                          月总投资 = 安全库存投资（月销量 × 2 个月 × 到岸成本）+ 月度固定运营费用。<br />
+                          当销量上升时，产品成本、物流、FBA、佣金、广告、退货等变动成本会随销量线性增加，但<strong>月度固定费用被摊薄</strong>，因此 ROI 会逐步上升并趋近于理论上限 = 单件净利 ÷（安全库存月数 × 到岸成本）。<br />
+                          优化器降低的是单件变动成本，直接提升单件净利，从而推动整条 ROI 曲线上移。
+                        </div>
+                      </div>
                     </>
                   );
                 })()}

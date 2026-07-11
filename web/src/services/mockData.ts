@@ -327,6 +327,226 @@ const ARCHETYPES: Record<string, ProductArchetype> = {
     ],
     cn_keywords: ['奶瓶', '防胀气奶瓶', 'PPSU 奶瓶', '新生儿奶瓶'],
   },
+  'face serum': {
+    category: 'beauty',
+    avg_price: 24.0,
+    price_range: [14.0, 55.0],
+    rating: 4.4,
+    reviews_level: 'high',
+    trend: 'rising',
+    pain_points: ['吸收慢黏腻', '刺激过敏', '效果不明显', '包装易漏'],
+    praised: ['肤感清爽', '提亮明显', '成分温和'],
+    season_peak: [11, 12, 3],
+    certifications: ['FDA 化妆品合规', 'GMPC 认证', ' dermatologically tested'],
+    supplier_city: '广州',
+    supplier_specialty: '护肤彩妆',
+    compliance_risks: [
+      '化妆品需符合 FDA 21 CFR 及欧盟 EC 1223/2009 成分与标签要求',
+      '功效宣称（美白/抗衰/祛痘）需有测试数据支撑，避免虚假宣传',
+      '防腐剂、香精、活性物需符合目标市场限量标准',
+    ],
+    cn_keywords: ['精华液', '面部精华', '玻尿酸精华', '维C精华'],
+  },
+  'hair dryer': {
+    category: 'beauty',
+    avg_price: 42.0,
+    price_range: [25.0, 99.0],
+    rating: 4.3,
+    reviews_level: 'high',
+    trend: 'stable',
+    pain_points: ['噪音大', '热风伤发', '线太短', '体积重'],
+    praised: ['干发快', '负离子护发', '轻便好握'],
+    season_peak: [11, 12],
+    certifications: ['FCC 认证', 'CE 认证', 'UL 安全认证'],
+    supplier_city: '深圳',
+    supplier_specialty: '美发电器',
+    compliance_risks: [
+      '带电吹风需通过 FCC/CE 电磁兼容与电气安全认证',
+      '发热部件需做温升、异常测试，防止过热起火',
+      '负离子/护发功效宣称需有检测报告支持',
+    ],
+    cn_keywords: ['吹风机', '负离子吹风机', '高速吹风机', '电吹风'],
+  },
+  'camping tent': {
+    category: 'sports',
+    avg_price: 85.0,
+    price_range: [45.0, 180.0],
+    rating: 4.4,
+    reviews_level: 'medium',
+    trend: 'rising',
+    pain_points: ['搭建复杂', '防风性差', '闷热不透气', '收纳体积大'],
+    praised: ['空间宽敞', '防水性能好', '快速搭建'],
+    season_peak: [5, 6, 7],
+    certifications: ['CE 认证', 'REACH 环保检测', 'SGS 材质检测'],
+    supplier_city: '泉州',
+    supplier_specialty: '户外用品',
+    compliance_risks: [
+      '帐篷面料与涂层需符合 REACH 与加州 65 号提案化学限量',
+      '防风、防水性能宣称需有真实测试数据',
+      '玻璃纤维杆、地钉等配件需评估强度与安全风险',
+    ],
+    cn_keywords: ['露营帐篷', '户外帐篷', '自动帐篷', '野营帐篷'],
+  },
+  'smart watch': {
+    category: 'electronics',
+    avg_price: 55.0,
+    price_range: [29.0, 129.0],
+    rating: 4.1,
+    reviews_level: 'high',
+    trend: 'rising',
+    pain_points: ['续航短', '心率不准', 'APP 兼容性差', '屏幕易刮花'],
+    praised: ['功能丰富', '性价比高', '运动模式多'],
+    season_peak: [11, 12],
+    certifications: ['FCC 认证', 'CE 认证', 'RoHS 环保认证'],
+    supplier_city: '深圳',
+    supplier_specialty: '智能穿戴',
+    compliance_risks: [
+      '智能手表含无线射频与锂电池，需 FCC/CE-RED/MIC 认证及 UN38.3/UL 测试',
+      '健康监测功能（心率/血氧）宣称需避免医疗诊断误导',
+      'APP 隐私与数据合规需符合 GDPR/CCPA 等法规',
+    ],
+    cn_keywords: ['智能手表', '运动手表', '蓝牙手表', '心率手表'],
+  },
+  'bluetooth speaker': {
+    category: 'electronics',
+    avg_price: 38.0,
+    price_range: [19.0, 89.0],
+    rating: 4.3,
+    reviews_level: 'high',
+    trend: 'stable',
+    pain_points: ['低音不足', '连接断续', '电池虚标', '防水不达标'],
+    praised: ['音质清晰', '便携耐用', '续航持久'],
+    season_peak: [6, 11, 12],
+    certifications: ['FCC 认证', 'CE 认证', 'RoHS 环保认证'],
+    supplier_city: '深圳',
+    supplier_specialty: '音频电子',
+    compliance_risks: [
+      '蓝牙音箱需通过 FCC/CE-RED 射频与 EMC 认证',
+      '电池需符合 UN38.3、IEC 62133 或 UL 测试',
+      '防水等级（IPX）宣称需有真实测试报告',
+    ],
+    cn_keywords: ['蓝牙音箱', '便携音箱', '户外音箱', '防水音箱'],
+  },
+  'usb c cable': {
+    category: 'electronics',
+    avg_price: 11.0,
+    price_range: [6.0, 25.0],
+    rating: 4.4,
+    reviews_level: 'high',
+    trend: 'stable',
+    pain_points: ['充电慢', '接头易断', '线材易缠绕', 'MFI 弹窗'],
+    praised: ['快充稳定', '编织耐用', '长度合适'],
+    season_peak: [11, 12],
+    certifications: ['FCC 认证', 'CE 认证', 'RoHS 环保认证'],
+    supplier_city: '深圳',
+    supplier_specialty: '手机配件',
+    compliance_risks: [
+      '数据线若含芯片需 MFi 或 USB-IF 认证，否则存在兼容性与下架风险',
+      '线材外皮与接头需符合 RoHS/REACH 有害物质限量',
+      '快充功率宣称需与线材规格一致，避免安全隐患',
+    ],
+    cn_keywords: ['Type-C数据线', '快充线', '编织数据线', 'USB-C线'],
+  },
+  'dog bed': {
+    category: 'pet_supplies',
+    avg_price: 32.0,
+    price_range: [18.0, 65.0],
+    rating: 4.5,
+    reviews_level: 'medium',
+    trend: 'rising',
+    pain_points: ['填充物塌陷', '外套难拆洗', '防滑底不够', '有异味'],
+    praised: ['柔软支撑好', '可拆洗', '宠物喜欢'],
+    season_peak: [11, 12],
+    certifications: ['CPSC 儿童产品证书', 'OEKO-TEX 标准'],
+    supplier_city: '义乌',
+    supplier_specialty: '宠物用品',
+    compliance_risks: [
+      '宠物窝填充物与面料需符合 REACH 与加州 65 号提案化学限量',
+      '可拆洗部件需考虑阻燃、缩水与色牢度要求',
+      '产品标签需标注材质、尺寸与清洁方式',
+    ],
+    cn_keywords: ['狗窝', '宠物床', '猫窝', '可拆洗狗垫'],
+  },
+  'storage box': {
+    category: 'home_kitchen',
+    avg_price: 19.0,
+    price_range: [10.0, 42.0],
+    rating: 4.5,
+    reviews_level: 'medium',
+    trend: 'stable',
+    pain_points: ['盖子不紧', '材质薄易变形', '尺寸不标准', '有塑料味'],
+    praised: ['容量大', '叠放稳固', '透明可视'],
+    season_peak: [3, 9],
+    certifications: ['FDA 食品接触材料', 'SGS 材质检测'],
+    supplier_city: '台州',
+    supplier_specialty: '家居收纳',
+    compliance_risks: [
+      '接触食品的收纳盒需符合 FDA/LFGB 食品级迁移量测试',
+      '塑料材质需符合 REACH 与加州 65 号提案',
+      '叠放承重与跌落测试需满足日常使用安全',
+    ],
+    cn_keywords: ['收纳箱', '透明收纳盒', '塑料储物箱', '整理箱'],
+  },
+  'robot vacuum': {
+    category: 'home_kitchen',
+    avg_price: 220.0,
+    price_range: [120.0, 450.0],
+    rating: 4.2,
+    reviews_level: 'high',
+    trend: 'rising',
+    pain_points: ['避障不灵敏', '噪音大', '续航短', '拖地效果差'],
+    praised: ['解放双手', '吸力强劲', 'APP 智能控制'],
+    season_peak: [11, 12],
+    certifications: ['FCC 认证', 'CE 认证', 'RoHS 环保认证'],
+    supplier_city: '深圳',
+    supplier_specialty: '智能家电',
+    compliance_risks: [
+      '扫地机器人含锂电池与无线模块，需 FCC/CE-RED/UL 等认证',
+      '激光雷达/摄像头需关注隐私合规与出口管制',
+      '跌落、碰撞、电池安全测试需符合目标市场强制标准',
+    ],
+    cn_keywords: ['扫地机器人', '智能吸尘器', '扫拖一体机', '扫地机'],
+  },
+  'plant pot': {
+    category: 'home_kitchen',
+    avg_price: 16.0,
+    price_range: [8.0, 35.0],
+    rating: 4.6,
+    reviews_level: 'medium',
+    trend: 'rising',
+    pain_points: ['排水孔堵塞', '盆底漏水', '易碎', '颜色老气'],
+    praised: ['设计简约', '排水合理', '性价比高'],
+    season_peak: [3, 4],
+    certifications: ['REACH 环保检测', 'SGS 材质检测'],
+    supplier_city: '泉州',
+    supplier_specialty: '园艺用品',
+    compliance_risks: [
+      '塑料/陶瓷/水泥材质需符合 REACH 与加州 65 号提案化学限量',
+      '产品承重与稳定性需评估，避免倾倒伤人',
+      '外观专利与园艺设计侵权风险需提前排查',
+    ],
+    cn_keywords: ['花盆', '塑料花盆', '陶瓷花盆', '多肉花盆'],
+  },
+  'baby stroller': {
+    category: 'baby',
+    avg_price: 160.0,
+    price_range: [90.0, 350.0],
+    rating: 4.3,
+    reviews_level: 'high',
+    trend: 'stable',
+    pain_points: ['收车不便', '轮子不灵活', '重量沉', '避震差'],
+    praised: ['一键收车', '推行顺滑', '可登机'],
+    season_peak: [11, 12],
+    certifications: ['ASTM F833 婴儿推车标准', 'CPC 儿童产品证书', 'EN 1888 认证'],
+    supplier_city: '东莞',
+    supplier_specialty: '母婴童车',
+    compliance_risks: [
+      '婴儿推车需符合 ASTM F833 / EN 1888 机械安全、刹车与稳定性测试',
+      '面料与把手材质需符合 CPSIA 铅/邻苯二甲酸盐限量',
+      '折叠锁定、安全带、车轮等关键部件需做可靠性测试',
+    ],
+    cn_keywords: ['婴儿推车', '轻便伞车', '可登机婴儿车', '高景观推车'],
+  },
 };
 
 // ------------------------------------------------------------------
@@ -417,7 +637,10 @@ function resolveArchetype(keyword: string): ProductArchetype {
     organizer: ARCHETYPES['kitchen organizer'],
     makeup: ARCHETYPES['makeup brush'],
     brush: ARCHETYPES['makeup brush'],
-    beauty: ARCHETYPES['makeup brush'],
+    beauty: ARCHETYPES['face serum'],
+    serum: ARCHETYPES['face serum'],
+    skincare: ARCHETYPES['face serum'],
+    'hair dryer': ARCHETYPES['hair dryer'],
     'water bottle': ARCHETYPES['water bottle'],
     'sports bottle': ARCHETYPES['sports water bottle'],
     bottle: ARCHETYPES['sports water bottle'],
@@ -429,29 +652,61 @@ function resolveArchetype(keyword: string): ProductArchetype {
     'led light': ARCHETYPES['led strip lights'],
     'baby bottle': ARCHETYPES['baby bottles'],
     baby: ARCHETYPES['baby bottles'],
+    tent: ARCHETYPES['camping tent'],
+    camping: ARCHETYPES['camping tent'],
+    'smart watch': ARCHETYPES['smart watch'],
+    'bluetooth speaker': ARCHETYPES['bluetooth speaker'],
+    speaker: ARCHETYPES['bluetooth speaker'],
+    'usb c cable': ARCHETYPES['usb c cable'],
+    cable: ARCHETYPES['usb c cable'],
+    'dog bed': ARCHETYPES['dog bed'],
+    bed: ARCHETYPES['dog bed'],
+    'storage box': ARCHETYPES['storage box'],
+    'robot vacuum': ARCHETYPES['robot vacuum'],
+    vacuum: ARCHETYPES['robot vacuum'],
+    'plant pot': ARCHETYPES['plant pot'],
+    'baby stroller': ARCHETYPES['baby stroller'],
+    stroller: ARCHETYPES['baby stroller'],
   };
   for (const catKey of Object.keys(categoryMap)) {
     if (key.includes(catKey)) return categoryMap[catKey];
   }
-  // 默认：基于关键词生成稳定数据，利润率保持在合理区间
+  // 默认：基于关键词语义与长度生成稳定且符合商业逻辑的数据
   const rng = seededRng(key);
-  const avgPrice = Math.round(rng.uniform(18.0, 55.0) * 100) / 100;
+  const isElectronics = /(charger|cable|speaker|earbud|headphone|watch|robot|vacuum|strip|led|carplay|power)/.test(key);
+  const isBeauty = /(serum|skincare|makeup|brush|hair|cream|lotion|cosmetic)/.test(key);
+  const isBaby = /(baby|stroller|bottle|diaper|nipple|newborn|toddler)/.test(key);
+  const isPet = /(dog|cat|pet|puppy|kitten|chew|bed)/.test(key);
+  const isSports = /(yoga|fitness|running|gym|sports|tent|camping|bottle|shoes|band)/.test(key);
+
+  let priceLow = 18.0, priceHigh = 55.0;
+  if (isElectronics) { priceLow = 22.0; priceHigh = 89.0; }
+  else if (isBaby) { priceLow = 25.0; priceHigh = 120.0; }
+  else if (isSports) { priceLow = 16.0; priceHigh = 75.0; }
+  else if (isBeauty) { priceLow = 12.0; priceHigh = 45.0; }
+  else if (isPet) { priceLow = 12.0; priceHigh = 42.0; }
+
+  const avgPrice = Math.round(rng.uniform(priceLow, priceHigh) * 100) / 100;
+  const category = isElectronics ? 'electronics' : isBeauty ? 'beauty' : isBaby ? 'baby' : isPet ? 'pet_supplies' : isSports ? 'sports' : 'general';
+  const supplierCity = isElectronics ? '深圳' : isBeauty ? '广州' : isBaby ? '东莞' : isPet ? '义乌' : isSports ? '泉州' : rng.choice(['深圳', '义乌', '广州', '东莞', '泉州']);
+  const specialty = isElectronics ? '消费电子' : isBeauty ? '美妆护肤' : isBaby ? '母婴用品' : isPet ? '宠物用品' : isSports ? '运动户外' : '综合类目';
+
   return {
-    category: 'general',
+    category,
     avg_price: avgPrice,
     price_range: [
-      Math.round(rng.uniform(10.0, 18.0) * 100) / 100,
-      Math.round(rng.uniform(avgPrice + 5, avgPrice + 45) * 100) / 100,
+      Math.round(rng.uniform(priceLow * 0.55, priceLow * 0.85) * 100) / 100,
+      Math.round(rng.uniform(avgPrice * 1.15, avgPrice * 1.55) * 100) / 100,
     ],
-    rating: Math.round(rng.uniform(3.9, 4.6) * 10) / 10,
+    rating: Math.round(rng.uniform(4.0, 4.7) * 10) / 10,
     reviews_level: rng.choice(['low', 'medium', 'high'] as const),
     trend: rng.choice(['rising', 'stable', 'falling'] as const),
     pain_points: ['质量参差不齐', '物流时效不稳定', '售后响应慢'],
     praised: ['功能实用', '性价比高'],
     season_peak: [11, 12],
     certifications: ['CE 认证', 'FDA 认证（如适用）'],
-    supplier_city: rng.choice(['深圳', '义乌', '广州', '东莞', '泉州']),
-    supplier_specialty: '综合类目',
+    supplier_city: supplierCity,
+    supplier_specialty: specialty,
     compliance_risks: [
       '通用类目需确认目标市场强制认证（CE/FCC/UKCA 等）与标签语言要求',
       '产品外观与功能需排查目标市场专利、商标与版权风险',
@@ -495,9 +750,16 @@ function generateCompetitors(
     'NextWave', 'TrueFit', 'SafeHaven', 'HappyNest', 'SmartChoice', 'ComfortZone', 'ActiveLife',
     'CleanSlate', 'DreamGear', 'ReadySet', 'SteadyPro',
   ];
+  const extraColors = [
+    '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#84cc16',
+    '#6366f1', '#14b8a6', '#f97316', '#d946ef', '#22c55e', '#3b82f6', '#eab308', '#a855f7',
+    '#64748b', '#b91c1c', '#0d9488', '#7c3aed', '#be123c', '#047857', '#4338ca', '#9f1239',
+    '#15803d', '#1d4ed8', '#c2410c', '#7e22ce', '#a16207', '#115e59', '#1e40af', '#9a3412',
+    '#6b21a8', '#3f6212', '#92400e', '#701a75', '#14532d', '#1e3a8a', '#713f12', '#4c0519',
+  ];
   const stores = [
     ...baseStores,
-    ...extraBrands.map((b, i) => ({ brand: b, store: `${b} Store`, color: `hsl(${(i * 47) % 360}, 65%, 45%)` })),
+    ...extraBrands.map((b, i) => ({ brand: b, store: `${b} Store`, color: extraColors[i % extraColors.length] })),
   ];
   const shuffledStores = rng.shuffle(stores);
   const suffixes = ['Premium', 'Pro', 'Elite', 'Ultra', 'Classic', 'Lite', 'Plus', 'Max', 'Essential', 'Signature'];
@@ -540,7 +802,7 @@ function generateCompetitors(
       review_count: reviewCount,
       bsr,
       estimated_monthly_sales: monthlySales,
-      image: `https://placehold.co/80x80/f8fafc/${storeInfo.color.replace('#', '')}?text=${storeInfo.brand[0]}`,
+      image: `https://placehold.co/80x80/${storeInfo.color.replace('#', '')}/ffffff?text=${encodeURIComponent(storeInfo.brand[0])}`,
       link: searchLink,
       color: storeInfo.color,
     });
@@ -722,7 +984,7 @@ function generateSuppliers(
       years: rng.randint(5, 18),
       transactions: rng.randint(120, 1800),
       hot_categories: [hotName, shuffledHot[(rank + 1) % shuffledHot.length]],
-      hot_product_image: `https://placehold.co/100x100/f1f5f9/334155?text=${hotName[0]}`,
+      hot_product_image: `https://placehold.co/100x100/334155/ffffff?text=${encodeURIComponent(hotName[0])}`,
       hot_product_name: hotName,
       link_1688: `https://s.1688.com/selloffer/offer_search.htm?keywords=${encodeURIComponent(cnQuery)}`,
     };
@@ -759,10 +1021,15 @@ function calculateProfit(
   const grossProfit = sellingPrice - totalCost;
   const grossMargin = sellingPrice > 0 ? grossProfit / sellingPrice : 0;
 
+  // ROI 动态模型：投资随销量增加而增加（按销量备货 + 固定运营费用）
+  const landingCost = unitCost + shipping; // 单件到岸成本
+  const inventoryMonths = 2; // 安全库存月数
+  const monthlyFixed = 2000; // 月度固定运营成本
   const scenarios: Record<string, any> = {};
   for (const [name, sales] of [['保守', 100], ['中性', 300], ['乐观', 600]] as const) {
     const mProfit = sales * grossProfit;
-    const investment = unitCost * 500 + 2000;
+    const inventoryUnits = Math.round(sales * inventoryMonths);
+    const investment = inventoryUnits * landingCost + monthlyFixed;
     const payback = mProfit > 0 ? investment / mProfit : null;
     scenarios[name] = {
       '月销量': sales,
@@ -794,7 +1061,7 @@ function calculateProfit(
       Object.entries(costBreakdown).map(([k, v]) => [k, `${((v / totalCost) * 100).toFixed(1)}%`])
     ),
     roi_scenarios: scenarios,
-    breakeven_units: grossProfit > 0 ? Math.round(2000 / grossProfit) : null,
+    breakeven_units: grossProfit > 0 ? Math.round(monthlyFixed / grossProfit) : null,
   };
 }
 
@@ -990,13 +1257,13 @@ function generateTrendingProducts(rng: ReturnType<typeof seededRng>, keyword: st
 // 细分关键词机会
 // ------------------------------------------------------------------
 const KEYWORD_MODIFIERS: Record<string, string[]> = {
-  default: ['best', 'top rated', 'premium', 'affordable', 'with', 'for', 'set of', 'bundle', 'heavy duty', 'adjustable'],
-  pet_supplies: ['interactive', 'automatic', 'durable', 'chew resistant', 'catnip', 'squeaky', 'plush', 'treat dispensing'],
-  sports: ['insulated', 'leak proof', 'BPA free', 'large capacity', 'collapsible', 'with straw', 'gym', 'cycling', '32 oz'],
-  electronics: ['wireless', 'bluetooth', 'noise cancelling', 'gaming', 'sport', 'waterproof', 'magnetic', 'fast charging'],
-  home_kitchen: ['stackable', 'space saving', 'rust proof', 'magnetic', 'adjustable', 'expandable', 'with lid', 'organizer'],
-  beauty: ['organic', 'vegan', 'travel size', 'professional', 'salon grade', 'with brush', 'set', 'natural'],
-  baby: ['non toxic', 'BPA free', 'soft', 'washable', 'portable', 'travel', 'newborn', 'toddler'],
+  default: ['best', 'top rated', 'premium', 'affordable', 'with', 'for', 'set of', 'bundle', 'heavy duty', 'adjustable', 'professional', 'compact'],
+  pet_supplies: ['interactive', 'automatic', 'durable', 'chew resistant', 'catnip', 'squeaky', 'plush', 'treat dispensing', 'feather', 'mouse', 'ball', 'scratch'],
+  sports: ['insulated', 'leak proof', 'BPA free', 'large capacity', 'collapsible', 'with straw', 'gym', 'cycling', '32 oz', 'running', 'fitness', 'lightweight'],
+  electronics: ['wireless', 'bluetooth', 'noise cancelling', 'gaming', 'sport', 'waterproof', 'magnetic', 'fast charging', 'long battery', 'tws', 'mini', 'open ear'],
+  home_kitchen: ['stackable', 'space saving', 'rust proof', 'magnetic', 'adjustable', 'expandable', 'with lid', 'organizer', 'over sink', 'cabinet', 'drawer', 'wall mount'],
+  beauty: ['organic', 'vegan', 'travel size', 'professional', 'salon grade', 'with brush', 'set', 'natural', 'cruelty free', 'hypoallergenic', 'premium', 'soft'],
+  baby: ['non toxic', 'BPA free', 'soft', 'washable', 'portable', 'travel', 'newborn', 'toddler', 'anti colic', 'silicone', 'gentle', 'easy clean'],
 };
 
 function buildKeywordOpportunities(
@@ -1007,7 +1274,7 @@ function buildKeywordOpportunities(
 ): AnalysisReport['market_analysis']['keyword_opportunities'] {
   const modifiers = KEYWORD_MODIFIERS[category] || KEYWORD_MODIFIERS.default;
   const shuffled = rng.shuffle([...modifiers]);
-  const count = rng.randint(6, 8);
+  const count = Math.min(12, Math.max(10, modifiers.length));
   const trends: Array<'rising' | 'stable' | 'falling'> = ['rising', 'rising', 'stable', 'stable', 'falling'];
   const competitions: Array<'low' | 'medium' | 'high'> = ['low', 'low', 'medium', 'medium', 'medium', 'high'];
 
@@ -1021,7 +1288,16 @@ function buildKeywordOpportunities(
     const compBoost = competition === 'low' ? 1.3 : competition === 'medium' ? 1.0 : 0.7;
     const opportunityScore = Math.round(Math.min(100, (searchVolume / 200) * trendBoost * compBoost));
     const productCount = rng.randint(2, 3);
-    const products = rng.shuffle(competitors).slice(0, productCount);
+    const products = rng.shuffle(competitors).slice(0, productCount).map((p) => {
+      const bg = p.color && p.color.startsWith('#') ? p.color.replace('#', '') : '2563eb';
+      const initial = p.brand ? p.brand[0] : 'P';
+      return {
+        ...p,
+        title: `${p.brand} ${kw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`,
+        image: `https://placehold.co/80x80/${bg}/ffffff?text=${encodeURIComponent(initial)}`,
+        link: `https://www.amazon.com/s?k=${encodeURIComponent(kw)}`,
+      };
+    });
 
     return {
       keyword: kw,
@@ -1144,7 +1420,7 @@ export function generateMockReport(
     keyword,
     market,
     budget,
-    version: 2,
+    version: 3,
     selling_price: sellingPrice,
     unit_cost: unitCost,
     verdict,

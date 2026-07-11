@@ -6,6 +6,7 @@ import {
   DollarOutlined,
   FallOutlined,
   FileTextOutlined,
+  FireOutlined,
   RiseOutlined,
   ShopOutlined,
   StarOutlined,
@@ -62,15 +63,16 @@ const quickLinks = [
 function TrendTag({ direction }: { direction: string }) {
   const isRising = direction === 'rising';
   const isStable = direction === 'stable';
-  const color = isRising ? '#059669' : isStable ? '#d97706' : '#dc2626';
-  const bg = isRising ? '#ecfdf5' : isStable ? '#fffbeb' : '#fef2f2';
-  const border = isRising ? '#d1fae5' : isStable ? '#fde68a' : '#fee2e2';
-  const Icon = isRising ? RiseOutlined : isStable ? FallOutlined : FallOutlined;
+  // 选品行业配色：红色 = 上升/热门；绿色 = 下降/冷却；黄色 = 警惕/稳定
+  const color = isRising ? '#dc2626' : isStable ? '#d97706' : '#059669';
+  const bg = isRising ? '#fef2f2' : isStable ? '#fffbeb' : '#ecfdf5';
+  const border = isRising ? '#fee2e2' : isStable ? '#fde68a' : '#d1fae5';
+  const Icon = isRising ? RiseOutlined : isStable ? FireOutlined : FallOutlined;
   const label = isRising ? '上升' : isStable ? '稳定' : '下滑';
 
   return (
-    <span className="badge" style={{ background: bg, color, border: `1px solid ${border}`, fontSize: 13, fontWeight: 800 }}>
-      <Icon style={{ fontSize: 12 }} /> 趋势 {label}
+    <span className="badge" style={{ background: bg, color, border: `1px solid ${border}`, fontSize: 14, fontWeight: 800, padding: '6px 14px' }}>
+      <Icon style={{ fontSize: 13 }} /> 趋势 {label}
     </span>
   );
 }
@@ -114,7 +116,10 @@ function KpiCards({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis;
   const breakeven = profit.breakeven_units ?? 'N/A';
   const trendLabel = trend.trend_direction === 'rising' ? '上升' : trend.trend_direction === 'stable' ? '稳定' : '下滑';
-  const trendColor = trend.trend_direction === 'rising' ? '#059669' : trend.trend_direction === 'stable' ? '#d97706' : '#dc2626';
+  // 选品行业配色：上升=红色（热门/积极），稳定=黄色（警惕），下滑=绿色（冷却）
+  const trendColor = trend.trend_direction === 'rising' ? '#dc2626' : trend.trend_direction === 'stable' ? '#d97706' : '#059669';
+  const trendBg = trend.trend_direction === 'rising' ? '#fef2f2' : trend.trend_direction === 'stable' ? '#fffbeb' : '#ecfdf5';
+  const trendLight = trend.trend_direction === 'rising' ? '#fee2e2' : trend.trend_direction === 'stable' ? '#fef3c7' : '#d1fae5';
   const scorePct = Math.min(99, Math.round((report.overall_score / report.max_score) * 100));
 
   const metrics = [
@@ -143,8 +148,13 @@ function KpiCards({ report }: { report: AnalysisReport }) {
       label: '趋势热度',
       value: trendLabel,
       sub: `搜索热度${trendLabel === '上升' ? '持续走高' : trendLabel === '稳定' ? '保持平稳' : '出现回落'}`,
-      trend: `旺季集中在 ${trend.peak_months.slice(0, 3).join('、')} 月`,
-      accent: METRIC_ACCENTS['趋势热度'],
+      trend: (
+        <>
+          <span style={{ color: trendColor }}>旺季</span>
+          <span>集中在 {trend.peak_months.slice(0, 3).join('、')} 月</span>
+        </>
+      ),
+      accent: { color: trendColor, bg: trendBg, light: trendLight, icon: <StockOutlined /> },
     },
   ];
 
@@ -154,14 +164,14 @@ function KpiCards({ report }: { report: AnalysisReport }) {
         <div key={m.label} className="metric-box" style={{ ['--accent' as string]: m.accent.color, ['--accent-bg' as string]: m.accent.bg, ['--accent-light' as string]: m.accent.light } as React.CSSProperties}>
           <div className="metric-top">
             <div className="metric-icon">{m.accent.icon}</div>
-            <div className="metric-label">{m.label}</div>
+            <div className="metric-label" style={{ color: m.accent.color }}>{m.label}</div>
           </div>
-          <div className="metric-value" style={{ color: m.label === '趋势热度' ? trendColor : m.accent.color }}>
+          <div className="metric-value" style={{ color: m.accent.color }}>
             {m.value}
           </div>
-          <div className="metric-sub">{m.sub}</div>
+          <div className="metric-sub" style={{ color: m.accent.color }}>{m.sub}</div>
           <div className="metric-trend">
-            <span style={{ color: m.label === '趋势热度' ? trendColor : m.accent.color }}>●</span> {m.trend}
+            <span style={{ color: m.accent.color }}>●</span> {m.trend}
           </div>
         </div>
       ))}
@@ -357,33 +367,35 @@ function ScoreBreakdown({ report }: { report: AnalysisReport }) {
       <div className="section-desc">
         各项得分对综合评分的贡献度与相对表现，帮助定位优势与短板。
       </div>
-      <div style={{ flex: 1 }}>
-        {Object.entries(report.score_breakdown).map(([name, score]) => {
-          const maxV = MAX_VALUES[name] ?? 25;
-          const pct = Math.min(100, Math.max(0, (score / maxV) * 100));
-          const contribution = total > 0 ? (score / total) * 100 : 0;
-          const color = SCORE_COLORS[name];
-          return (
-            <div key={name} className="score-row">
-              <div className="score-name" style={{ color: color.start, fontWeight: 800 }}>{name}</div>
-              <div className="score-bar-bg">
-                <div className="score-bar-fill" style={{ width: `${pct}%`, ['--bar-start' as string]: color.start, ['--bar-end' as string]: color.end }} />
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1 }}>
+          {Object.entries(report.score_breakdown).map(([name, score]) => {
+            const maxV = MAX_VALUES[name] ?? 25;
+            const pct = Math.min(100, Math.max(0, (score / maxV) * 100));
+            const contribution = total > 0 ? (score / total) * 100 : 0;
+            const color = SCORE_COLORS[name];
+            return (
+              <div key={name} className="score-row">
+                <div className="score-name" style={{ color: color.start, fontWeight: 800 }}>{name}</div>
+                <div className="score-bar-bg">
+                  <div className="score-bar-fill" style={{ width: `${pct}%`, ['--bar-start' as string]: color.start, ['--bar-end' as string]: color.end }} />
+                </div>
+                <div className="score-value" style={{ color: color.start }}>
+                  <span>{score}</span>
+                  <span style={{ fontSize: 11, color: color.end, fontWeight: 700, marginLeft: 2 }}>/{maxV}</span>
+                </div>
+                <div className="score-contribution" style={{ color: color.start }}>{contribution.toFixed(1)}%</div>
               </div>
-              <div className="score-value" style={{ color: color.start }}>
-                <span>{score}</span>
-                <span style={{ fontSize: 11, color: color.end, fontWeight: 700, marginLeft: 2 }}>/{maxV}</span>
-              </div>
-              <div className="score-contribution" style={{ color: color.start }}>{contribution.toFixed(1)}%</div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="dashboard-insight-box">
-        <strong>综合判定：</strong>
-        该品类在 <span style={{ color: '#059669', fontWeight: 800 }}>利润空间</span>、
-        <span style={{ color: '#7c3aed', fontWeight: 800 }}>趋势热度</span> 与
-        <span style={{ color: '#d97706', fontWeight: 800 }}>供应链稳定性</span> 等五维表现综合决定评级，
-        建议结合评论洞察进一步验证差异化机会。
+            );
+          })}
+        </div>
+        <div className="dashboard-insight-box" style={{ marginTop: 'auto', flexShrink: 0 }}>
+          <strong>综合判定：</strong>
+          该品类在 <span style={{ color: '#059669', fontWeight: 800 }}>利润空间</span>、
+          <span style={{ color: '#7c3aed', fontWeight: 800 }}>趋势热度</span> 与
+          <span style={{ color: '#d97706', fontWeight: 800 }}>供应链稳定性</span> 等五维表现综合决定评级，
+          建议结合评论洞察进一步验证差异化机会。
+        </div>
       </div>
     </div>
   );
@@ -397,8 +409,8 @@ function Conclusion({ report }: { report: AnalysisReport }) {
 
   return (
     <div>
-      <div className="info-card-title" style={{ marginBottom: 4, paddingBottom: 4, fontSize: 13 }}>核心结论</div>
-      <p style={{ color: 'var(--saas-text-secondary)', lineHeight: 1.5, margin: 0, fontSize: 11 }}>
+      <div className="info-card-title" style={{ marginBottom: 10, paddingBottom: 10, fontSize: 14 }}>核心结论</div>
+      <p style={{ color: 'var(--saas-text-secondary)', lineHeight: 1.6, margin: 0, fontSize: 13 }}>
         关键词 <strong style={{ color: '#2563eb' }}>{report.keyword}</strong>
         在 <strong>{profile.name}</strong> 市场平均售价
         <strong> {profile.currency}{market.avg_price}</strong>，
@@ -406,10 +418,10 @@ function Conclusion({ report }: { report: AnalysisReport }) {
         趋势 <strong>{trendText}</strong>。
         综合判定为 <strong style={{ color: report.verdict_color }}>{report.verdict}</strong>。
       </p>
-      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
-        <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe', fontSize: 10, padding: '3px 9px' }}>竞品 {market.competitors.length} 款</span>
-        <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 10, padding: '3px 9px' }}>评分 {market.avg_rating}</span>
-        <span className="badge" style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0', fontSize: 10, padding: '3px 9px' }}>评论 {market.avg_reviews.toLocaleString()}+</span>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe', fontSize: 11, padding: '4px 10px' }}>竞品 {market.competitors.length} 款</span>
+        <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 11, padding: '4px 10px' }}>评分 {market.avg_rating}</span>
+        <span className="badge" style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0', fontSize: 11, padding: '4px 10px' }}>评论 {market.avg_reviews.toLocaleString()}+</span>
       </div>
     </div>
   );
@@ -463,6 +475,10 @@ export default function Dashboard() {
           <VerdictBanner report={report} />
           <KpiCards report={report} />
 
+          <div className="info-card" style={{ marginBottom: 24 }}>
+            <Conclusion report={report} />
+          </div>
+
           <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={14}>
               <div className="info-card" style={{ height: '100%' }}>
@@ -470,12 +486,9 @@ export default function Dashboard() {
                 <RadarChart report={report} />
               </div>
             </Col>
-            <Col xs={24} lg={10} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <div className="info-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Col xs={24} lg={10}>
+              <div className="info-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
                 <ScoreBreakdown report={report} />
-              </div>
-              <div className="info-card" style={{ flexShrink: 0 }}>
-                <Conclusion report={report} />
               </div>
             </Col>
           </Row>

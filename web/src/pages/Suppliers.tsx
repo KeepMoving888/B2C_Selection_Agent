@@ -23,7 +23,30 @@ const sortOptions = [
   { value: 'response_desc', label: '响应率从高到低' },
 ];
 
-function MiniBar({ value, color, label }: { value: number; color: string; label: React.ReactNode }) {
+function ratingBarColor(value: number) {
+  // 评分条：低分偏红/橙，中分偏黄/绿，高分偏青/蓝，色相差明显、一目了然
+  if (value >= 99) return '#1e3a8a';
+  if (value >= 97) return '#1d4ed8';
+  if (value >= 94) return '#0891b2';
+  if (value >= 90) return '#16a34a';
+  if (value >= 86) return '#ca8a04';
+  if (value >= 82) return '#ea580c';
+  return '#dc2626';
+}
+
+function responseBarColor(value: number) {
+  // 响应率条：深蓝到浅青，高分浓郁、低分淡雅，区间跨度更大
+  if (value >= 99) return '#312e81';
+  if (value >= 96) return '#4338ca';
+  if (value >= 93) return '#2563eb';
+  if (value >= 89) return '#0ea5e9';
+  if (value >= 85) return '#38bdf8';
+  return '#a5f3fc';
+}
+
+function MiniBar({ value, colorFn, label }: { value: number; colorFn: (v: number) => string; label: React.ReactNode }) {
+  const clamped = Math.min(100, Math.max(0, value));
+  const color = colorFn(clamped);
   return (
     <div className="supplier-mini-bar">
       <span className="supplier-mini-bar-label">{label}</span>
@@ -31,12 +54,13 @@ function MiniBar({ value, color, label }: { value: number; color: string; label:
         <div
           className="supplier-mini-bar-fill"
           style={{
-            width: `${Math.min(100, Math.max(0, value))}%`,
-            background: color,
+            width: `${clamped}%`,
+            background: `linear-gradient(90deg, ${color}, ${color}d0)`,
+            boxShadow: `0 0 12px ${color}50, inset 0 1px 0 rgba(255,255,255,0.35)`,
           }}
         />
       </div>
-      <span className="supplier-mini-bar-value">{value.toFixed(0)}%</span>
+      <span className="supplier-mini-bar-value" style={{ color }}>{clamped.toFixed(0)}%</span>
     </div>
   );
 }
@@ -102,8 +126,8 @@ function SupplierCard({ supplier, index }: { supplier: any; index: number }) {
 
       <div className="supplier-card-bottom">
         <div className="supplier-bars-group">
-          <MiniBar value={ratingPct} color="#f59e0b" label={<><StarFilled style={{ fontSize: 10, marginRight: 4 }} />评分 {supplier.rating}</>} />
-          <MiniBar value={supplier.response_rate} color="#0891b2" label={<><TeamOutlined style={{ fontSize: 10, marginRight: 4 }} />响应率</>} />
+          <MiniBar value={ratingPct} colorFn={ratingBarColor} label={<><StarFilled style={{ fontSize: 10, marginRight: 4 }} />评分 {supplier.rating}</>} />
+          <MiniBar value={supplier.response_rate} colorFn={responseBarColor} label={<><TeamOutlined style={{ fontSize: 10, marginRight: 4 }} />响应率</>} />
         </div>
         {supplier.hot_categories?.length > 0 && (
           <div className="supplier-categories-row">

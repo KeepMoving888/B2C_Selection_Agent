@@ -95,10 +95,11 @@ function CompetitorCard({ product, index }: { product: any; index: number }) {
   );
 }
 
+// 选品行业配色法则：红色 = 上升/热门/积极；绿色/蓝色 = 下降/冷却/消极；黄色 = 警惕/稳定
 const TREND_COLORS: Record<string, { color: string; bg: string; border: string; icon: React.ReactNode; label: string }> = {
-  rising: { color: '#059669', bg: '#ecfdf5', border: '#d1fae5', icon: <RiseOutlined />, label: '上升' },
+  rising: { color: '#dc2626', bg: '#fef2f2', border: '#fee2e2', icon: <RiseOutlined />, label: '上升' },
   stable: { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: <FireOutlined />, label: '稳定' },
-  falling: { color: '#dc2626', bg: '#fef2f2', border: '#fee2e2', icon: <FallOutlined />, label: '下滑' },
+  falling: { color: '#059669', bg: '#ecfdf5', border: '#d1fae5', icon: <FallOutlined />, label: '下滑' },
 };
 
 const COMPETITION_COLORS: Record<string, { color: string; bg: string; border: string; label: string }> = {
@@ -166,7 +167,7 @@ function KeywordSummary({ report }: { report: AnalysisReport }) {
 
   const trend = TREND_COLORS[summary.trend];
   const comp = COMPETITION_COLORS[summary.competition];
-  const scoreColor = summary.opportunity_score >= 70 ? '#059669' : summary.opportunity_score >= 45 ? '#d97706' : '#dc2626';
+  const scoreColor = summary.opportunity_score >= 70 ? '#dc2626' : summary.opportunity_score >= 45 ? '#d97706' : '#059669';
 
   return (
     <div className="info-card" style={{ marginBottom: 24 }}>
@@ -216,6 +217,64 @@ function KeywordSummary({ report }: { report: AnalysisReport }) {
   );
 }
 
+function KeywordOpportunityRow({ opp, index }: { opp: any; index: number }) {
+  const trend = TREND_COLORS[opp.trend];
+  const comp = COMPETITION_COLORS[opp.competition];
+  const scoreColor = opp.opportunity_score >= 70 ? '#dc2626' : opp.opportunity_score >= 45 ? '#d97706' : '#059669';
+  const displayProduct = opp.products[0];
+
+  return (
+    <div key={index} className="keyword-opportunity-card">
+      <div className="keyword-opportunity-rank" style={{ color: scoreColor, background: scoreColor + '10' }}>
+        <div className="keyword-opportunity-rank-num">{index + 1}</div>
+        <div className="keyword-opportunity-rank-label">TOP</div>
+      </div>
+
+      <div className="keyword-opportunity-keyword-block">
+        <div className="keyword-opportunity-keyword" style={{ color: scoreColor }} title={opp.keyword}>
+          {opp.keyword}
+        </div>
+        <div className="keyword-opportunity-score" style={{ color: scoreColor }}>
+          <TrophyOutlined /> 机会分 {opp.opportunity_score}
+        </div>
+      </div>
+
+      <div className="keyword-opportunity-metrics">
+        <div className="keyword-opportunity-metric">
+          <div className="keyword-opportunity-metric-label">月搜索量</div>
+          <div className="keyword-opportunity-metric-value" style={{ color: '#2563eb' }}>
+            <SearchOutlined style={{ fontSize: 12, marginRight: 4 }} />
+            {opp.search_volume.toLocaleString()}
+          </div>
+        </div>
+        <div className="keyword-opportunity-metric">
+          <div className="keyword-opportunity-metric-label">趋势</div>
+          <div className="keyword-opportunity-metric-value" style={{ color: trend.color }}>
+            {trend.icon} {trend.label}
+          </div>
+        </div>
+        <div className="keyword-opportunity-metric">
+          <div className="keyword-opportunity-metric-label">竞争度</div>
+          <div className="keyword-opportunity-metric-value" style={{ color: comp.color }}>
+            {comp.label}
+          </div>
+        </div>
+        <div className="keyword-opportunity-metric">
+          <div className="keyword-opportunity-metric-label">CPC</div>
+          <div className="keyword-opportunity-metric-value" style={{ color: '#d97706' }}>
+            <DollarOutlined style={{ fontSize: 12, marginRight: 4 }} />
+            ${opp.cpc}
+          </div>
+        </div>
+      </div>
+
+      <div className="keyword-opportunity-product">
+        {displayProduct && <OpportunityProduct product={displayProduct} />}
+      </div>
+    </div>
+  );
+}
+
 function KeywordOpportunities({ report }: { report: AnalysisReport }) {
   const opportunities = report.market_analysis.keyword_opportunities || [];
 
@@ -228,51 +287,9 @@ function KeywordOpportunities({ report }: { report: AnalysisReport }) {
         基于搜索量、竞争度与趋势热度，挖掘「{report.keyword}」类目下具备差异化进入机会的细分关键词及对应参考产品。
       </div>
       <div className="keyword-opportunity-grid">
-        {opportunities.map((opp, i) => {
-          const trend = TREND_COLORS[opp.trend];
-          const comp = COMPETITION_COLORS[opp.competition];
-          const scoreColor = opp.opportunity_score >= 70 ? '#059669' : opp.opportunity_score >= 45 ? '#d97706' : '#dc2626';
-          return (
-            <div key={i} className="keyword-opportunity-card">
-              <div className="keyword-opportunity-header">
-                <div className="keyword-opportunity-keyword" title={opp.keyword}>{opp.keyword}</div>
-                <div className="keyword-opportunity-score" style={{ color: scoreColor, background: scoreColor + '12', borderColor: scoreColor + '30' }}>
-                  <TrophyOutlined /> {opp.opportunity_score}
-                </div>
-              </div>
-              <div className="keyword-opportunity-metrics">
-                <div className="keyword-opportunity-metric">
-                  <SearchOutlined style={{ color: 'var(--saas-primary)' }} />
-                  <span>{opp.search_volume.toLocaleString()}</span>
-                  <span className="keyword-opportunity-metric-label">月搜索</span>
-                </div>
-                <div className="keyword-opportunity-metric">
-                  <span className="badge" style={{ color: trend.color, background: trend.bg, border: `1px solid ${trend.border}` }}>
-                    {trend.icon} {trend.label}
-                  </span>
-                </div>
-                <div className="keyword-opportunity-metric">
-                  <span className="badge" style={{ color: comp.color, background: comp.bg, border: `1px solid ${comp.border}` }}>
-                    {comp.label}
-                  </span>
-                </div>
-                <div className="keyword-opportunity-metric">
-                  <DollarOutlined style={{ color: 'var(--saas-warning)' }} />
-                  <span>${opp.cpc}</span>
-                  <span className="keyword-opportunity-metric-label">CPC</span>
-                </div>
-              </div>
-              <div className="keyword-opportunity-products">
-                <div className="keyword-opportunity-products-label">参考产品</div>
-                <div className="keyword-opportunity-products-list">
-                  {opp.products.map((p: any, idx: number) => (
-                    <OpportunityProduct key={idx} product={p} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {opportunities.map((opp, i) => (
+          <KeywordOpportunityRow key={i} opp={opp} index={i} />
+        ))}
       </div>
     </div>
   );
