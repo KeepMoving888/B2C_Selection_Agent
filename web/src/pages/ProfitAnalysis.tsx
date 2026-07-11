@@ -18,18 +18,18 @@ import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
 
-const COST_COLORS: Record<string, { start: string; end: string; icon: React.ReactNode }> = {
-  产品成本: { start: '#2563eb', end: '#60a5fa', icon: <PieChartOutlined /> },
-  头程物流: { start: '#0891b2', end: '#22d3ee', icon: <FallOutlined /> },
-  'FBA 费用': { start: '#d97706', end: '#fbbf24', icon: <SafetyOutlined /> },
-  平台佣金: { start: '#7c3aed', end: '#a78bfa', icon: <DollarOutlined /> },
-  广告费用: { start: '#dc2626', end: '#f87171', icon: <RiseOutlined /> },
-  退货预留: { start: '#059669', end: '#34d399', icon: <FallOutlined /> },
-  其他杂费: { start: '#64748b', end: '#94a3b8', icon: <DollarOutlined /> },
+const COST_COLORS: Record<string, { start: string; end: string; text: string; icon: React.ReactNode }> = {
+  产品成本: { start: '#2563eb', end: '#60a5fa', text: '#ffffff', icon: <PieChartOutlined /> },
+  头程物流: { start: '#0891b2', end: '#22d3ee', text: '#ffffff', icon: <FallOutlined /> },
+  'FBA 费用': { start: '#d97706', end: '#fbbf24', text: '#78350f', icon: <SafetyOutlined /> },
+  平台佣金: { start: '#7c3aed', end: '#a78bfa', text: '#ffffff', icon: <DollarOutlined /> },
+  广告费用: { start: '#dc2626', end: '#f87171', text: '#ffffff', icon: <RiseOutlined /> },
+  退货预留: { start: '#059669', end: '#34d399', text: '#ffffff', icon: <FallOutlined /> },
+  其他杂费: { start: '#64748b', end: '#94a3b8', text: '#ffffff', icon: <DollarOutlined /> },
 };
 
 function costColor(item: string) {
-  return COST_COLORS[item] || { start: '#2563eb', end: '#60a5fa', icon: <DollarOutlined /> };
+  return COST_COLORS[item] || { start: '#2563eb', end: '#60a5fa', text: '#ffffff', icon: <DollarOutlined /> };
 }
 
 function roiColor(roi: number) {
@@ -80,7 +80,6 @@ function CostRow({ item, value, pct, total }: { item: string; value: number; pct
   const width = total > 0 ? Math.min(100, Math.max(0, (value / total) * 100)) : 0;
   const pctNum = parseFloat(pct.replace('%', '')) || 0;
   const color = costColor(item);
-  const textColor = width > 24 ? '#ffffff' : color.start;
 
   return (
     <div className="cost-row">
@@ -92,14 +91,17 @@ function CostRow({ item, value, pct, total }: { item: string; value: number; pct
           <span className="cost-name">{item}</span>
           <span className="cost-amount">USD {value.toFixed(2)}</span>
         </div>
-        <div className="cost-bar-wrapper">
-          <div className="cost-bar-fill" style={{
-            width: `${width}%`,
-            background: `linear-gradient(90deg, ${color.start}, ${color.end})`,
-            color: textColor,
-          }}>
-            {width > 16 ? `${pctNum.toFixed(1)}%` : ''}
+        <div className="cost-bar-row">
+          <div className="cost-bar-wrapper">
+            <div className="cost-bar-fill" style={{
+              width: `${width}%`,
+              background: `linear-gradient(90deg, ${color.start}, ${color.end})`,
+              color: color.text,
+            }} />
           </div>
+          <span className="cost-bar-outside-pct" style={{ color: color.start }}>
+            {pctNum.toFixed(1)}%
+          </span>
         </div>
         <div className="cost-tooltip">成本构成：USD {value.toFixed(2)} ({pctNum.toFixed(1)}%)</div>
       </div>
@@ -315,32 +317,64 @@ function ProfitSummaryBanner({ report }: { report: AnalysisReport }) {
   );
 }
 
-function BestScenarioBanner({ report }: { report: AnalysisReport }) {
+function BestScenarioBanner({ report, activeScenario, onScenarioChange }: { report: AnalysisReport; activeScenario: string; onScenarioChange: (name: string) => void }) {
   const profit = report.profit_analysis;
   const scenarios = profit.roi_scenarios;
-  const bestName = Object.keys(scenarios).reduce((a, b) => scenarios[a].ROI > scenarios[b].ROI ? a : b);
-  const bestData = scenarios[bestName];
-  const bestActionMap: Record<string, string> = {
+  const activeData = scenarios[activeScenario];
+  const actionMap: Record<string, string> = {
     保守: '优先降本控风险，验证最小订单模型',
     中性: '按中性节奏备货，稳步扩大投放',
     乐观: '积极备货并加大广告，抢占旺季窗口',
   };
-  const theme = SCENARIO_THEME[bestName];
+  const theme = SCENARIO_THEME[activeScenario];
 
   return (
     <div className="best-scenario-banner" style={{ ['--bg' as string]: theme.bg, ['--border' as string]: theme.border, ['--pill' as string]: theme.pill } as React.CSSProperties}>
-      <div>
-        <div className="best-scenario-label">当前最佳 ROI 情景</div>
+      <div style={{ flex: 1, minWidth: 260 }}>
+        <div className="best-scenario-label">ROI 情景切换</div>
         <div className="best-scenario-title" style={{ color: theme.pill }}>
-          {bestName}情景 · ROI {bestData.ROI.toFixed(2)}% · 月毛利 USD {bestData['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          {activeScenario}情景 · ROI {activeData.ROI.toFixed(2)}% · 月毛利 USD {activeData['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </div>
+        <div className="best-scenario-action" style={{ marginTop: 12, display: 'inline-block' }}>
+          建议操作：{actionMap[activeScenario]}
         </div>
       </div>
-      <div className="best-scenario-action">
-        建议操作：{bestActionMap[bestName]}
+      <div className="best-scenario-switcher" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {Object.keys(scenarios).map((name) => {
+          const isActive = name === activeScenario;
+          const t = SCENARIO_THEME[name];
+          return (
+            <button
+              key={name}
+              type="button"
+              onClick={() => onScenarioChange(name)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: 8,
+                border: `1px solid ${isActive ? t.accent : '#e2e8f0'}`,
+                background: isActive ? t.light : '#ffffff',
+                color: isActive ? t.pill : '#64748b',
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.2s ease',
+                boxShadow: isActive ? `0 2px 8px ${t.accent}30` : 'var(--shadow-sm)',
+              }}
+            >
+              {t.icon}
+              {name}情景
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+const SCENARIO_VOLUME: Record<string, number> = { 保守: 100, 中性: 300, 乐观: 600 };
 
 export default function ProfitAnalysis() {
   const dispatch = useDispatch();
@@ -350,10 +384,18 @@ export default function ProfitAnalysis() {
   const [adReduction, setAdReduction] = useState(0);
   const [fbaReduction, setFbaReduction] = useState(0);
   const [priceIncrease, setPriceIncrease] = useState(0);
+  const [activeScenario, setActiveScenario] = useState<string>('中性');
 
   useEffect(() => {
     dispatch(setPageTitle('利润测算'));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (report) {
+      setActiveScenario('中性');
+      setCurrentVolume(SCENARIO_VOLUME['中性']);
+    }
+  }, [report]);
 
   return (
     <div className="page-container">
@@ -384,7 +426,14 @@ export default function ProfitAnalysis() {
       {!loading && report && (
         <>
           <ProfitSummaryBanner report={report} />
-          <BestScenarioBanner report={report} />
+          <BestScenarioBanner
+            report={report}
+            activeScenario={activeScenario}
+            onScenarioChange={(name) => {
+              setActiveScenario(name);
+              setCurrentVolume(SCENARIO_VOLUME[name]);
+            }}
+          />
 
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={10}>

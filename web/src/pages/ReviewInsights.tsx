@@ -73,6 +73,35 @@ function StatBadge({ label, value, color, bg, border, icon }: { label: string; v
   );
 }
 
+function extractOpportunityTag(opp: string): string {
+  // 按优先级匹配更具体的机会动作，避免全部落入“卖点强化”
+  const priorityTags: { patterns: string[]; tag: string }[] = [
+    { patterns: ['Listing', '广告', '核心卖点'], tag: 'Listing 优化' },
+    { patterns: ['密封', '防漏', '漏水'], tag: '防漏强化' },
+    { patterns: ['异味', '材质', '食品级', '掉色', '发黄', '掉毛', '扎'], tag: '材质升级' },
+    { patterns: ['尺寸', '大小'], tag: '尺寸优化' },
+    { patterns: ['容量'], tag: '容量优化' },
+    { patterns: ['清洗', '可拆卸', '宽口'], tag: '结构优化' },
+    { patterns: ['耐用', '耐咬', '抗磨损', '断裂'], tag: '耐用性提升' },
+    { patterns: ['连接', '稳定', '信号', '兼容'], tag: '连接优化' },
+    { patterns: ['续航', '电池', '充电'], tag: '续航提升' },
+    { patterns: ['安装', '设置'], tag: '体验优化' },
+    { patterns: ['便携', '轻量化'], tag: '便携设计' },
+    { patterns: ['散热', '发热', '温控'], tag: '散热优化' },
+    { patterns: ['物流', '履约', '时效'], tag: '物流优化' },
+    { patterns: ['售后', '响应'], tag: '售后提升' },
+    { patterns: ['价格', '成本'], tag: '价格优化' },
+    { patterns: ['安全', '合规'], tag: '安全合规' },
+    { patterns: ['功能', '升级'], tag: '功能创新' },
+    { patterns: ['包装'], tag: '包装升级' },
+    { patterns: ['质量'], tag: '质量升级' },
+  ];
+  for (const { patterns, tag } of priorityTags) {
+    if (patterns.some((p) => opp.includes(p))) return tag;
+  }
+  return '差异化机会';
+}
+
 function OpportunityCard({ opp, refProduct, index }: { opp: string; refProduct: any; index: number }) {
   const themes = [
     { border: '#bfdbfe', bg: '#eff6ff', accent: '#2563eb', light: '#dbeafe' },
@@ -81,6 +110,7 @@ function OpportunityCard({ opp, refProduct, index }: { opp: string; refProduct: 
     { border: '#ddd6fe', bg: '#f5f3ff', accent: '#7c3aed', light: '#ede9fe' },
   ];
   const theme = themes[index % themes.length];
+  const tag = extractOpportunityTag(opp);
 
   return (
     <div
@@ -93,7 +123,7 @@ function OpportunityCard({ opp, refProduct, index }: { opp: string; refProduct: 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="opportunity-title">{opp}</div>
         <span className="badge" style={{ background: '#ffffff', color: theme.accent, border: `1px solid ${theme.border}` }}>
-          <TagOutlined style={{ fontSize: 10, marginRight: 4 }} />差异化机会
+          <TagOutlined style={{ fontSize: 10, marginRight: 4 }} />{tag}
         </span>
       </div>
       {refProduct && (

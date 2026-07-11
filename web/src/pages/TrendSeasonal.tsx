@@ -31,8 +31,8 @@ const COLORS = {
 
 function TrendChart({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis;
-  const peakMonths = new Set(trend.peak_months);
-  const entryWindows = new Set(trend.entry_windows);
+  const peakMonths = useMemo(() => new Set(trend.peak_months), [trend.peak_months]);
+  const entryWindows = useMemo(() => new Set(trend.entry_windows), [trend.entry_windows]);
 
   const option: EChartsOption = useMemo(() => {
     const x = trend.series.months;

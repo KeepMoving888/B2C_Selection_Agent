@@ -43,7 +43,9 @@ export default function AppHeader() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        height: 64,
+        height: 68,
+        lineHeight: 'normal',
+        overflow: 'visible',
       }}
     >
       <Space size={18}>
@@ -85,13 +87,13 @@ export default function AppHeader() {
           >
             PS
           </div>
-          <div>
-            <Text strong style={{ fontSize: 18, color: token.colorText, letterSpacing: '-0.02em', display: 'block', lineHeight: 1.2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: 17, fontWeight: 800, color: token.colorText, letterSpacing: '-0.02em', lineHeight: 1.25, display: 'block' }}>
               选品决策系统
-            </Text>
-            <Text style={{ fontSize: 11, color: token.colorTextTertiary, fontWeight: 600, letterSpacing: '0.02em' }}>
+            </span>
+            <span style={{ fontSize: 11, color: token.colorTextTertiary, fontWeight: 600, letterSpacing: '0.04em', lineHeight: 1.2, display: 'block', marginTop: 1 }}>
               Product Selection
-            </Text>
+            </span>
           </div>
         </Link>
       </Space>

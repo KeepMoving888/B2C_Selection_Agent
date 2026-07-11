@@ -152,6 +152,8 @@ export default function Suppliers() {
     return list;
   }, [report, sortBy]);
 
+  const displaySuppliers = useMemo(() => sortedSuppliers.slice(0, 10), [sortedSuppliers]);
+
   return (
     <div className="page-container">
       <div className="page-hero">
@@ -184,10 +186,10 @@ export default function Suppliers() {
             <div className="supplier-header-row">
               <div>
                 <div className="info-card-title" style={{ marginBottom: 4, paddingBottom: 0, borderBottom: 'none' }}>
-                  <ShopOutlined style={{ color: 'var(--saas-primary)' }} /> 供应商竞争力 TOP{report.suppliers.length}
+                  <ShopOutlined style={{ color: 'var(--saas-primary)' }} /> 供应商竞争力 TOP10
                 </div>
                 <div style={{ color: 'var(--saas-text-muted)', fontSize: 13, fontWeight: 500 }}>
-                  已匹配 <strong style={{ color: 'var(--saas-text)' }}>{report.suppliers.length}</strong> 家供应商 · 按综合评分排序
+                  已匹配 <strong style={{ color: 'var(--saas-text)' }}>{report.suppliers.length}</strong> 家供应商 · 当前展示 TOP10 · 导出可获取全部数据
                 </div>
               </div>
               <div className="supplier-sort">
@@ -198,7 +200,7 @@ export default function Suppliers() {
           </div>
 
           <div className="supplier-list">
-            {sortedSuppliers.map((s, i) => (
+            {displaySuppliers.map((s, i) => (
               <SupplierCard key={i} supplier={s} index={i} />
             ))}
           </div>

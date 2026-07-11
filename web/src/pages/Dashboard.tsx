@@ -12,7 +12,7 @@ import {
   StockOutlined,
   TrophyOutlined,
 } from '@ant-design/icons';
-import { Card, Col, Row, Spin, Typography } from 'antd';
+import { Card, Col, Row, Spin } from 'antd';
 import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
@@ -20,18 +20,17 @@ import { useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
-import EmptyReport from '../components/EmptyReport';
+import WelcomeGuide from '../components/WelcomeGuide';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
-
-const { Text } = Typography;
 
 const MAX_VALUES: Record<string, number> = {
   利润空间: 40,
   趋势热度: 25,
   竞争强度: 20,
   评论洞察: 15,
+  供应链稳定性: 15,
 };
 
 const SCORE_COLORS: Record<string, { start: string; end: string; bg: string }> = {
@@ -39,6 +38,7 @@ const SCORE_COLORS: Record<string, { start: string; end: string; bg: string }> =
   趋势热度: { start: '#7c3aed', end: '#a78bfa', bg: '#f5f3ff' },
   竞争强度: { start: '#0891b2', end: '#22d3ee', bg: '#ecfeff' },
   评论洞察: { start: '#2563eb', end: '#60a5fa', bg: '#eff6ff' },
+  供应链稳定性: { start: '#d97706', end: '#fbbf24', bg: '#fffbeb' },
 };
 
 const METRIC_ACCENTS: Record<string, { color: string; bg: string; light: string; icon: React.ReactNode }> = {
@@ -174,70 +174,178 @@ function RadarChart({ report }: { report: AnalysisReport }) {
     const categories = Object.keys(report.score_breakdown);
     const values = Object.values(report.score_breakdown);
     const normalized = categories.map((cat, i) => Math.min(100, (values[i] / MAX_VALUES[cat]) * 100));
+    const avg = normalized.reduce((a, b) => a + b, 0) / normalized.length;
+    const benchmark = categories.map(() => 60);
 
     return {
-      color: ['#2563eb'],
+      color: ['#2563eb', '#94a3b8'],
       tooltip: {
         trigger: 'item',
         backgroundColor: '#ffffff',
         borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [12, 16],
         textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
         formatter: (params: any) => {
-          const idx = params.dataIndex % normalized.length;
-          const raw = values[idx];
-          const max = MAX_VALUES[categories[idx]];
-          return `<div style="font-weight:700">${categories[idx]}</div>
-                  <div style="color:#64748b;font-size:12px">得分 ${raw} / ${max}</div>
-                  <div style="color:#2563eb;font-weight:800">占比 ${normalized[idx].toFixed(1)}%</div>`;
+          if (params.seriesIndex === 1) {
+            return '<div style="font-weight:800;font-size:14px">行业基准</div><div style="color:#64748b;font-size:12px">五维均衡参考线：60%</div>';
+          }
+          const list = params.value.map((v: number, i: number) => {
+            const raw = values[i];
+            const max = MAX_VALUES[categories[i]];
+            const color = SCORE_COLORS[categories[i]].start;
+            return `<div style="display:flex;align-items:center;gap:8px;margin:5px 0">
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>
+              <span style="font-weight:700;min-width:80px">${categories[i]}</span>
+              <span style="color:#64748b;font-size:12px;margin-left:auto">得分 ${raw}/${max} · 占比 ${v.toFixed(1)}%</span>
+            </div>`;
+          }).join('');
+          return `<div style="font-weight:800;margin-bottom:8px;font-size:14px">选品能力评分</div>${list}`;
         },
       },
-      polar: { radius: '62%' },
-      angleAxis: {
-        type: 'category',
-        data: [...categories, categories[0]],
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { color: '#475569', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' },
-        splitLine: { lineStyle: { color: '#f1f5f9' } },
-      },
-      radiusAxis: {
-        min: 0,
-        max: 100,
-        axisLine: { show: false },
-        axisLabel: { color: '#94a3b8', fontWeight: 600, fontFamily: 'var(--font-sans)' },
-        splitLine: { lineStyle: { color: '#e2e8f0' } },
-      },
-      series: [{
-        type: 'line',
-        coordinateSystem: 'polar',
-        data: [...normalized, normalized[0]],
-        areaStyle: {
-          color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
-            { offset: 0, color: 'rgba(37, 99, 235, 0.35)' },
-            { offset: 1, color: 'rgba(59, 130, 246, 0.06)' },
-          ]),
-        },
-        lineStyle: { color: '#2563eb', width: 3 },
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 8,
-        itemStyle: { color: '#2563eb', borderColor: '#fff', borderWidth: 2.5, shadowBlur: 8, shadowColor: 'rgba(37,99,235,0.25)' },
-        label: {
-          show: true,
-          position: 'top',
-          formatter: (params: any) => {
-            const idx = params.dataIndex;
-            return idx < normalized.length ? `${Math.round(normalized[idx])}` : '';
-          },
-          color: '#2563eb',
-          fontSize: 11,
-          fontWeight: 800,
+      radar: {
+        indicator: categories.map((cat) => ({
+          name: cat,
+          max: 100,
+          color: SCORE_COLORS[cat].start,
+        })),
+        radius: '72%',
+        center: ['50%', '50%'],
+        shape: 'polygon',
+        splitNumber: 5,
+        axisName: {
+          fontSize: 13,
+          fontWeight: 900,
           fontFamily: 'var(--font-sans)',
         },
-      }],
+        axisLine: {
+          lineStyle: { color: '#cbd5e1', width: 1.5 },
+        },
+        splitLine: {
+          lineStyle: {
+            color: '#e2e8f0',
+            width: 1,
+          },
+        },
+        splitArea: {
+          show: true,
+          areaStyle: {
+            color: ['rgba(248, 250, 252, 0.9)', 'rgba(241, 245, 249, 0.7)', 'rgba(248, 250, 252, 0.85)', 'rgba(241, 245, 249, 0.6)', 'rgba(248, 250, 252, 0.95)'],
+          },
+        },
+      },
+      series: [
+        {
+          type: 'radar',
+          data: [{
+            value: normalized,
+            name: '选品能力评分',
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(37, 99, 235, 0.48)' },
+                { offset: 1, color: 'rgba(59, 130, 246, 0.14)' },
+              ]),
+            },
+            lineStyle: { color: '#2563eb', width: 3, shadowBlur: 14, shadowColor: 'rgba(37,99,235,0.28)' },
+            symbol: 'circle',
+            symbolSize: 10,
+            itemStyle: { color: '#2563eb', borderColor: '#fff', borderWidth: 3, shadowBlur: 14, shadowColor: 'rgba(37,99,235,0.45)' },
+            label: {
+              show: true,
+              formatter: (params: any) => String(Math.round(params.value)),
+              color: '#1e40af',
+              fontSize: 13,
+              fontWeight: 900,
+              fontFamily: 'var(--font-sans)',
+              textShadowColor: 'rgba(255,255,255,0.95)',
+              textShadowBlur: 4,
+            },
+          }],
+          animationDuration: 1200,
+          animationEasing: 'cubicOut',
+          z: 10,
+        },
+        {
+          type: 'radar',
+          data: [{
+            value: benchmark,
+            name: '行业基准',
+            lineStyle: { color: '#94a3b8', width: 2, type: [6, 4] },
+            symbol: 'none',
+            itemStyle: { opacity: 0 },
+            areaStyle: { opacity: 0 },
+          }],
+          silent: true,
+          z: 5,
+        },
+      ],
+      graphic: [
+        {
+          type: 'group',
+          left: 'center',
+          top: '50%',
+          z: 100,
+          children: [
+            {
+              type: 'circle',
+              shape: { cx: 0, cy: 0, r: 44 },
+              style: {
+                fill: 'rgba(255, 255, 255, 0.98)',
+                stroke: 'rgba(226, 232, 240, 0.8)',
+                lineWidth: 1,
+                shadowBlur: 18,
+                shadowColor: 'rgba(37, 99, 235, 0.14)',
+              },
+            },
+            {
+              type: 'circle',
+              shape: { cx: 0, cy: 0, r: 40 },
+              style: {
+                fill: 'none',
+                stroke: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: '#60a5fa' },
+                  { offset: 1, color: '#1d4ed8' },
+                ]),
+                lineWidth: 5,
+              },
+            },
+            {
+              type: 'text',
+              left: 'center',
+              top: 'center',
+              style: {
+                text: `${Math.round(avg)}`,
+                fontSize: 28,
+                fontWeight: 900,
+                fill: '#1e40af',
+                textAlign: 'center',
+                textVerticalAlign: 'middle',
+                fontFamily: 'var(--font-sans)',
+                y: -8,
+              },
+            },
+            {
+              type: 'text',
+              left: 'center',
+              top: 'center',
+              style: {
+                text: '综合均分',
+                fontSize: 12,
+                fontWeight: 800,
+                fill: '#64748b',
+                textAlign: 'center',
+                textVerticalAlign: 'middle',
+                fontFamily: 'var(--font-sans)',
+                y: 18,
+              },
+            },
+          ],
+        },
+      ],
     };
   }, [report]);
 
-  return <ReactECharts option={option} style={{ height: 400 }} />;
+  return <ReactECharts key={`radar-${report.keyword}`} option={option} style={{ height: 440 }} notMerge={true} />;
 }
 
 function ScoreBreakdown({ report }: { report: AnalysisReport }) {
@@ -257,22 +365,24 @@ function ScoreBreakdown({ report }: { report: AnalysisReport }) {
           const color = SCORE_COLORS[name];
           return (
             <div key={name} className="score-row">
-              <div className="score-name">{name}</div>
+              <div className="score-name" style={{ color: color.start, fontWeight: 800 }}>{name}</div>
               <div className="score-bar-bg">
                 <div className="score-bar-fill" style={{ width: `${pct}%`, ['--bar-start' as string]: color.start, ['--bar-end' as string]: color.end }} />
               </div>
-              <div className="score-value">
+              <div className="score-value" style={{ color: color.start }}>
                 <span>{score}</span>
-                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, marginLeft: 2 }}>/{maxV}</span>
+                <span style={{ fontSize: 11, color: color.end, fontWeight: 700, marginLeft: 2 }}>/{maxV}</span>
               </div>
-              <div className="score-contribution">{contribution.toFixed(1)}%</div>
+              <div className="score-contribution" style={{ color: color.start }}>{contribution.toFixed(1)}%</div>
             </div>
           );
         })}
       </div>
       <div className="dashboard-insight-box">
         <strong>综合判定：</strong>
-        该品类在 <span style={{ color: '#059669', fontWeight: 800 }}>利润空间</span> 与 <span style={{ color: '#7c3aed', fontWeight: 800 }}>趋势热度</span> 维度表现突出，
+        该品类在 <span style={{ color: '#059669', fontWeight: 800 }}>利润空间</span>、
+        <span style={{ color: '#7c3aed', fontWeight: 800 }}>趋势热度</span> 与
+        <span style={{ color: '#d97706', fontWeight: 800 }}>供应链稳定性</span> 等五维表现综合决定评级，
         建议结合评论洞察进一步验证差异化机会。
       </div>
     </div>
@@ -287,8 +397,8 @@ function Conclusion({ report }: { report: AnalysisReport }) {
 
   return (
     <div>
-      <div className="info-card-title">核心结论</div>
-      <p style={{ color: 'var(--saas-text-secondary)', lineHeight: 1.85, margin: 0, fontSize: 14 }}>
+      <div className="info-card-title" style={{ marginBottom: 4, paddingBottom: 4, fontSize: 13 }}>核心结论</div>
+      <p style={{ color: 'var(--saas-text-secondary)', lineHeight: 1.5, margin: 0, fontSize: 11 }}>
         关键词 <strong style={{ color: '#2563eb' }}>{report.keyword}</strong>
         在 <strong>{profile.name}</strong> 市场平均售价
         <strong> {profile.currency}{market.avg_price}</strong>，
@@ -296,10 +406,10 @@ function Conclusion({ report }: { report: AnalysisReport }) {
         趋势 <strong>{trendText}</strong>。
         综合判定为 <strong style={{ color: report.verdict_color }}>{report.verdict}</strong>。
       </p>
-      <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-        <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>竞品 {market.competitors.length} 款</span>
-        <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe' }}>平均评分 {market.avg_rating}</span>
-        <span className="badge" style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0' }}>总评论 {market.avg_reviews.toLocaleString()}+</span>
+      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+        <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe', fontSize: 10, padding: '3px 9px' }}>竞品 {market.competitors.length} 款</span>
+        <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 10, padding: '3px 9px' }}>评分 {market.avg_rating}</span>
+        <span className="badge" style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0', fontSize: 10, padding: '3px 9px' }}>评论 {market.avg_reviews.toLocaleString()}+</span>
       </div>
     </div>
   );
@@ -311,14 +421,14 @@ export default function Dashboard() {
   const { report, lastSearch, loading, analyze } = useReport();
 
   useEffect(() => {
-    dispatch(setPageTitle('首页雷达'));
+    dispatch(setPageTitle('首页概览'));
   }, [dispatch]);
 
   return (
     <div className="page-container">
       <div className="page-hero">
         <div>
-          <div className="page-header">选品决策驾驶舱</div>
+          <div className="page-header">首页概览</div>
           <div className="page-subtitle">输入关键词，获取多维度选品分析与决策建议</div>
         </div>
         {report && (
@@ -338,7 +448,15 @@ export default function Dashboard() {
         </div>
       )}
 
-      {!loading && !report && <EmptyReport pageName="决策看板" />}
+      {!loading && !report && (
+        <WelcomeGuide
+          onExample={(keyword) => {
+            const params = { ...lastSearch, keyword };
+            analyze(params);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      )}
 
       {!loading && report && (
         <>
@@ -348,7 +466,7 @@ export default function Dashboard() {
           <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={14}>
               <div className="info-card" style={{ height: '100%' }}>
-                <div className="info-card-title">选品决策看板</div>
+                <div className="info-card-title">选品能力雷达</div>
                 <RadarChart report={report} />
               </div>
             </Col>
@@ -356,13 +474,13 @@ export default function Dashboard() {
               <div className="info-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <ScoreBreakdown report={report} />
               </div>
-              <div className="info-card">
+              <div className="info-card" style={{ flexShrink: 0 }}>
                 <Conclusion report={report} />
               </div>
             </Col>
           </Row>
 
-          <div className="info-card">
+          <div className="info-card" style={{ height: 'auto' }}>
             <div className="info-card-title">深度分析入口</div>
             <div className="section-desc">
               点击以下模块，查看「{report.keyword}」在各维度的详细分析与决策建议。
@@ -379,9 +497,9 @@ export default function Dashboard() {
                     {link.icon}
                   </span>
                   <span className="quick-link-text">
-                    <Text strong style={{ color: 'inherit', fontSize: 15 }}>{link.label}</Text>
-                    <Text style={{ color: 'var(--saas-text-muted)', fontSize: 12, fontWeight: 500 }}>{link.sub}</Text>
-                  </span>
+            <span className="quick-link-label">{link.label}</span>
+            <span className="quick-link-sub">{link.sub}</span>
+          </span>
                   <span className="quick-link-arrow">→</span>
                 </div>
               ))}

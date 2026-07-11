@@ -22,7 +22,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setPageTitle } from '../store/slices/uiSlice'
 
@@ -79,10 +79,10 @@ export default function Settings() {
     message.success('设置已保存')
   }
 
-  const regenerateApiKey = () => {
+  const regenerateApiKey = useCallback(() => {
     const key = 'ps_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
     saveSettings({ ...settings, apiKey: key })
-  }
+  }, [settings])
 
   const tabItems = useMemo(() => [
     {
@@ -314,7 +314,7 @@ export default function Settings() {
         </Card>
       ),
     },
-  ], [settings])
+  ], [settings, regenerateApiKey])
 
   return (
     <div className="page-container">

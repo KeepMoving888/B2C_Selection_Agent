@@ -2,6 +2,7 @@ export interface AnalysisReport {
   keyword: string;
   market: string;
   budget: string;
+  version?: number;
   verdict: string;
   verdict_color: string;
   grade: string;
@@ -13,6 +14,23 @@ export interface AnalysisReport {
     avg_rating: number;
     avg_reviews: number;
     competitors: any[];
+    keyword_summary?: {
+      search_volume: number;
+      trend: 'rising' | 'stable' | 'falling';
+      competition: 'low' | 'medium' | 'high';
+      cpc: number;
+      opportunity_score: number;
+      top_niche_keywords: string[];
+    };
+    keyword_opportunities?: {
+      keyword: string;
+      search_volume: number;
+      trend: 'rising' | 'stable' | 'falling';
+      competition: 'low' | 'medium' | 'high';
+      opportunity_score: number;
+      cpc: number;
+      products: any[];
+    }[];
     market_profile: {
       name: string;
       currency: string;

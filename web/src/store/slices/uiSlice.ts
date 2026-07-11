@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { generateMockReport } from '../../services/mockData';
 import type { AnalysisReport } from '../../types';
+
+const REPORT_VERSION = 2;
 
 export interface SearchParams {
   keyword: string;
@@ -18,7 +21,16 @@ interface UIState {
 const savedReport = (() => {
   try {
     const raw = localStorage.getItem('current_report');
-    return raw ? (JSON.parse(raw) as AnalysisReport) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AnalysisReport;
+    if (parsed.version === REPORT_VERSION) return parsed;
+    // 旧版本报告自动迁移：保留搜索参数，重新生成完整数据
+    if (parsed.keyword && parsed.market && parsed.budget) {
+      const migrated = generateMockReport(parsed.keyword, parsed.market, parsed.budget);
+      localStorage.setItem('current_report', JSON.stringify(migrated));
+      return migrated;
+    }
+    return null;
   } catch {
     return null;
   }
