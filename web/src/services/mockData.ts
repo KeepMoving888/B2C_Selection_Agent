@@ -893,11 +893,18 @@ function generateTrendSeries(rng: ReturnType<typeof seededRng>, archetype: Produ
   trailingValues.reverse();
   trailingLastYear.reverse();
 
+  // 预测：结合最近 3 个月动量 + 去年同期同月季节性，避免平直/失真
   const forecast: number[] = [];
-  const lastVals = currentYearValues.slice(-2);
-  const delta = lastVals.length === 2 ? lastVals[1] - lastVals[0] : 0;
+  const actualSoFar = currentYearValues.slice(0, currentMonth - 1).filter((v): v is number => v != null);
+  const lastVal = actualSoFar[actualSoFar.length - 1] ?? 50;
+  const last3 = actualSoFar.slice(-3);
+  const slope = last3.length >= 2 ? (last3[last3.length - 1] - last3[0]) / (last3.length - 1) : 0;
   for (let i = 1; i <= 3; i++) {
-    forecast.push(Math.max(15, Math.min(100, lastVals[lastVals.length - 1] + delta * i + rng.randint(-5, 5))));
+    const futureMonthIdx = (currentMonth - 1 + i - 1) % 12; // 预测目标月在去年的同月索引
+    const seasonalBase = lastYear[futureMonthIdx] ?? lastVal;
+    const momentum = lastVal + slope * i * 0.7;
+    const blended = momentum * 0.6 + seasonalBase * 0.4;
+    forecast.push(Math.max(15, Math.min(100, Math.round(blended + rng.randint(-5, 5)))));
   }
 
   return {
@@ -970,12 +977,30 @@ function buildGlobalTrends(keyword: string, archetype: ProductArchetype) {
     const series = generateTrendSeries(rng, archetype);
     const size = MARKET_SIZE_INDEX[code] || 60;
     const scale = size / 100;
+    const scaleValues = (vals: number[]) => vals.map((v) => Math.round(v * scale));
+    const yearlyData: Record<number, { months: string[]; values: number[] }> = {};
+    if (series.yearly_data) {
+      for (const [year, data] of Object.entries(series.yearly_data)) {
+        yearlyData[Number(year)] = {
+          months: data.months,
+          values: scaleValues(data.values),
+        };
+      }
+    }
+    const trailing = series.trailing_12_months
+      ? {
+          labels: series.trailing_12_months.labels,
+          values: scaleValues(series.trailing_12_months.values),
+        }
+      : undefined;
     return {
       code,
       name: profile.name,
       months: series.months,
       values: series.values.map((v) => Math.round(v * scale)),
       market_size_index: size,
+      yearly_data: yearlyData,
+      trailing_12_months: trailing,
     };
   });
 }

@@ -93,22 +93,29 @@ function TrendChart({ report }: { report: AnalysisReport }) {
     const rawMaxY = Math.max(...y.filter(Boolean), ...lastYear.filter(Boolean), ...forecast.filter(Boolean));
     const maxY = Math.ceil(rawMaxY * 1.12 / 10) * 10;
 
-    // 标记区域：只有按自然年份查看时才按 1-12 月索引匹配；近12个月按相对位置展示
+    // 标记区域：自然年份按 1-12 月索引匹配；近12个月从标签里提取月份匹配
+    const monthIndexMap = new Map<number, number>();
+    x.forEach((label, idx) => {
+      const match = label.match(/(\d{1,2})月/);
+      if (match) {
+        const m = Number(match[1]);
+        if (!monthIndexMap.has(m)) monthIndexMap.set(m, idx);
+      }
+    });
+
     const markAreas: any[] = [];
-    if (view !== 'trailing') {
-      entryWindows.forEach((m) => {
-        const idx = (m as number) - 1;
-        if (idx < x.length) {
-          markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.entryBg } }]);
-        }
-      });
-      peakMonths.forEach((m) => {
-        const idx = (m as number) - 1;
-        if (idx < x.length) {
-          markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.peakBg } }]);
-        }
-      });
-    }
+    entryWindows.forEach((m) => {
+      const idx = view === 'trailing' ? monthIndexMap.get(m as number) : (m as number) - 1;
+      if (idx != null && idx >= 0 && idx < x.length) {
+        markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.entryBg } }]);
+      }
+    });
+    peakMonths.forEach((m) => {
+      const idx = view === 'trailing' ? monthIndexMap.get(m as number) : (m as number) - 1;
+      if (idx != null && idx >= 0 && idx < x.length) {
+        markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.peakBg } }]);
+      }
+    });
 
     return {
       backgroundColor: COLORS.bg,
@@ -188,7 +195,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         },
         {
           type: 'line',
-          name: '趋势预测',
+          name: '趋势预测（推演）',
           data: [...new Array(x.length).fill(null), ...forecast],
           smooth: true,
           lineStyle: { color: COLORS.forecast, width: 3, type: 'dashed' },
@@ -335,7 +342,7 @@ export default function TrendSeasonal() {
                 <LineChartOutlined style={{ color: 'var(--saas-primary)' }} /> 搜索热度与季节窗口
               </div>
               <div className="section-desc">
-                蓝色实线为当年热度，灰色虚线为去年同期，橙色虚线为预测趋势；绿色与红色区域分别为建议备货窗口与旺季高峰。数据源：Google Trends 搜索热度（经季节性与趋势拟合）。
+                蓝色实线为所选时间范围热度，灰色虚线为去年同期，橙色虚线为算法推演趋势（仅供参考）；绿色与红色区域分别为建议备货窗口与旺季高峰。默认「近12个月」展示已发生的真实月度数据，切换年份可查看该年度 1-12 月（当年仅到当前月份）。数据源：Google Trends 搜索热度（经季节性与趋势拟合）。
               </div>
               <div className="season-legend-bar">
                 <span className="season-legend-item"><span className="season-legend-dot" style={{ background: COLORS.entryBorder, opacity: 0.5 }} />提前备货 / 入局窗口</span>

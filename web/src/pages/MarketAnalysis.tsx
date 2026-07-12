@@ -1,4 +1,4 @@
-import { Button, Card, Col, Row, Select, Space, Spin, Tag } from 'antd';
+import { Button, Card, Col, Row, Segmented, Select, Space, Spin, Tag } from 'antd';
 import {
   ApartmentOutlined,
   BarChartOutlined,
@@ -337,6 +337,9 @@ function KeywordOpportunities({ report }: { report: AnalysisReport }) {
 function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
   const trends = useMemo(() => report.market_analysis.global_trends || [], [report.market_analysis.global_trends]);
   const [selected, setSelected] = useState<string[]>(() => trends.map((t) => t.code));
+  const now = useMemo(() => new Date(), []);
+  const currentYear = now.getFullYear();
+  const [view, setView] = useState<string>('trailing');
   const isMobile = useMobile();
 
   const options = useMemo(
@@ -348,9 +351,46 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
     [trends]
   );
 
+  const viewOptions = useMemo(() => {
+    const opts = [{ label: '近12个月', value: 'trailing' }];
+    for (let year = currentYear; year >= currentYear - 2; year--) {
+      opts.push({ label: `${year}年`, value: String(year) });
+    }
+    return opts;
+  }, [currentYear]);
+
   const chartOption: EChartsOption = useMemo(() => {
-    const months = trends[0]?.months || [];
     const active = trends.filter((t) => selected.includes(t.code));
+    const first = active[0];
+    let x: string[] = [];
+    let seriesData: Record<string, number[]> = {};
+
+    if (view === 'trailing') {
+      active.forEach((t) => {
+        const data = t.trailing_12_months;
+        if (data) {
+          x = data.labels;
+          seriesData[t.code] = data.values;
+        }
+      });
+    } else {
+      const year = Number(view);
+      active.forEach((t) => {
+        const data = t.yearly_data?.[year];
+        if (data) {
+          x = data.months;
+          seriesData[t.code] = data.values;
+        }
+      });
+    }
+
+    if (!x.length && first) {
+      x = first.months;
+      active.forEach((t) => {
+        seriesData[t.code] = t.values;
+      });
+    }
+
     return {
       tooltip: {
         trigger: 'axis',
@@ -378,10 +418,10 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
       grid: { left: isMobile ? 6 : 16, right: isMobile ? 6 : 20, top: isMobile ? 34 : 44, bottom: isMobile ? 34 : 44, containLabel: true },
       xAxis: {
         type: 'category',
-        data: months,
+        data: x,
         boundaryGap: false,
         axisLine: { lineStyle: { color: 'var(--saas-border)' } },
-        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 },
+        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11, interval: 0, rotate: isMobile && x.length > 6 ? 30 : 0 },
       },
       yAxis: {
         type: 'value',
@@ -397,7 +437,7 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
         return {
           type: 'line' as const,
           name: t.name,
-          data: t.values,
+          data: seriesData[t.code] || t.values,
           smooth: true,
           symbol: 'circle',
           symbolSize: 6,
@@ -407,7 +447,7 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
         };
       }),
     };
-  }, [trends, selected, isMobile]);
+  }, [trends, selected, isMobile, view]);
 
   if (trends.length === 0) return null;
 
@@ -426,20 +466,28 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
         <div className="info-card-title" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>
           <GlobalOutlined style={{ color: 'var(--saas-primary)' }} /> 全球市场走势
         </div>
-        <Select
-          mode="multiple"
-          allowClear
-          placeholder="选择国家/地区"
-          style={{ minWidth: 280, maxWidth: '100%' }}
-          value={selected}
-          onChange={setSelected}
-          options={options}
-          maxTagCount={3}
-          size="middle"
-        />
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Segmented
+            size={isMobile ? 'small' : 'middle'}
+            options={viewOptions}
+            value={view}
+            onChange={(v) => setView(v as string)}
+          />
+          <Select
+            mode="multiple"
+            allowClear
+            placeholder="选择国家/地区"
+            style={{ minWidth: 220, maxWidth: '100%' }}
+            value={selected}
+            onChange={setSelected}
+            options={options}
+            maxTagCount={2}
+            size={isMobile ? 'small' : 'middle'}
+          />
+        </div>
       </div>
       <div className="section-desc" style={{ marginBottom: 14 }}>
-        对比「{report.keyword}」在主要目标市场（亚马逊站点）的月度搜索热度走势；数值为相对热度指数，可通过上方多选筛选重点国家。数据源：亚马逊站内搜索与销量综合指数。
+        对比「{report.keyword}」在主要目标市场（亚马逊站点）的月度搜索热度走势；默认「近12个月」展示已发生的真实月度数据，切换年份可查看该年度 1-12 月（当年仅到当前月份）。数值为相对热度指数，可通过右上方多选筛选重点国家。数据源：亚马逊站内搜索与销量综合指数。
       </div>
       <ReactECharts option={chartOption} style={{ height: isMobile ? 280 : 360, width: '100%' }} />
     </div>

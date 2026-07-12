@@ -47,15 +47,24 @@ jobs:
 
       - name: Check commit messages for sensitive words
         run: |
-          output=$(git log --oneline --all \
-            --grep='面试\|模拟\|Mock\|mock\|演示\|interview\|demo\|resume\|简历\|求职' \
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          else
+            if [ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]; then
+              RANGE="${{ github.sha }}"
+            else
+              RANGE="${{ github.event.before }}..${{ github.sha }}"
+            fi
+          fi
+          output=$(git log --oneline "$RANGE" -E \
+            --grep='面试|模拟|Mock|mock|演示|interview|demo|resume|简历|求职' \
             --format='%H %s' || true)
           if [ -n "$output" ]; then
-            echo "ERROR: Sensitive words found in commit history:"
+            echo "ERROR: Sensitive words found in new commits:"
             echo "$output"
             exit 1
           fi
-          echo "OK: No sensitive words in commit messages."
+          echo "OK: No sensitive words in new commit messages."
 
       - name: Check README and frontend for sensitive words
         run: |

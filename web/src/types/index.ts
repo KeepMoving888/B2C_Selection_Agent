@@ -41,6 +41,8 @@ export interface AnalysisReport {
       months: string[];
       values: number[];
       market_size_index: number;
+      yearly_data?: Record<number, { months: string[]; values: number[] }>;
+      trailing_12_months?: { labels: string[]; values: number[] };
     }[];
     keyword_relationships?: {
       nodes: {
