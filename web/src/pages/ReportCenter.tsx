@@ -924,36 +924,43 @@ function MiniMetric({ label, value, color, highlight }: { label: string; value: 
 
 function getPrintStyles(report: AnalysisReport) {
   return `
-    @page { size: A4; margin: 18mm; }
+    @page { size: A4; margin: 16mm; }
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 0; font-size: 12px; }
-    .p-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid; }
-    .p-header h1 { margin: 0 0 8px; font-size: 24px; color: #1e293b; }
-    .p-header .p-meta { color: #64748b; font-size: 12px; }
-    .p-section { margin-bottom: 20px; color: #1e293b; }
-    .p-section > * { page-break-inside: avoid; break-inside: avoid; padding-bottom: 6px; color: #1e293b; }
-    .p-title { font-size: 15px; font-weight: 900; color: #1e293b; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
-    .p-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
-    .p-metric { flex: 1 1 120px; min-width: 120px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 12px 16px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
-    .p-metric-label { font-size: 11px; color: #64748b; font-weight: 800; margin-bottom: 6px; }
-    .p-metric-value { font-size: 18px; font-weight: 900; color: #2563eb; }
-    .p-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    .p-table th, .p-table td { border: 1px solid #e2e8f0; padding: 8px 10px 10px; text-align: left; font-size: 11px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #1e293b; line-height: 1.55; margin: 0; padding: 0; font-size: 11px; }
+    .p-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 14px; margin-bottom: 18px; page-break-inside: avoid; break-inside: avoid; }
+    .p-header h1 { margin: 0 0 6px; font-size: 22px; color: #1e293b; }
+    .p-header .p-meta { color: #64748b; font-size: 11px; }
+    .p-section { margin-bottom: 18px; color: #1e293b; }
+    .p-title { font-size: 14px; font-weight: 900; color: #1e293b; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
+    .p-subtitle { font-size: 12px; font-weight: 800; color: #334155; margin: 12px 0 8px; page-break-after: avoid; break-after: avoid; }
+    .p-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .p-metric { flex: 1 1 110px; min-width: 110px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 8px 12px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+    .p-metric-label { font-size: 10px; color: #64748b; font-weight: 800; margin-bottom: 4px; }
+    .p-metric-value { font-size: 16px; font-weight: 900; color: #2563eb; }
+    .p-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: auto; }
+    .p-table th, .p-table td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; font-size: 10px; vertical-align: top; }
     .p-table th { background: #f1f5f9; font-weight: 800; }
     .p-table tr { page-break-inside: avoid; break-inside: avoid; }
-    .p-list { margin: 0; padding-left: 18px; }
-    .p-list li { margin-bottom: 6px; padding-bottom: 4px; page-break-inside: avoid; break-inside: avoid; }
-    .p-tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; margin-right: 6px; margin-bottom: 6px; }
-    .p-action { page-break-inside: avoid; break-inside: avoid; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 12px 16px; margin-bottom: 10px; }
-    .p-action-title { font-weight: 900; margin-bottom: 4px; }
+    .p-table thead { display: table-header-group; }
+    .p-trend-table th, .p-trend-table td { text-align: center; padding: 5px 3px; font-size: 9px; white-space: nowrap; }
+    .p-list { margin: 0; padding-left: 16px; }
+    .p-list li { margin-bottom: 4px; padding-bottom: 2px; page-break-inside: avoid; break-inside: avoid; }
+    .p-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-right: 4px; margin-bottom: 4px; background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+    .p-tag-risk { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .p-tag-cert { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .p-action { page-break-inside: avoid; break-inside: avoid; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 10px 12px; margin-bottom: 8px; }
+    .p-action-title { font-weight: 900; margin-bottom: 3px; font-size: 12px; }
     .p-verdict { color: ${report.verdict_color}; font-weight: 900; }
-    .p-grade { display: inline-block; padding: 4px 12px; border-radius: 14px; background: ${report.verdict_color}; color: #fff; font-weight: 900; font-size: 14px; }
-    .p-score-row { display: flex; align-items: center; margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }
-    .p-score-name { width: 90px; font-weight: 800; font-size: 11px; }
-    .p-score-bar { flex: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
+    .p-grade { display: inline-block; padding: 3px 10px; border-radius: 12px; background: ${report.verdict_color}; color: #fff; font-weight: 900; font-size: 13px; }
+    .p-score-row { display: flex; align-items: center; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
+    .p-score-name { width: 84px; font-weight: 800; font-size: 10px; }
+    .p-score-bar { flex: 1; height: 9px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
     .p-score-fill { height: 100%; border-radius: 5px; }
-    .p-score-value { width: 70px; text-align: right; font-weight: 900; font-size: 11px; }
-    .p-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 10px; text-align: center; }
+    .p-score-value { width: 60px; text-align: right; font-weight: 900; font-size: 10px; }
+    .p-suggestion { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
+    .p-suggestion-title { font-weight: 900; margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+    .p-suggestion-desc { color: #475569; font-size: 10px; line-height: 1.5; margin-bottom: 6px; }
+    .p-footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 9px; text-align: center; }
   `
 }
 
@@ -1083,8 +1090,19 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis
   const review = report.review_insights
   const compliance = report.compliance
+  const suppliers = report.suppliers || []
   const { symbol } = getMarketCurrency(report.market)
   const trendText = trend.trend_direction === 'rising' ? '上升' : trend.trend_direction === 'stable' ? '稳定' : '下滑'
+  const summary = market.keyword_summary
+  const rel = market.keyword_relationships
+
+  const allRisks = [
+    ...(compliance.category_risks || []),
+    ...(compliance.design_patent_risks || []),
+    ...(compliance.brand_risks || []),
+    ...(compliance.industry_patent_risks || []),
+    ...(compliance.market_specific || []),
+  ]
 
   return (
     <div>
@@ -1102,9 +1120,19 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           <div className="p-metric"><div className="p-metric-label">等级</div><div className="p-metric-value"><span className="p-grade">{report.grade}</span></div></div>
           <div className="p-metric"><div className="p-metric-label">毛利率</div><div className="p-metric-value" style={{ color: profit.gross_margin >= 0.2 ? '#16a34a' : profit.gross_margin >= 0.1 ? '#d97706' : '#dc2626' }}>{profit.gross_margin_pct}</div></div>
           <div className="p-metric"><div className="p-metric-label">趋势</div><div className="p-metric-value">{trendText}</div></div>
+          <div className="p-metric"><div className="p-metric-label">市场均价</div><div className="p-metric-value">{market.market_profile.currency}{market.avg_price}</div></div>
+          <div className="p-metric"><div className="p-metric-label">单件毛利</div><div className="p-metric-value">{symbol}{profit.gross_profit_per_unit.toFixed(2)}</div></div>
+          <div className="p-metric"><div className="p-metric-label">盈亏平衡</div><div className="p-metric-value">{profit.breakeven_units ?? '-'} 件</div></div>
+          <div className="p-metric"><div className="p-metric-label">旺季月份</div><div className="p-metric-value">{trend.peak_months.slice(0, 3).join('、')} 月</div></div>
         </div>
         <p>关键词 <strong>{report.keyword}</strong> 在 <strong>{market.market_profile.name}</strong> 市场平均售价 <strong>{market.market_profile.currency}{market.avg_price}</strong>，毛利率 <strong className="p-verdict">{profit.gross_margin_pct}</strong>，趋势 <strong>{trendText}</strong>。综合判定为 <strong className="p-verdict">{report.verdict}</strong>。</p>
-        <div className="p-title" style={{ fontSize: '13px', marginTop: '16px' }}>五维评分拆解</div>
+        <div className="p-subtitle">关键建议</div>
+        <ul className="p-list">
+          {report.next_steps.slice(0, 3).map((step, i) => (
+            <li key={i}><strong>{step.phase}</strong>：{step.title} — {step.value}</li>
+          ))}
+        </ul>
+        <div className="p-subtitle">五维评分拆解</div>
         {Object.entries(report.score_breakdown).map(([name, score]) => {
           const maxV = { 利润空间: 40, 趋势热度: 25, 竞争强度: 20, 评论洞察: 15, 供应链稳定性: 15 }[name] ?? 25
           const pct = Math.min(100, Math.max(0, (score / maxV) * 100))
@@ -1127,10 +1155,98 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           <div className="p-metric"><div className="p-metric-label">平均评分</div><div className="p-metric-value">{market.avg_rating}</div></div>
           <div className="p-metric"><div className="p-metric-label">平均评论</div><div className="p-metric-value">{market.avg_reviews.toLocaleString()}</div></div>
         </div>
+
+        {summary && (
+          <>
+            <div className="p-subtitle">关键词画像</div>
+            <div className="p-grid">
+              <div className="p-metric"><div className="p-metric-label">搜索量</div><div className="p-metric-value">{summary.search_volume.toLocaleString()}</div></div>
+              <div className="p-metric"><div className="p-metric-label">竞争度</div><div className="p-metric-value">{summary.competition}</div></div>
+              <div className="p-metric"><div className="p-metric-label">CPC</div><div className="p-metric-value">{market.market_profile.currency}{summary.cpc.toFixed(2)}</div></div>
+              <div className="p-metric"><div className="p-metric-label">机会分</div><div className="p-metric-value">{summary.opportunity_score}</div></div>
+            </div>
+          </>
+        )}
+
+        {market.global_trends && market.global_trends.length > 0 && (
+          <>
+            <div className="p-subtitle">全球市场月度热度</div>
+            <table className="p-table">
+              <thead>
+                <tr><th>月份</th>{market.global_trends.map((t) => <th key={t.code}>{t.name}</th>)}</tr>
+              </thead>
+              <tbody>
+                {(market.global_trends[0].months || []).map((m, i) => (
+                  <tr key={i}>
+                    <td>{m}</td>
+                    {market.global_trends!.map((t) => <td key={t.code}>{t.values[i] ?? '-'}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {rel && rel.expansion_suggestions.length > 0 && (
+          <>
+            <div className="p-subtitle">关键词关系与拓品建议</div>
+            {rel.expansion_suggestions.map((s, i) => (
+              <div key={i} className="p-suggestion">
+                <div className="p-suggestion-title">
+                  <span>{s.segment}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>平均机会分 {s.avg_score}</span>
+                </div>
+                <div className="p-suggestion-desc">{s.rationale}</div>
+                <div>{s.keywords.map((kw, j) => <span key={j} className="p-tag">{kw}</span>)}</div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {market.keyword_opportunities && market.keyword_opportunities.length > 0 && (
+          <>
+            <div className="p-subtitle">细分关键词机会 TOP10</div>
+            <table className="p-table">
+              <thead>
+                <tr><th>排名</th><th>关键词</th><th>搜索量</th><th>趋势</th><th>竞争</th><th>机会分</th><th>CPC</th></tr>
+              </thead>
+              <tbody>
+                {market.keyword_opportunities.slice(0, 10).map((o, i) => (
+                  <tr key={i}>
+                    <td>{i + 1}</td>
+                    <td>{o.keyword}</td>
+                    <td>{o.search_volume.toLocaleString()}</td>
+                    <td>{o.trend === 'rising' ? '上升' : o.trend === 'stable' ? '稳定' : '下滑'}</td>
+                    <td>{o.competition === 'low' ? '低' : o.competition === 'medium' ? '中' : '高'}</td>
+                    <td>{o.opportunity_score}</td>
+                    <td>{market.market_profile.currency}{o.cpc.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {report.trending_products && report.trending_products.length > 0 && (
+          <>
+            <div className="p-subtitle">趋势产品</div>
+            <div className="p-grid">
+              {report.trending_products.map((tp, i) => (
+                <div key={i} className="p-metric" style={{ flex: '1 1 140px' }}>
+                  <div className="p-metric-label" style={{ fontSize: 9, lineHeight: 1.4 }}>{tp.keyword}</div>
+                  <div className="p-metric-value" style={{ fontSize: 13 }}>+{tp.growth_pct}%</div>
+                  <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>竞争 {tp.competition} · 机会 {tp.opportunity}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="p-subtitle">TOP10 竞品</div>
         <table className="p-table">
           <thead><tr><th>排名</th><th>产品</th><th>品牌</th><th>价格</th><th>评分</th><th>评论数</th><th>月销量</th></tr></thead>
           <tbody>
-            {market.competitors.slice(0, 5).map((c: any, i: number) => (
+            {market.competitors.slice(0, 10).map((c: any, i: number) => (
               <tr key={i}><td>{i + 1}</td><td>{c.title}</td><td>{c.brand}</td><td>{market.market_profile.currency}{c.price}</td><td>{c.rating}</td><td>{c.review_count.toLocaleString()}</td><td>{c.estimated_monthly_sales.toLocaleString()}</td></tr>
             ))}
           </tbody>
@@ -1139,10 +1255,41 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
 
       <div className="p-section">
         <div className="p-title">三、趋势与合规</div>
-        <p><strong>旺季高峰：</strong>{trend.peak_months.join('、')} 月 · <strong>备货窗口：</strong>{trend.entry_windows.join('、')} 月 · <strong>趋势：</strong>{trendText}</p>
-        <p>{trend.season_narrative.season_desc} {trend.season_narrative.trend_desc}</p>
-        <p><strong>风险等级：</strong>{compliance.risk_level} · <strong>认证预算：</strong>{market.market_profile.currency}{compliance.estimated_cert_cost} · {compliance.estimated_cert_time}</p>
-        <ul className="p-list"><li>{compliance.category_risks[0]}</li></ul>
+        <div className="p-grid">
+          <div className="p-metric"><div className="p-metric-label">旺季高峰</div><div className="p-metric-value">{trend.peak_months.join('、')} 月</div></div>
+          <div className="p-metric"><div className="p-metric-label">备货窗口</div><div className="p-metric-value">{trend.entry_windows.join('、')} 月</div></div>
+          <div className="p-metric"><div className="p-metric-label">趋势方向</div><div className="p-metric-value">{trendText}</div></div>
+          <div className="p-metric"><div className="p-metric-label">风险等级</div><div className="p-metric-value">{compliance.risk_level}</div></div>
+        </div>
+        <p><strong>季节洞察：</strong>{trend.season_narrative.season_desc}</p>
+        <p><strong>趋势判断：</strong>{trend.season_narrative.trend_desc}</p>
+        <div className="p-subtitle">月度热度走势</div>
+        <table className="p-table p-trend-table">
+          <thead>
+            <tr>
+              <th>月份</th>
+              {trend.series.months.map((m, i) => <th key={i}>{m}</th>)}
+              {trend.series.forecast_months.map((m, i) => <th key={`f-${i}`}>{m}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>热度</td>
+              {trend.series.values.map((v, i) => <td key={i}>{v}</td>)}
+              {trend.series.forecast_values.map((v, i) => <td key={`fv-${i}`} style={{ color: '#7c3aed', fontWeight: 800 }}>{v}</td>)}
+            </tr>
+            <tr>
+              <td>去年同期</td>
+              {trend.series.last_year_values.map((v, i) => <td key={i}>{v}</td>)}
+              <td colSpan={trend.series.forecast_months.length} style={{ color: '#94a3b8' }}>—</td>
+            </tr>
+          </tbody>
+        </table>
+        <p><strong>认证预算：</strong>{market.market_profile.currency}{compliance.estimated_cert_cost} · {compliance.estimated_cert_time}</p>
+        <div className="p-subtitle">关键认证</div>
+        <div>{compliance.certifications.map((c, i) => <span key={i} className="p-tag p-tag-cert">{c}</span>)}</div>
+        <div className="p-subtitle">合规与专利风险</div>
+        <ul className="p-list">{allRisks.map((r, i) => <li key={i}>{r}</li>)}</ul>
       </div>
 
       <div className="p-section">
@@ -1151,7 +1298,7 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           <div className="p-metric"><div className="p-metric-label">售价</div><div className="p-metric-value">{symbol}{profit.selling_price.toFixed(2)}</div></div>
           <div className="p-metric"><div className="p-metric-label">单件总成本</div><div className="p-metric-value">{symbol}{profit.total_cost_per_unit.toFixed(2)}</div></div>
           <div className="p-metric"><div className="p-metric-label">单件毛利</div><div className="p-metric-value">{symbol}{profit.gross_profit_per_unit.toFixed(2)}</div></div>
-          <div className="p-metric"><div className="p-metric-label">盈亏平衡</div><div className="p-metric-value">{profit.breakeven_units} 件</div></div>
+          <div className="p-metric"><div className="p-metric-label">盈亏平衡</div><div className="p-metric-value">{profit.breakeven_units ?? '-'} 件</div></div>
         </div>
         <table className="p-table">
           <thead><tr><th>成本项</th><th>金额</th><th>占比</th></tr></thead>
@@ -1162,10 +1309,17 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           </tbody>
         </table>
         <table className="p-table">
-          <thead><tr><th>情景</th><th>月销量</th><th>ROI</th><th>月毛利</th><th>回本周期</th></tr></thead>
+          <thead><tr><th>情景</th><th>月销量</th><th>毛利率</th><th>ROI</th><th>月毛利</th><th>回本周期</th></tr></thead>
           <tbody>
             {Object.entries(profit.roi_scenarios).map(([name, data]: [string, any]) => (
-              <tr key={name}><td>{name}</td><td>{data['月销量']}</td><td>{data['ROI'].toFixed(2)}%</td><td>{symbol}{data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td>{data['回本周期']} 月</td></tr>
+              <tr key={name}>
+                <td>{name}</td>
+                <td>{data['月销量']}</td>
+                <td>{data['毛利率']}</td>
+                <td>{data['ROI'].toFixed(2)}%</td>
+                <td>{symbol}{data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                <td>{data['回本周期']} 月</td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -1173,20 +1327,84 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
 
       <div className="p-section">
         <div className="p-title">五、评论洞察</div>
-        <div style={{ marginBottom: '12px' }}><strong>用户痛点</strong></div>
+        <div className="p-grid">
+          <div className="p-metric"><div className="p-metric-label">痛点</div><div className="p-metric-value">{review.pain_points.length} 项</div></div>
+          <div className="p-metric"><div className="p-metric-label">好评</div><div className="p-metric-value">{review.praised_features.length} 项</div></div>
+          <div className="p-metric"><div className="p-metric-label">机会</div><div className="p-metric-value">{review.opportunities.length} 项</div></div>
+        </div>
+        <div className="p-subtitle">用户痛点</div>
         <ul className="p-list">{review.pain_points.map((p, i) => <li key={i}>{p}</li>)}</ul>
-        <div style={{ margin: '12px 0' }}><strong>用户好评</strong></div>
+        <div className="p-subtitle">用户好评</div>
         <ul className="p-list">{review.praised_features.map((p, i) => <li key={i}>{p}</li>)}</ul>
-        <div style={{ margin: '12px 0' }}><strong>差异化机会</strong></div>
-        <ul className="p-list">{review.opportunities.map((p, i) => <li key={i}>{p}</li>)}</ul>
+        <div className="p-subtitle">差异化机会</div>
+        {review.opportunities.map((opp, i) => {
+          const tag = extractOpportunityTag(opp)
+          const colors = ['#2563eb', '#0891b2', '#059669', '#d97706', '#7c3aed', '#dc2626']
+          const color = colors[i % colors.length]
+          return (
+            <div key={i} className="p-suggestion">
+              <div className="p-suggestion-title">
+                <span style={{ display: 'inline-block', width: 20, height: 20, borderRadius: '50%', background: `${color}15`, color, fontSize: 11, fontWeight: 900, textAlign: 'center', lineHeight: '20px' }}>{i + 1}</span>
+                <span className="p-tag" style={{ background: `${color}15`, color, borderColor: `${color}30` }}>{tag}</span>
+              </div>
+              <div className="p-suggestion-desc">{opp}</div>
+            </div>
+          )
+        })}
       </div>
 
+      {suppliers.length > 0 && (
+        <div className="p-section">
+          <div className="p-title">六、供应商推荐</div>
+          <table className="p-table">
+            <thead>
+              <tr>
+                <th>排名</th><th>供应商</th><th>MOQ</th><th>交期</th><th>评分</th><th>产能</th><th>单件成本</th><th>样品费</th><th>样品交期</th><th>响应率</th><th>成交数</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suppliers.slice(0, 5).map((s: any, i: number) => (
+                <tr key={i}>
+                  <td>{s.rank || i + 1}</td>
+                  <td>{s.name}</td>
+                  <td>{s.moq}</td>
+                  <td>{s.lead_time}</td>
+                  <td>{s.rating}</td>
+                  <td>{s.capacity}</td>
+                  <td>{symbol}{s.unit_cost?.toFixed(2) ?? '-'}</td>
+                  <td>{symbol}{s.sample_cost}</td>
+                  <td>{s.sample_days ?? '-'} 天</td>
+                  <td>{s.response_rate}%</td>
+                  <td>{s.transactions ?? '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="p-subtitle">主营爆款</div>
+          <div className="p-grid">
+            {suppliers.slice(0, 3).map((s: any, i: number) => (
+              <div key={i} className="p-metric" style={{ flex: '1 1 160px' }}>
+                <div className="p-metric-label" style={{ fontSize: 9, lineHeight: 1.4 }}>{s.name}</div>
+                <div className="p-metric-value" style={{ fontSize: 12 }}>{(s.hot_categories || []).join('、')}</div>
+                <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>从业 {s.years ?? '-'} 年 · 产能 {s.capacity}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="p-section">
-        <div className="p-title">六、行动计划</div>
+        <div className="p-title">{suppliers.length > 0 ? '七' : '六'}、行动计划</div>
         {report.next_steps.map((step, i) => (
           <div key={i} className="p-action">
             <div className="p-action-title">{step.phase} · {step.title}</div>
-            <div>{step.value}</div>
+            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}><strong>负责人：</strong>{step.owner}</div>
+            <ul className="p-list">
+              {step.tasks.map((t, j) => <li key={j}>{t}</li>)}
+            </ul>
+            <div style={{ marginTop: 6, padding: '6px 8px', background: '#f0fdf4', borderRadius: 6, color: '#166534', fontSize: 10, fontWeight: 700 }}>
+              目标：{step.value}
+            </div>
           </div>
         ))}
       </div>
