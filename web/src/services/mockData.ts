@@ -1577,18 +1577,22 @@ export function generateMockReport(
   ) / 10;
   const totalScore = Math.round((marginScore + trendScore + competitionScore + insightScore + supplyScore) * 10) / 10;
 
-  // 综合判定：不再只看毛利率，而是基于五维总分（利润+趋势+竞争+洞察+供应链）
+  // 综合判定：基于五维总分（利润+趋势+竞争+洞察+供应链）
   let verdict: string;
   let verdictColor: string;
   let grade: string;
-  if (totalScore >= 75) {
+  if (totalScore >= 85) {
     verdict = '推荐进入';
     verdictColor = '#16a34a';
     grade = 'A';
-  } else if (totalScore >= 48) {
+  } else if (totalScore >= 70) {
     verdict = '谨慎进入';
     verdictColor = '#d97706';
     grade = 'B';
+  } else if (totalScore >= 50) {
+    verdict = '观察';
+    verdictColor = '#0891b2';
+    grade = 'C';
   } else {
     verdict = '不建议';
     verdictColor = '#dc2626';

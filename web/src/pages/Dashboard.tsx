@@ -203,27 +203,25 @@ function RadarChart({ report }: { report: AnalysisReport }) {
       color: ['#2563eb', '#94a3b8'],
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(30, 41, 59, 0.78)',
+        backgroundColor: 'rgba(30, 41, 59, 0.86)',
         borderWidth: 0,
-        padding: [4, 8],
+        padding: [3, 6],
         confine: true,
-        extraCssText: 'max-width:200px;word-wrap:break-word;white-space:normal;border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);',
-        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 10 },
+        extraCssText: 'max-width:120px;word-wrap:break-word;white-space:normal;border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);',
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
         formatter: (params: any) => {
           if (params.seriesIndex === 1) {
-            return '<div style="font-weight:800;font-size:10px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.72);font-size:9px;margin-top:2px">五维均衡参考线：60%</div>';
+            return '<div style="font-weight:800;font-size:9px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.72);font-size:8px;margin-top:1px">参考线 60%</div>';
           }
           const list = params.value.map((v: number, i: number) => {
-            const raw = values[i];
-            const max = MAX_VALUES[categories[i]];
             const color = SCORE_COLORS[categories[i]].start;
-            return `<div style="display:flex;align-items:center;gap:6px;margin:2px 0;flex-wrap:wrap">
-              <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${color};flex-shrink:0"></span>
-              <span style="font-weight:700;font-size:10px;color:#fff">${categories[i]}</span>
-              <span style="color:rgba(255,255,255,0.72);font-size:9px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
+            return `<div style="display:flex;align-items:center;gap:4px;margin:1px 0;flex-wrap:nowrap">
+              <span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${color};flex-shrink:0"></span>
+              <span style="font-weight:700;font-size:9px;color:#fff;white-space:nowrap">${categories[i]}</span>
+              <span style="color:rgba(255,255,255,0.72);font-size:8px;margin-left:auto">${v.toFixed(0)}%</span>
             </div>`;
           }).join('');
-          return `<div style="font-weight:800;margin-bottom:4px;font-size:10px;color:#fff">选品能力评分</div>${list}`;
+          return `<div style="font-weight:800;margin-bottom:2px;font-size:9px;color:#fff">选品能力评分</div>${list}`;
         },
       },
       radar: {

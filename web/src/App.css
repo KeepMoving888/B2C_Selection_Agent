@@ -2647,24 +2647,32 @@ body .ant-popover .ant-popover-arrow-content {
 }
 
 /* ECharts tooltip：同样保持极简小标签 */
+div.echarts-tooltip,
+div.echarts-tooltip-dark,
 .echarts-tooltip,
 .echarts-tooltip .tooltip-content,
 .echarts-tooltip-dark {
-  max-width: 140px !important;
+  max-width: 120px !important;
   min-width: 0 !important;
+  width: auto !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   white-space: normal !important;
   line-height: 1.25 !important;
   font-size: 9px !important;
-  padding: 3px 6px !important;
+  padding: 2px 5px !important;
   border-radius: 3px !important;
-  background: rgba(30, 41, 59, 0.78) !important;
+  background: rgba(30, 41, 59, 0.86) !important;
   border: none !important;
   color: #ffffff !important;
   box-shadow: none !important;
 }
 
+div.echarts-tooltip div,
+div.echarts-tooltip span,
+div.echarts-tooltip strong,
+div.echarts-tooltip b,
+div.echarts-tooltip *,
 .echarts-tooltip div,
 .echarts-tooltip span,
 .echarts-tooltip strong,
@@ -2774,10 +2782,10 @@ body .ant-popover .ant-popover-arrow-content {
   height: 2px;
 }
 
-.ant-slider-handle {
-  width: 8px !important;
-  height: 8px !important;
-  margin-top: -3px !important;
+body .ant-slider .ant-slider-handle {
+  width: 6px !important;
+  height: 6px !important;
+  margin-top: -2px !important;
   border-radius: 50% !important;
   background: #ffffff !important;
   border: 1.5px solid var(--slider-accent, var(--saas-primary)) !important;
@@ -2786,20 +2794,23 @@ body .ant-popover .ant-popover-arrow-content {
 }
 
 /* 强制去除 Ant Design 滑块自带的白色外圈/矩形 */
-.ant-slider-handle::after,
-.ant-slider-handle::before,
-.ant-slider-handle .ant-slider-handle-dragging::after {
+body .ant-slider .ant-slider-handle::after,
+body .ant-slider .ant-slider-handle::before,
+body .ant-slider .ant-slider-handle-dragging::after,
+body .ant-slider .ant-slider-handle-dragging::before {
   display: none !important;
   content: none !important;
   box-shadow: none !important;
   background: transparent !important;
   border: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-.ant-slider-handle:hover,
-.ant-slider-handle:focus,
-.ant-slider-handle:active {
-  transform: scale(1.18) !important;
+body .ant-slider .ant-slider-handle:hover,
+body .ant-slider .ant-slider-handle:focus,
+body .ant-slider .ant-slider-handle:active {
+  transform: scale(1.25) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.14) !important;
 }
 
@@ -2835,10 +2846,10 @@ body .ant-popover .ant-popover-arrow-content {
     height: 2px;
   }
 
-  .ant-slider-handle {
-    width: 7px !important;
-    height: 7px !important;
-    margin-top: -2.5px !important;
+  body .ant-slider .ant-slider-handle {
+    width: 5px !important;
+    height: 5px !important;
+    margin-top: -1.5px !important;
     border-width: 1.5px !important;
   }
 }
@@ -4031,12 +4042,11 @@ canvas {
   height: auto;
 }
 
-/* 7. 触摸目标最小尺寸 */
+/* 7. 触摸目标最小尺寸（slider 圆球单独控制，避免被放大） */
 button,
 a,
 .ant-btn,
 .ant-menu-item,
-.ant-slider-handle,
 .ant-select-selector,
 .competitor-link-btn,
 .keyword-opportunity-keyword,
@@ -4045,6 +4055,11 @@ a,
 .best-scenario-switcher button {
   min-height: 36px;
   min-width: 36px;
+}
+
+.ant-slider-handle {
+  min-height: 0 !important;
+  min-width: 0 !important;
 }
 
 /* 8. 移动端整体字号与间距缩放 */

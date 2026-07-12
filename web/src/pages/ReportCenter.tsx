@@ -1003,12 +1003,12 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const pxToMm = pdfWidth / canvas.width
     const pageHeightPx = pdfHeight / pxToMm
 
-    // 智能分页：在段落、列表项、表格行、标题、卡片等可见元素下边界处切割，
-    // 避免内容在行内被截断，同时防止分页边界重复上一页末尾文字。
+    // 智能分页：收集所有可见块级元素的下边界作为候选切分点，
+    // 每次在目标页高附近选择最合适的边界，避免行内截断或分页处内容重复。
     const protectedSelectors = [
       '.p-header', '.p-footer', '.p-section', '.p-section > *',
       '.p-title', '.p-grid', '.p-metric', '.p-action',
-      '.p-table', '.p-table tr', '.p-list', 'li', 'p',
+      '.p-table', '.p-table tr', '.p-list', 'li', 'p', 'h1', 'h2', 'h3',
     ]
     const candidateBreaks = new Set<number>()
     candidateBreaks.add(0)
@@ -1016,41 +1016,49 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
       container.querySelectorAll(sel).forEach((el) => {
         const htmlEl = el as HTMLElement
         if (!htmlEl.offsetParent) return
-        const bottom = Math.round(htmlEl.offsetTop + htmlEl.offsetHeight)
+        const rect = htmlEl.getBoundingClientRect()
+        const bottom = Math.round(rect.top + rect.height + container.scrollTop)
         if (bottom > 0) candidateBreaks.add(bottom)
       })
     })
-    const sortedBreaks = Array.from(candidateBreaks).sort((a, b) => a - b)
+    const sortedBreaks = Array.from(candidateBreaks)
+      .filter((b) => b > 0 && b < container.scrollHeight)
+      .sort((a, b) => a - b)
 
-    const minPageHeight = pageHeightPx * 0.35
-    const safetyMargin = 20
-    const breaks: number[] = []
+    const minPageHeight = pageHeightPx * 0.45
+    const safetyMargin = 14
+    const pageTops: number[] = [0]
     let currentTop = 0
+    const minAdvance = 20
+
     while (currentTop + pageHeightPx < container.scrollHeight) {
       const targetBottom = currentTop + pageHeightPx
-      // 优先找不超过（目标底部 - 安全边距）的最大候选边界，避免截断文字
-      let bestBreak = -1
-      for (const b of sortedBreaks) {
+      // 优先找不超过目标底部的最大候选边界
+      let bestBreak = sortedBreaks.reduce((best, b) => {
         if (b > currentTop + safetyMargin && b <= targetBottom - safetyMargin) {
-          bestBreak = b
+          return b
         }
-      }
-      // 若找不到合适候选边界，宁可留白也不硬切文字
+        return best
+      }, -1)
+
+      // 若候选边界导致页面过短，则 fallback 到目标底部硬切
       if (bestBreak < 0 || bestBreak - currentTop < minPageHeight) {
-        //  fallback：在目标底部硬切，但仅作为最后手段
         bestBreak = targetBottom
       }
-      // 确保分页点确实向前推进，防止死循环
-      if (bestBreak <= currentTop + safetyMargin) {
-        bestBreak = targetBottom
+
+      // 确保分页点确实向前推进，防止死循环或内容重复
+      if (bestBreak <= currentTop + minAdvance) {
+        bestBreak = Math.min(currentTop + pageHeightPx, container.scrollHeight)
       }
-      breaks.push(bestBreak)
+
+      pageTops.push(bestBreak)
       currentTop = bestBreak
     }
 
-    // 使用 breaks 作为每一页的顶部偏移，避免第一页重复渲染整图导致分页内容重叠
-    const pageTops = [0, ...breaks.filter((b) => b > 0 && b < container.scrollHeight)]
-    pageTops.forEach((top, index) => {
+    // 去重并排序，防止重复渲染同一区域
+    const uniqueTops = Array.from(new Set(pageTops)).sort((a, b) => a - b)
+
+    uniqueTops.forEach((top, index) => {
       if (index > 0) pdf.addPage()
       pdf.addImage(imgData, 'PNG', 0, -top * pxToMm, imgWidth, imgHeight)
     })
