@@ -212,6 +212,10 @@ function ScenarioCard({ name, data }: { name: string; data: any }) {
           <div className="scenario-metric-value" style={{ color: c.value }}>{data['月销量']}</div>
         </div>
         <div className="scenario-metric">
+          <div className="scenario-metric-label">毛利率</div>
+          <div className="scenario-metric-value" style={{ color: c.value }}>{data['毛利率']}</div>
+        </div>
+        <div className="scenario-metric">
           <div className="scenario-metric-label">ROI</div>
           <div className="scenario-metric-value" style={{ color: c.value }}>{data['ROI'].toFixed(2)}%</div>
         </div>
@@ -635,7 +639,7 @@ export default function ProfitAnalysis() {
                   <RiseOutlined style={{ color: 'var(--saas-success)' }} /> ROI 情景分析
                 </div>
                 <div className="section-desc">
-                  基于保守、中性、乐观三种销量假设，测算对应的 ROI 与月毛利。
+                  基于保守、中性、乐观三种销量假设，测算对应的毛利率、ROI 与月毛利。毛利率 = 单件毛利 / 售价；ROI = 月净利润 / 月总投资，二者含义不同请勿混淆。
                 </div>
                 <div className="scenario-grid">
                   {Object.entries(report.profit_analysis.roi_scenarios).map(([name, data]) => (
@@ -659,50 +663,50 @@ export default function ProfitAnalysis() {
                 <Row gutter={[32, 0]}>
                   <Col xs={24} md={12}>
                     <SimulatorSlider
-                      label="产品成本优化"
+                      label="产品成本优化（降低）"
                       value={costReduction}
                       max={Number(report.profit_analysis.unit_cost.toFixed(2))}
                       step={0.05}
                       onChange={setCostReduction}
-                      formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
+                      formatter={(v) => `−USD ${(v ?? 0).toFixed(2)}`}
                       accent="#2563eb"
                       icon={<PieChartOutlined />}
-                      hint="通过谈判/工艺/包装优化降低的单件采购成本（上限为当前产品成本，可降至 0）"
+                      hint="向右拖动表示降低单件采购成本（上限为当前产品成本，可降至 0）"
                     />
                     <SimulatorSlider
-                      label="广告费用优化"
+                      label="广告费用优化（降低）"
                       value={adReduction}
                       max={Number(((report.profit_analysis.cost_breakdown['广告费用'] || 0)).toFixed(2))}
                       step={0.05}
                       onChange={setAdReduction}
-                      formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
+                      formatter={(v) => `−USD ${(v ?? 0).toFixed(2)}`}
                       accent="#dc2626"
                       icon={<RiseOutlined />}
-                      hint="通过精准投放/自然流量提升降低的单件广告支出（上限为当前广告费用，可降至 0）"
+                      hint="向右拖动表示降低单件广告支出（上限为当前广告费用，可降至 0）"
                     />
                   </Col>
                   <Col xs={24} md={12}>
                     <SimulatorSlider
-                      label="FBA 费用优化"
+                      label="FBA 费用优化（降低）"
                       value={fbaReduction}
                       max={Number(((report.profit_analysis.cost_breakdown['FBA 费用'] || 0)).toFixed(2))}
                       step={0.05}
                       onChange={setFbaReduction}
-                      formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
+                      formatter={(v) => `−USD ${(v ?? 0).toFixed(2)}`}
                       accent="#d97706"
                       icon={<SafetyOutlined />}
-                      hint="通过尺寸优化/轻小计划等降低的单件FBA费用（上限为当前FBA费用，可降至 0）"
+                      hint="向右拖动表示降低单件 FBA 费用（上限为当前 FBA 费用，可降至 0）"
                     />
                     <SimulatorSlider
-                      label="售价提升"
+                      label="售价提升（增加）"
                       value={priceIncrease}
                       max={Number((report.profit_analysis.selling_price * 0.3).toFixed(2))}
                       step={0.05}
                       onChange={setPriceIncrease}
-                      formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
+                      formatter={(v) => `+USD ${(v ?? 0).toFixed(2)}`}
                       accent="#059669"
                       icon={<DollarOutlined />}
-                      hint="通过品牌溢价/套装升级/差异化提升的单件售价（上限为当前售价的 30%）"
+                      hint="向右拖动表示提升单件售价（上限为当前售价的 30%）"
                     />
                   </Col>
                 </Row>

@@ -2542,6 +2542,109 @@
 }
 
 /* =========================================================
+   Tooltip / 提示卡片自适应（避免过长、过大、不换行）
+   ========================================================= */
+.ant-tooltip-inner {
+  max-width: 280px !important;
+  min-width: 0 !important;
+  word-wrap: break-word !important;
+  white-space: normal !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+}
+
+.ant-tooltip-arrow::before {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* ECharts tooltip 统一限制 */
+.echarts-tooltip,
+.echarts-tooltip .tooltip-content {
+  max-width: 260px !important;
+  word-wrap: break-word !important;
+  white-space: normal !important;
+  line-height: 1.5 !important;
+}
+
+/* 自定义提示文本 */
+.simulator-slider-hint,
+.cost-tooltip,
+.simulator-explain-body,
+.section-desc,
+.info-card-body {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Slider tooltip 防止白色矩形与溢出 */
+.ant-slider-tooltip .ant-tooltip-inner {
+  max-width: 160px !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+}
+
+/* Slider 统一样式：去除白色矩形/异常边框 */
+.ant-slider {
+  margin: 8px 6px;
+}
+
+.ant-slider-rail {
+  background-color: #e2e8f0 !important;
+  border-radius: 4px;
+  height: 8px;
+}
+
+.ant-slider-track {
+  border-radius: 4px;
+  height: 8px;
+}
+
+.ant-slider-handle {
+  width: 20px;
+  height: 20px;
+  margin-top: -6px;
+  background-color: #ffffff;
+  border: 3px solid var(--saas-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ant-slider-handle:hover,
+.ant-slider-handle:focus,
+.ant-slider-handle:active {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  border-color: var(--saas-primary);
+  outline: none;
+}
+
+.ant-slider-handle::after {
+  display: none !important;
+}
+
+.ant-slider:hover .ant-slider-track {
+  filter: brightness(1.05);
+}
+
+@media (max-width: 768px) {
+  .ant-tooltip-inner {
+    max-width: 220px !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+
+  .echarts-tooltip,
+  .echarts-tooltip .tooltip-content {
+    max-width: 200px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* =========================================================
    页面统一增强：合规 / 行动计划 / 市场分析
    ========================================================= */
 

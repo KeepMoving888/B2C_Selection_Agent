@@ -17,7 +17,7 @@ import { Card, Col, Row, Spin } from 'antd';
 import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
@@ -195,23 +195,25 @@ function RadarChart({ report }: { report: AnalysisReport }) {
         backgroundColor: '#ffffff',
         borderColor: '#e2e8f0',
         borderWidth: 1,
-        padding: [12, 16],
-        textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
+        padding: [10, 14],
+        confine: true,
+        extraCssText: 'max-width:260px;word-wrap:break-word;white-space:normal;',
+        textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)', fontSize: 12 },
         formatter: (params: any) => {
           if (params.seriesIndex === 1) {
-            return '<div style="font-weight:800;font-size:14px">行业基准</div><div style="color:#64748b;font-size:12px">五维均衡参考线：60%</div>';
+            return '<div style="font-weight:800;font-size:13px">行业基准</div><div style="color:#64748b;font-size:12px;margin-top:4px">五维均衡参考线：60%</div>';
           }
           const list = params.value.map((v: number, i: number) => {
             const raw = values[i];
             const max = MAX_VALUES[categories[i]];
             const color = SCORE_COLORS[categories[i]].start;
-            return `<div style="display:flex;align-items:center;gap:8px;margin:5px 0">
-              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>
-              <span style="font-weight:700;min-width:80px">${categories[i]}</span>
-              <span style="color:#64748b;font-size:12px;margin-left:auto">得分 ${raw}/${max} · 占比 ${v.toFixed(1)}%</span>
+            return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
+              <span style="font-weight:700;font-size:12px">${categories[i]}</span>
+              <span style="color:#64748b;font-size:11px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
             </div>`;
           }).join('');
-          return `<div style="font-weight:800;margin-bottom:8px;font-size:14px">选品能力评分</div>${list}`;
+          return `<div style="font-weight:800;margin-bottom:6px;font-size:13px">选品能力评分</div>${list}`;
         },
       },
       radar: {
@@ -446,13 +448,16 @@ export default function Dashboard() {
   }, [dispatch]);
 
   // 支持从 URL 参数自动发起分析（如细分关键词点击“在新页面分析”）
+  const autoAnalyzed = useRef(false);
   useEffect(() => {
+    if (autoAnalyzed.current) return;
     const params = new URLSearchParams(window.location.search);
     const auto = params.get('auto') === '1';
     const keyword = params.get('keyword')?.trim();
     const market = params.get('market')?.trim();
     const budget = params.get('budget')?.trim();
     if (auto && keyword) {
+      autoAnalyzed.current = true;
       analyze({
         keyword,
         market: market || lastSearch?.market || 'US',

@@ -1063,6 +1063,7 @@ function calculateProfit(
     scenarios[name] = {
       '月销量': sales,
       '月毛利': Math.round(monthlyNetProfit * 100) / 100,
+      '毛利率': `${(grossMargin * 100).toFixed(1)}%`,
       'ROI': Math.round(roi * 10) / 10,
       '回本周期': payback ? Math.round(payback * 10) / 10 : null,
     };
