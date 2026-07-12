@@ -1040,25 +1040,42 @@ function ReportPdfContent({ report }: { report: AnalysisReport }) {
 
 async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: boolean) => void) {
   setLoading?.(true)
-  // 先让 UI 线程渲染加载态，再执行 PDF 生成，降低“卡住”感知
   const hideLoading = message.loading('正在生成 PDF，请稍候...', 0)
   await new Promise((resolve) => setTimeout(resolve, 80))
 
   const container = document.createElement('div')
-  container.style.position = 'absolute'
-  container.style.left = '-9999px'
+  container.style.position = 'fixed'
+  container.style.left = '0'
   container.style.top = '0'
   container.style.width = '794px'
-  container.style.zIndex = '-1'
+  container.style.visibility = 'hidden'
+  container.style.pointerEvents = 'none'
+  container.style.zIndex = '-10000'
   document.body.appendChild(container)
 
   const root = createRoot(container)
   root.render(<ReportPdfContent report={report} />)
 
-  await new Promise((resolve) => setTimeout(resolve, 220))
+  // 等待 React 渲染、样式应用、布局稳定后再测量高度
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  container.getBoundingClientRect()
+
+  // 等待高度稳定（某些字体/图片加载会导致高度变化）
+  let lastHeight = 0
+  let stableCount = 0
+  for (let i = 0; i < 20; i++) {
+    const height = container.scrollHeight
+    if (height === lastHeight) {
+      stableCount++
+      if (stableCount >= 2) break
+    } else {
+      stableCount = 0
+    }
+    lastHeight = height
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
 
   try {
-    // scale 降至 1.5 可显著减少渲染耗时，同时保持打印清晰度
     const canvas = await html2canvas(container, {
       scale: 1.5,
       backgroundColor: '#ffffff',
@@ -1073,38 +1090,31 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const imgHeight = (canvas.height * pdfWidth) / canvas.width
     const pxToMm = pdfWidth / canvas.width
     const pageHeightPx = pdfHeight / pxToMm
+    const contentHeight = container.scrollHeight
 
-    // 智能分页：收集所有可见块级元素的下边界作为候选切分点，
-    // 优先在 section 边界、标题、表格行、卡片等完整元素后分页，避免截断内容。
-    const protectedSelectors = [
-      '.p-header', '.p-footer', '.p-section', '.p-title', '.p-subtitle',
-      '.p-grid', '.p-metric', '.p-action', '.p-suggestion',
-      '.p-table', '.p-table tr', '.p-list', 'li', 'p',
+    // 收集所有可能的分页边界（元素下边界）
+    const boundarySelectors = [
+      '.p-header', '.p-title', '.p-subtitle', '.p-section',
+      '.p-grid', '.p-metric', '.p-action', '.p-suggestion', '.p-score-row',
+      '.p-table', '.p-table thead', '.p-table tbody', '.p-table tr',
+      '.p-list', '.p-list li', 'p', '.p-footer',
     ]
-    const candidateBreaks = new Set<number>()
-    candidateBreaks.add(0)
-    protectedSelectors.forEach((sel) => {
+    const candidateBreaks = new Set<number>([0])
+    boundarySelectors.forEach((sel) => {
       container.querySelectorAll(sel).forEach((el) => {
         const htmlEl = el as HTMLElement
         if (!htmlEl.offsetParent) return
         const rect = htmlEl.getBoundingClientRect()
-        const bottom = Math.round(rect.top + rect.height + container.scrollTop)
-        if (bottom > 0) candidateBreaks.add(bottom)
+        const top = rect.top + container.scrollTop
+        const bottom = Math.round(top + rect.height)
+        if (bottom > 0 && bottom <= contentHeight) candidateBreaks.add(bottom)
       })
     })
-    const sortedBreaks = Array.from(candidateBreaks)
-      .filter((b) => b > 0 && b < container.scrollHeight)
-      .sort((a, b) => a - b)
+    const sortedBreaks = Array.from(candidateBreaks).sort((a, b) => a - b)
 
-    const minPageHeight = pageHeightPx * 0.38
-    const safetyMargin = 20
-    const pageTops: number[] = [0]
-    let currentTop = 0
-    const minAdvance = 30
-
-    // 检测目标分页位置是否落在不可分断元素内部，避免截断表格/卡片/建议块
-    const unbreakableSelectors = ['.p-table', '.p-action', '.p-suggestion', '.p-metric', '.p-score-row', '.p-grid']
-    const findEnclosingBlock = (y: number): { top: number; bottom: number } | null => {
+    // 不可分断元素：分页线不能落在这些元素内部
+    const unbreakableSelectors = ['.p-table', '.p-table tr', '.p-action', '.p-suggestion', '.p-metric', '.p-score-row']
+    const getEnclosingBlock = (y: number): { top: number; bottom: number } | null => {
       const blocks: { top: number; bottom: number }[] = []
       unbreakableSelectors.forEach((sel) => {
         container.querySelectorAll(sel).forEach((el) => {
@@ -1113,31 +1123,35 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
           const rect = htmlEl.getBoundingClientRect()
           const top = rect.top + container.scrollTop
           const bottom = top + rect.height
-          if (top < y && bottom > y) {
-            blocks.push({ top, bottom })
-          }
+          if (top < y && bottom > y) blocks.push({ top, bottom })
         })
       })
       if (blocks.length === 0) return null
       return blocks.reduce((best, b) => (b.bottom - b.top < best.bottom - best.top ? b : best))
     }
 
-    while (currentTop + pageHeightPx < container.scrollHeight) {
+    const safetyMargin = 24
+    const minAdvance = 40
+    const minPageHeight = pageHeightPx * 0.35
+    const pageTops: number[] = [0]
+    let currentTop = 0
+
+    while (currentTop + pageHeightPx < contentHeight) {
       const targetBottom = currentTop + pageHeightPx
       let bestBreak = -1
 
-      // 若目标分页线落在不可分断元素内，优先在该元素边界处分页
-      const enclosing = findEnclosingBlock(targetBottom)
+      // 1) 若目标分页线落在不可分断元素内部，优先在该元素边界处分页
+      const enclosing = getEnclosingBlock(targetBottom)
       if (enclosing) {
         const blockHeight = enclosing.bottom - enclosing.top
-        if (blockHeight <= pageHeightPx * 0.8) {
+        if (blockHeight <= pageHeightPx * 0.85 && enclosing.bottom > currentTop + safetyMargin) {
           bestBreak = Math.round(enclosing.bottom)
         } else if (enclosing.top > currentTop + safetyMargin) {
           bestBreak = Math.round(enclosing.top)
         }
       }
 
-      // 否则选择最接近目标底部的候选边界
+      // 2) 否则选择最接近目标底部且不超过目标底部的候选边界
       if (bestBreak < 0) {
         bestBreak = sortedBreaks.reduce((best, b) => {
           if (b > currentTop + safetyMargin && b <= targetBottom - safetyMargin) {
@@ -1147,21 +1161,25 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
         }, -1)
       }
 
-      // 若候选边界导致页面过短，fallback 到目标底部硬切
+      // 3) 兜底：直接硬切到目标底部
       if (bestBreak < 0 || bestBreak - currentTop < minPageHeight) {
         bestBreak = targetBottom
       }
 
-      // 确保分页点确实向前推进，防止死循环或内容重复
+      // 4) 保证分页点严格前进，防止死循环或内容重复
       if (bestBreak <= currentTop + minAdvance) {
-        bestBreak = Math.min(currentTop + pageHeightPx, container.scrollHeight)
+        bestBreak = Math.min(currentTop + pageHeightPx, contentHeight)
       }
 
       pageTops.push(bestBreak)
       currentTop = bestBreak
     }
 
-    // 去重并排序，防止重复渲染同一区域
+    // 确保最后一页覆盖到内容末尾
+    if (pageTops[pageTops.length - 1] < contentHeight) {
+      pageTops.push(contentHeight)
+    }
+
     const uniqueTops = Array.from(new Set(pageTops)).sort((a, b) => a - b)
 
     uniqueTops.forEach((top, index) => {
