@@ -1003,33 +1003,41 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const pxToMm = pdfWidth / canvas.width
     const pageHeightPx = pdfHeight / pxToMm
 
-    // 智能分页：只在顶层块级元素下边界处切割，避免段落/表格行/列表项被截断或重复
-    const protectedSelectors = ['.p-header', '.p-section', '.p-action', '.p-table', '.p-list', '.p-title', '.p-metric', '.p-footer']
+    // 智能分页：在段落、列表项、表格行、标题、卡片等可见元素下边界处切割，
+    // 避免内容在行内被截断，同时防止分页边界重复上一页末尾文字。
+    const protectedSelectors = [
+      '.p-header', '.p-footer', '.p-section', '.p-section > *',
+      '.p-title', '.p-grid', '.p-metric', '.p-action',
+      '.p-table', '.p-table tr', '.p-list', 'li', 'p',
+    ]
     const candidateBreaks = new Set<number>()
     candidateBreaks.add(0)
     protectedSelectors.forEach((sel) => {
       container.querySelectorAll(sel).forEach((el) => {
         const htmlEl = el as HTMLElement
-        candidateBreaks.add(Math.round(htmlEl.offsetTop + htmlEl.offsetHeight))
+        if (!htmlEl.offsetParent) return
+        const bottom = Math.round(htmlEl.offsetTop + htmlEl.offsetHeight)
+        if (bottom > 0) candidateBreaks.add(bottom)
       })
     })
     const sortedBreaks = Array.from(candidateBreaks).sort((a, b) => a - b)
 
-    const minPageHeight = pageHeightPx * 0.55
-    const safetyMargin = 16
+    const minPageHeight = pageHeightPx * 0.35
+    const safetyMargin = 20
     const breaks: number[] = []
     let currentTop = 0
     while (currentTop + pageHeightPx < container.scrollHeight) {
       const targetBottom = currentTop + pageHeightPx
-      // 优先找不超过（目标底部 - 安全边距）的最大候选边界，留出缓冲避免贴底截字
-      let bestBreak = targetBottom
+      // 优先找不超过（目标底部 - 安全边距）的最大候选边界，避免截断文字
+      let bestBreak = -1
       for (const b of sortedBreaks) {
         if (b > currentTop + safetyMargin && b <= targetBottom - safetyMargin) {
           bestBreak = b
         }
       }
-      // 若最佳切分点导致页面过短，则在目标底部硬切
-      if (bestBreak - currentTop < minPageHeight) {
+      // 若找不到合适候选边界，宁可留白也不硬切文字
+      if (bestBreak < 0 || bestBreak - currentTop < minPageHeight) {
+        //  fallback：在目标底部硬切，但仅作为最后手段
         bestBreak = targetBottom
       }
       // 确保分页点确实向前推进，防止死循环

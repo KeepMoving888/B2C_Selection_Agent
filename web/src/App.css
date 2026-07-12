@@ -1640,6 +1640,21 @@
   border: 1px solid #e2e8f0;
 }
 
+@media (max-width: 768px) {
+  .season-legend-bar {
+    gap: 10px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+  }
+  .season-legend-item {
+    font-size: 10px;
+  }
+  .season-legend-dot {
+    width: 8px;
+    height: 8px;
+  }
+}
+
 .season-timeline-icon {
   flex-shrink: 0;
   width: 32px;
@@ -2653,8 +2668,11 @@ body .ant-popover .ant-popover-arrow-content {
 .echarts-tooltip div,
 .echarts-tooltip span,
 .echarts-tooltip strong,
-.echarts-tooltip b {
+.echarts-tooltip b,
+.echarts-tooltip * {
   color: #ffffff !important;
+  font-size: 9px !important;
+  line-height: 1.25 !important;
 }
 
 /* 自定义提示文本 */
@@ -2668,6 +2686,77 @@ body .ant-popover .ant-popover-arrow-content {
   overflow-wrap: break-word;
 }
 
+/* 解释说明卡片压缩：更小、更克制，避免大卡片感 */
+.dashboard-insight-box {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--saas-border-subtle);
+  font-size: 12px;
+  color: var(--saas-text-secondary);
+  line-height: 1.6;
+}
+
+.simulator-explain {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+}
+
+.simulator-explain-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #1e40af;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.simulator-explain-body {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.7;
+  font-weight: 500;
+}
+
+.season-insight-box {
+  padding: 12px 14px;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--saas-primary);
+}
+
+.section-desc {
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 768px) {
+  .section-desc {
+    font-size: 11px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  .simulator-explain {
+    padding: 10px 12px;
+  }
+  .simulator-explain-body {
+    font-size: 11px;
+    line-height: 1.65;
+  }
+  .dashboard-insight-box {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .season-insight-box {
+    padding: 10px 12px;
+  }
+}
+
 /* Slider 统一样式：更精致的小圆钮 */
 .ant-slider {
   margin: 4px 2px;
@@ -2677,18 +2766,18 @@ body .ant-popover .ant-popover-arrow-content {
 .ant-slider-rail {
   background-color: #e2e8f0 !important;
   border-radius: 2px;
-  height: 3px;
+  height: 2px;
 }
 
 .ant-slider-track {
   border-radius: 2px;
-  height: 3px;
+  height: 2px;
 }
 
 .ant-slider-handle {
-  width: 10px !important;
-  height: 10px !important;
-  margin-top: -3.5px !important;
+  width: 8px !important;
+  height: 8px !important;
+  margin-top: -3px !important;
   border-radius: 50% !important;
   background: #ffffff !important;
   border: 1.5px solid var(--slider-accent, var(--saas-primary)) !important;
@@ -2747,9 +2836,9 @@ body .ant-popover .ant-popover-arrow-content {
   }
 
   .ant-slider-handle {
-    width: 9px !important;
-    height: 9px !important;
-    margin-top: -3.5px !important;
+    width: 7px !important;
+    height: 7px !important;
+    margin-top: -2.5px !important;
     border-width: 1.5px !important;
   }
 }

@@ -7,6 +7,7 @@ import { useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
 import EmptyReport from '../components/EmptyReport';
+import { useMobile } from '../hooks/useMobile';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
@@ -31,6 +32,7 @@ const COLORS = {
 
 function TrendChart({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis;
+  const isMobile = useMobile();
   const peakMonths = useMemo(() => new Set(trend.peak_months), [trend.peak_months]);
   const entryWindows = useMemo(() => new Set(trend.entry_windows), [trend.entry_windows]);
 
@@ -67,26 +69,29 @@ function TrendChart({ report }: { report: AnalysisReport }) {
       },
       legend: {
         orient: 'horizontal',
-        top: 0,
+        top: isMobile ? undefined : 0,
+        bottom: isMobile ? 0 : undefined,
         left: 'center',
-        itemGap: 20,
-        textStyle: { color: COLORS.text, fontWeight: 700, fontFamily: 'var(--font-sans)' },
+        itemGap: isMobile ? 10 : 20,
+        itemWidth: isMobile ? 10 : 14,
+        itemHeight: isMobile ? 10 : 14,
+        textStyle: { color: COLORS.text, fontWeight: 700, fontFamily: 'var(--font-sans)', fontSize: isMobile ? 10 : 12 },
       },
-      grid: { left: 16, right: 16, top: 52, bottom: 20, containLabel: true },
+      grid: { left: isMobile ? 10 : 16, right: isMobile ? 10 : 16, top: isMobile ? 38 : 52, bottom: isMobile ? 48 : 32, containLabel: true },
       xAxis: {
         type: 'category',
         data: allX,
         axisLine: { lineStyle: { color: COLORS.grid } },
-        axisLabel: { color: COLORS.textMuted, fontWeight: 600, fontFamily: 'var(--font-sans)' },
+        axisLabel: { color: COLORS.textMuted, fontWeight: 600, fontFamily: 'var(--font-sans)', fontSize: isMobile ? 10 : 12, interval: 0, rotate: isMobile ? 30 : 0 },
         splitLine: { show: false },
       },
       yAxis: {
         type: 'value',
-        name: '搜索热度',
+        name: isMobile ? '' : '搜索热度',
         max: maxY,
         axisLine: { show: false },
         splitLine: { lineStyle: { color: '#f1f5f9' } },
-        axisLabel: { color: COLORS.textMuted, fontWeight: 600, fontFamily: 'var(--font-sans)' },
+        axisLabel: { color: COLORS.textMuted, fontWeight: 600, fontFamily: 'var(--font-sans)', fontSize: isMobile ? 10 : 12 },
         nameTextStyle: { color: COLORS.textMuted, fontWeight: 700, fontFamily: 'var(--font-sans)' },
       },
       series: [
@@ -109,6 +114,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
           markArea: {
             silent: true,
             data: markAreas,
+            itemStyle: { opacity: isMobile ? 0.5 : 0.7 },
           },
         },
         {
@@ -148,9 +154,9 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         },
       ],
     };
-  }, [trend, peakMonths, entryWindows]);
+  }, [trend, peakMonths, entryWindows, isMobile]);
 
-  return <ReactECharts option={option} style={{ height: 420, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height: isMobile ? 300 : 420, width: '100%' }} />;
 }
 
 function SeasonActionList({ report }: { report: AnalysisReport }) {
