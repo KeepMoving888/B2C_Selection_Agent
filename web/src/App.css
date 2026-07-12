@@ -2646,12 +2646,12 @@ body .ant-popover .ant-popover-arrow-content {
   border-radius: 3px !important;
 }
 
-/* ECharts tooltip：同样保持极简小标签 */
+/* ECharts tooltip：强制小标签，覆盖 ECharts 默认最小宽度 */
 div.echarts-tooltip,
 div.echarts-tooltip-dark,
 .echarts-tooltip,
-.echarts-tooltip .tooltip-content,
-.echarts-tooltip-dark {
+.echarts-tooltip-dark,
+.echarts-tooltip .tooltip-content {
   max-width: 120px !important;
   min-width: 0 !important;
   width: auto !important;
@@ -2662,12 +2662,16 @@ div.echarts-tooltip-dark,
   font-size: 9px !important;
   padding: 2px 5px !important;
   border-radius: 3px !important;
-  background: rgba(30, 41, 59, 0.86) !important;
+  background: rgba(30, 41, 59, 0.9) !important;
   border: none !important;
   color: #ffffff !important;
   box-shadow: none !important;
 }
 
+div.echarts-tooltip > div,
+div.echarts-tooltip-dark > div,
+.echarts-tooltip > div,
+.echarts-tooltip-dark > div,
 div.echarts-tooltip div,
 div.echarts-tooltip span,
 div.echarts-tooltip strong,
@@ -2681,6 +2685,7 @@ div.echarts-tooltip *,
   color: #ffffff !important;
   font-size: 9px !important;
   line-height: 1.25 !important;
+  max-width: 100% !important;
 }
 
 /* 自定义提示文本 */

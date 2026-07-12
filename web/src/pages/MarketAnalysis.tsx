@@ -49,7 +49,7 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
     const maxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
 
     return {
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.78)', borderWidth: 0, padding: [3, 6], textStyle: { color: '#ffffff', fontSize: 9 }, extraCssText: 'border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);' },
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.9)', borderWidth: 0, padding: [2, 5], confine: true, textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 }, extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;' },
       legend: { orient: 'horizontal', top: 0, right: isMobile ? undefined : 0, left: isMobile ? 'center' : undefined, itemGap: isMobile ? 12 : 20, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 10 : 12 } },
       grid: { left: isMobile ? 6 : 14, right: isMobile ? 6 : 60, top: isMobile ? 34 : 46, bottom: isMobile ? 16 : 20, containLabel: true },
       xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11, interval: isMobile ? 1 : 0, rotate: isMobile ? 30 : 0 } },
@@ -354,11 +354,16 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
     return {
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(30, 41, 59, 0.78)',
+        backgroundColor: 'rgba(30, 41, 59, 0.9)',
         borderWidth: 0,
-        padding: [3, 6],
-        textStyle: { color: '#ffffff', fontSize: 9 },
-        extraCssText: 'border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);',
+        padding: [2, 5],
+        confine: true,
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
+        extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;',
+        formatter: (params: any) => {
+          const lines = params.map((p: any) => `<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${p.color};margin-right:4px;vertical-align:middle"></span><span style="font-size:8px;color:rgba(255,255,255,0.72)">${p.seriesName}: ${p.data[1] ?? p.data}%</span>`);
+          return `<div style="font-weight:800;font-size:9px;color:#fff;margin-bottom:2px">${params[0].axisValue}</div><div style="line-height:1.3">${lines.join('<br/>')}</div>`;
+        },
       },
       legend: {
         data: active.map((t) => t.name),
@@ -566,27 +571,26 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
     return {
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(30, 41, 59, 0.96)',
-        borderColor: 'rgba(255, 255, 255, 0.10)',
-        borderWidth: 1,
-        padding: [8, 12],
-        textStyle: { color: '#ffffff', fontSize: 12 },
-        extraCssText: 'max-width:240px;word-wrap:break-word;white-space:normal;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.22);backdrop-filter:blur(6px);',
+        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+        borderWidth: 0,
+        padding: [2, 5],
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
+        extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;',
         confine: true,
         formatter: (params: any) => {
           if (params.dataType === 'edge') {
             const sName = nameMap.get(params.data.source) || params.data.source;
             const tName = nameMap.get(params.data.target) || params.data.target;
-            return `<div style="font-weight:800">${sName} → ${tName}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:4px">关联机会分 ${params.data.value}</div>`;
+            return `<div style="font-weight:800;font-size:9px;color:#fff">${sName} → ${tName}</div><div style="color:rgba(255,255,255,0.72);font-size:8px;margin-top:1px">关联分 ${params.data.value}</div>`;
           }
           const node = params.data;
           if (node.id === report.keyword) {
-            return `<div style="font-weight:800">${node.name}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:4px">搜索量 ${node.value.toLocaleString()}</div>`;
+            return `<div style="font-weight:800;font-size:9px;color:#fff">${node.name}</div><div style="color:rgba(255,255,255,0.72);font-size:8px;margin-top:1px">搜索量 ${node.value.toLocaleString()}</div>`;
           }
-          const trendLabel = node.trend === 'rising' ? '上升' : node.trend === 'falling' ? '下滑' : '稳定';
+          const trendLabel = node.trend === 'rising' ? '↑' : node.trend === 'falling' ? '↓' : '—';
           const compLabel = node.competition === 'low' ? '低' : node.competition === 'high' ? '高' : '中';
-          const typeLabel = String(node.id).startsWith('niche::') ? '跨行业拓品词' : '本类目细分词';
-          return `<div style="font-weight:800;margin-bottom:4px">${node.name}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;line-height:1.55">搜索量 ${node.value.toLocaleString()} · 机会分 ${node.opportunity_score || '-'}<br/>趋势 ${trendLabel} · 竞争 ${compLabel} · ${typeLabel}</div>`;
+          const typeLabel = String(node.id).startsWith('niche::') ? '拓品词' : '细分词';
+          return `<div style="font-weight:800;font-size:9px;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${node.name}</div><div style="color:rgba(255,255,255,0.72);font-size:8px;line-height:1.35">搜索 ${node.value.toLocaleString()} · 机会 ${node.opportunity_score || '-'}<br/>趋势${trendLabel} · 竞争${compLabel} · ${typeLabel}</div>`;
         },
       },
       legend: {

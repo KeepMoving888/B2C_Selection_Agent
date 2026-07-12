@@ -60,12 +60,16 @@ function TrendChart({ report }: { report: AnalysisReport }) {
       backgroundColor: COLORS.bg,
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(30, 41, 59, 0.94)',
-        borderColor: 'rgba(255, 255, 255, 0.10)',
-        borderWidth: 1,
-        padding: [8, 12],
-        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 12 },
-        extraCssText: 'max-width:220px;word-wrap:break-word;white-space:normal;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.22);backdrop-filter:blur(6px);',
+        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+        borderWidth: 0,
+        padding: [2, 5],
+        confine: true,
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
+        extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;',
+        formatter: (params: any) => {
+          const lines = params.map((p: any) => `<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${p.color};margin-right:4px;vertical-align:middle"></span><span style="font-size:8px;color:rgba(255,255,255,0.72)">${p.seriesName}: ${p.data ?? p.value}</span>`);
+          return `<div style="font-weight:800;font-size:9px;color:#fff;margin-bottom:2px">${params[0].axisValue}</div><div style="line-height:1.3">${lines.join('<br/>')}</div>`;
+        },
       },
       legend: {
         orient: 'horizontal',
