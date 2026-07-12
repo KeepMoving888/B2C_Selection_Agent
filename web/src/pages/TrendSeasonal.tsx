@@ -60,15 +60,16 @@ function TrendChart({ report }: { report: AnalysisReport }) {
       backgroundColor: COLORS.bg,
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+        backgroundColor: 'rgba(30, 41, 59, 0.92)',
         borderWidth: 0,
-        padding: [2, 5],
+        padding: [5, 8],
         confine: true,
-        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
-        extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;',
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
+        extraCssText: 'max-width:180px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         formatter: (params: any) => {
-          const lines = params.map((p: any) => `<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${p.color};margin-right:4px;vertical-align:middle"></span><span style="font-size:8px;color:rgba(255,255,255,0.72)">${p.seriesName}: ${p.data ?? p.value}</span>`);
-          return `<div style="font-weight:800;font-size:9px;color:#fff;margin-bottom:2px">${params[0].axisValue}</div><div style="line-height:1.3">${lines.join('<br/>')}</div>`;
+          const validParams = params.filter((p: any) => p.data != null && p.data !== undefined);
+          const lines = validParams.map((p: any) => `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:10px;color:rgba(255,255,255,0.8)">${p.seriesName}: ${p.data ?? p.value}</span>`);
+          return `<div style="font-weight:800;font-size:12px;color:#fff;margin-bottom:3px">${params[0].axisValue}</div><div style="line-height:1.45">${lines.join('<br/>')}</div>`;
         },
       },
       legend: {

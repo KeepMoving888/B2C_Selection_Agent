@@ -203,24 +203,24 @@ function RadarChart({ report }: { report: AnalysisReport }) {
       color: ['#2563eb', '#94a3b8'],
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+        backgroundColor: 'rgba(30, 41, 59, 0.92)',
         borderWidth: 0,
-        padding: [2, 5],
+        padding: [6, 10],
         confine: true,
-        extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;',
-        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
+        extraCssText: 'max-width:180px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
         formatter: (params: any) => {
           if (params.seriesIndex === 1) {
-            return '<div style="font-weight:800;font-size:9px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.72);font-size:8px;margin-top:1px">参考线 60%</div>';
+            return '<div style="font-weight:800;font-size:12px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.75);font-size:10px;margin-top:2px">参考线 60%</div>';
           }
           const list = params.value.map((v: number, i: number) => {
             const color = SCORE_COLORS[categories[i]].start;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin:1px 0;line-height:1.3">
-              <span style="display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${color};flex-shrink:0"></span><span style="font-weight:700;font-size:9px;color:#fff">${categories[i]}</span></span>
-              <span style="color:rgba(255,255,255,0.72);font-size:8px;white-space:nowrap">${v.toFixed(0)}%</span>
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0;line-height:1.4">
+              <span style="display:flex;align-items:center;gap:5px;white-space:nowrap"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${color};flex-shrink:0"></span><span style="font-weight:700;font-size:11px;color:#fff">${categories[i]}</span></span>
+              <span style="color:rgba(255,255,255,0.75);font-size:10px;white-space:nowrap">${v.toFixed(0)}%</span>
             </div>`;
           }).join('');
-          return `<div style="font-weight:800;margin-bottom:2px;font-size:9px;color:#fff">选品能力评分</div>${list}`;
+          return `<div style="font-weight:800;margin-bottom:3px;font-size:12px;color:#fff">选品能力评分</div>${list}`;
         },
       },
       radar: {

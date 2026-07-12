@@ -58,12 +58,12 @@ import { getMarketCurrency } from '../utils/currency'
 const { Text, Title } = Typography
 
 const DARK_TOOLTIP = {
-  backgroundColor: 'rgba(30, 41, 59, 0.9)',
+  backgroundColor: 'rgba(30, 41, 59, 0.92)',
   borderWidth: 0,
-  padding: [2, 5],
+  padding: [5, 8],
   confine: true,
-  textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 9 },
-  extraCssText: 'max-width:120px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:3px !important;box-shadow:none !important;backdrop-filter:blur(4px) !important;',
+  textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
+  extraCssText: 'max-width:180px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
 }
 
 const GRADE_COLORS: Record<string, string> = {
