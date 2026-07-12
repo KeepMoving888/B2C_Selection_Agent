@@ -1074,8 +1074,9 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
   }
 
   try {
+    const scale = 1.5
     const canvas = await html2canvas(container, {
-      scale: 1.5,
+      scale,
       backgroundColor: '#ffffff',
       useCORS: true,
       logging: false,
@@ -1088,7 +1089,8 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const imgHeight = (canvas.height * pdfWidth) / canvas.width
     const pxToMm = pdfWidth / canvas.width
     const pageHeightPx = pdfHeight / pxToMm
-    const contentHeight = container.scrollHeight
+    // 使用 canvas 实际渲染高度作为内容高度，比 container.scrollHeight 更可靠
+    const contentHeight = canvas.height / scale
 
     // 收集所有可能的分页边界（元素下边界）
     const boundarySelectors = [
@@ -1111,9 +1113,10 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const sortedBreaks = Array.from(candidateBreaks).sort((a, b) => a - b)
 
     // 不可分断元素：分页线不能落在这些元素内部
-    const unbreakableSelectors = ['.p-table', '.p-table tr', '.p-action', '.p-suggestion', '.p-metric', '.p-score-row']
-    const getEnclosingBlock = (y: number): { top: number; bottom: number } | null => {
-      const blocks: { top: number; bottom: number }[] = []
+    // 按优先级排序，外层大块优先，避免选到内部小元素
+    const unbreakableSelectors = ['.p-suggestion', '.p-action', '.p-metric', '.p-score-row', '.p-table', '.p-table tr']
+    const getEnclosingBlock = (y: number): { top: number; bottom: number; selector: string } | null => {
+      let found: { top: number; bottom: number; selector: string } | null = null
       unbreakableSelectors.forEach((sel) => {
         container.querySelectorAll(sel).forEach((el) => {
           const htmlEl = el as HTMLElement
@@ -1121,16 +1124,20 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
           const rect = htmlEl.getBoundingClientRect()
           const top = rect.top + container.scrollTop
           const bottom = top + rect.height
-          if (top < y && bottom > y) blocks.push({ top, bottom })
+          if (top < y && bottom > y) {
+            // 优先选择更大的块（外层），避免内层小元素被截断
+            if (!found || bottom - top > found.bottom - found.top) {
+              found = { top, bottom, selector: sel }
+            }
+          }
         })
       })
-      if (blocks.length === 0) return null
-      return blocks.reduce((best, b) => (b.bottom - b.top < best.bottom - best.top ? b : best))
+      return found
     }
 
-    const safetyMargin = 24
-    const minAdvance = 40
-    const minPageHeight = pageHeightPx * 0.35
+    const safetyMargin = 30
+    const minAdvance = 50
+    const minPageHeight = pageHeightPx * 0.32
     const pageTops: number[] = [0]
     let currentTop = 0
 
@@ -1142,9 +1149,11 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
       const enclosing = getEnclosingBlock(targetBottom)
       if (enclosing) {
         const blockHeight = enclosing.bottom - enclosing.top
-        if (blockHeight <= pageHeightPx * 0.85 && enclosing.bottom > currentTop + safetyMargin) {
+        // 如果元素能完整放入一页，选择其底部
+        if (blockHeight <= pageHeightPx * 0.9 && enclosing.bottom > currentTop + safetyMargin) {
           bestBreak = Math.round(enclosing.bottom)
         } else if (enclosing.top > currentTop + safetyMargin) {
+          // 否则回退到该元素顶部，避免元素被截断
           bestBreak = Math.round(enclosing.top)
         }
       }
@@ -1175,7 +1184,7 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
 
     // 确保最后一页覆盖到内容末尾
     if (pageTops[pageTops.length - 1] < contentHeight) {
-      pageTops.push(contentHeight)
+      pageTops.push(currentTop)
     }
 
     const uniqueTops = Array.from(new Set(pageTops)).sort((a, b) => a - b)
