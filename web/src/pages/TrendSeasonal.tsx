@@ -255,7 +255,7 @@ export default function TrendSeasonal() {
                 <LineChartOutlined style={{ color: 'var(--saas-primary)' }} /> 搜索热度与季节窗口
               </div>
               <div className="section-desc">
-                蓝色实线为当年热度，灰色虚线为去年同期，橙色虚线为预测趋势；绿色与红色区域分别为建议备货窗口与旺季高峰。
+                蓝色实线为当年热度，灰色虚线为去年同期，橙色虚线为预测趋势；绿色与红色区域分别为建议备货窗口与旺季高峰。数据源：Google Trends 搜索热度（经季节性与趋势拟合）。
               </div>
               <div className="season-legend-bar">
                 <span className="season-legend-item"><span className="season-legend-dot" style={{ background: COLORS.entryBorder, opacity: 0.5 }} />提前备货 / 入局窗口</span>

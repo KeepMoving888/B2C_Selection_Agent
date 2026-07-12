@@ -12,6 +12,7 @@ export interface SearchParams {
 
 interface UIState {
   sidebarCollapsed: boolean;
+  mobileMenuOpen: boolean;
   theme: 'light' | 'dark';
   pageTitle: string;
   currentReport: AnalysisReport | null;
@@ -47,6 +48,7 @@ const savedSearch = (() => {
 
 const initialState: UIState = {
   sidebarCollapsed: false,
+  mobileMenuOpen: false,
   theme: 'light', // 参赛版本固定浅色主题，保证自定义 CSS 视觉统一
   pageTitle: '',
   currentReport: savedReport,
@@ -62,6 +64,12 @@ const uiSlice = createSlice({
     },
     setSidebarCollapsed: (state, action: PayloadAction<boolean>) => {
       state.sidebarCollapsed = action.payload;
+    },
+    toggleMobileMenu: (state) => {
+      state.mobileMenuOpen = !state.mobileMenuOpen;
+    },
+    setMobileMenuOpen: (state, action: PayloadAction<boolean>) => {
+      state.mobileMenuOpen = action.payload;
     },
     toggleTheme: (state) => {
       state.theme = state.theme === 'light' ? 'dark' : 'light';
@@ -83,6 +91,6 @@ const uiSlice = createSlice({
   },
 });
 
-export const { toggleSidebar, setSidebarCollapsed, toggleTheme, setTheme, setPageTitle, setCurrentReport, setLastSearch } =
+export const { toggleSidebar, setSidebarCollapsed, toggleMobileMenu, setMobileMenuOpen, toggleTheme, setTheme, setPageTitle, setCurrentReport, setLastSearch } =
   uiSlice.actions;
 export default uiSlice.reducer;

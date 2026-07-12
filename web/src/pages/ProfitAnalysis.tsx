@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
 import EmptyReport from '../components/EmptyReport';
+import { useMobile } from '../hooks/useMobile';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
@@ -231,6 +232,7 @@ function ScenarioCard({ name, data }: { name: string; data: any }) {
 
 function RoiChart({ report, currentVolume, setCurrentVolume }: { report: AnalysisReport; currentVolume: number; setCurrentVolume: (v: number) => void }) {
   const profit = report.profit_analysis;
+  const isMobile = useMobile();
   const shipping = profit.cost_breakdown['头程物流'] || 2;
   const commission = profit.cost_breakdown['平台佣金'] || 0;
   const returns = profit.cost_breakdown['退货预留'] || 0;
@@ -353,7 +355,7 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
         </div>
       </div>
       <Slider min={100} max={600} step={10} value={currentVolume} onChange={setCurrentVolume} tooltip={{ formatter: (v) => `${v} 件` }} />
-      <ReactECharts option={option} style={{ height: 340 }} />
+      <ReactECharts option={option} style={{ height: isMobile ? 280 : 340, width: '100%' }} />
     </div>
   );
 }
@@ -365,6 +367,7 @@ function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, p
   fbaReduction: number;
   priceIncrease: number;
 }) {
+  const isMobile = useMobile();
   const { option } = useMemo(() => {
     const base = calculateOptimizedRoiModel(report, 0, 0, 0, 0);
     const optimized = calculateOptimizedRoiModel(report, costReduction, adReduction, fbaReduction, priceIncrease);
@@ -437,7 +440,7 @@ function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, p
     return { option };
   }, [report, costReduction, adReduction, fbaReduction, priceIncrease]);
 
-  return <ReactECharts option={option} style={{ height: 280 }} />;
+  return <ReactECharts option={option} style={{ height: isMobile ? 240 : 280, width: '100%' }} />;
 }
 
 function SimulatorSlider({ label, value, max, step, onChange, formatter, accent, icon, hint }: { label: string; value: number; max: number; step: number; onChange: (v: number) => void; formatter: (v?: number) => string; accent?: string; icon?: React.ReactNode; hint?: string }) {
@@ -555,6 +558,10 @@ export default function ProfitAnalysis() {
     if (report) {
       setActiveScenario('中性');
       setCurrentVolume(SCENARIO_VOLUME['中性']);
+      setCostReduction(0);
+      setAdReduction(0);
+      setFbaReduction(0);
+      setPriceIncrease(0);
     }
   }, [report]);
 
@@ -647,55 +654,55 @@ export default function ProfitAnalysis() {
                   <DollarOutlined style={{ color: 'var(--saas-warning)' }} /> 利润优化模拟器
                 </div>
                 <div className="section-desc">
-                  拖动滑块模拟成本优化与售价提升对利润的影响。优化上限按实际业务空间设定：成本/FBA 可下探 30-40%、广告可优化 50%、售价可上浮 20%，并保留最低可调区间。
+                  拖动滑块模拟成本优化与售价提升对利润的影响。上限根据当前成本结构动态计算：采购/FBA/广告优化最多可将对应成本降为零，售价提升上限为当前售价的 30%。
                 </div>
                 <Row gutter={[32, 0]}>
                   <Col xs={24} md={12}>
                     <SimulatorSlider
                       label="产品成本优化"
                       value={costReduction}
-                      max={Math.max(3, report.profit_analysis.cost_breakdown['产品成本'] * 0.3)}
-                      step={0.1}
+                      max={Number(report.profit_analysis.unit_cost.toFixed(2))}
+                      step={0.05}
                       onChange={setCostReduction}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#2563eb"
                       icon={<PieChartOutlined />}
-                      hint="通过谈判/工艺/包装优化降低的单件采购成本（上限为当前成本的 30%）"
+                      hint="通过谈判/工艺/包装优化降低的单件采购成本（上限为当前产品成本，可降至 0）"
                     />
                     <SimulatorSlider
                       label="广告费用优化"
                       value={adReduction}
-                      max={Math.max(2, (report.profit_analysis.cost_breakdown['广告费用'] || 0) * 0.5)}
+                      max={Number(((report.profit_analysis.cost_breakdown['广告费用'] || 0)).toFixed(2))}
                       step={0.05}
                       onChange={setAdReduction}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#dc2626"
                       icon={<RiseOutlined />}
-                      hint="通过精准投放/自然流量提升降低的单件广告支出（上限为当前广告费的 50%）"
+                      hint="通过精准投放/自然流量提升降低的单件广告支出（上限为当前广告费用，可降至 0）"
                     />
                   </Col>
                   <Col xs={24} md={12}>
                     <SimulatorSlider
                       label="FBA 费用优化"
                       value={fbaReduction}
-                      max={Math.max(2, (report.profit_analysis.cost_breakdown['FBA 费用'] || 0) * 0.4)}
+                      max={Number(((report.profit_analysis.cost_breakdown['FBA 费用'] || 0)).toFixed(2))}
                       step={0.05}
                       onChange={setFbaReduction}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#d97706"
                       icon={<SafetyOutlined />}
-                      hint="通过尺寸优化/轻小计划等降低的单件FBA费用（上限为当前FBA费的 40%）"
+                      hint="通过尺寸优化/轻小计划等降低的单件FBA费用（上限为当前FBA费用，可降至 0）"
                     />
                     <SimulatorSlider
                       label="售价提升"
                       value={priceIncrease}
-                      max={Math.max(5, report.profit_analysis.selling_price * 0.2)}
-                      step={0.1}
+                      max={Number((report.profit_analysis.selling_price * 0.3).toFixed(2))}
+                      step={0.05}
                       onChange={setPriceIncrease}
                       formatter={(v) => `USD ${(v ?? 0).toFixed(2)}`}
                       accent="#059669"
                       icon={<DollarOutlined />}
-                      hint="通过品牌溢价/套装升级/差异化提升的单件售价（上限为当前售价的 20%）"
+                      hint="通过品牌溢价/套装升级/差异化提升的单件售价（上限为当前售价的 30%）"
                     />
                   </Col>
                 </Row>

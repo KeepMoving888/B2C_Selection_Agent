@@ -1055,14 +1055,15 @@ function calculateProfit(
   const monthlyFixed = 2000; // 月度固定运营成本
   const scenarios: Record<string, any> = {};
   for (const [name, sales] of [['保守', 100], ['中性', 300], ['乐观', 600]] as const) {
-    const mProfit = sales * grossProfit;
+    const monthlyNetProfit = sales * grossProfit - monthlyFixed;
     const inventoryUnits = Math.round(sales * inventoryMonths);
     const investment = inventoryUnits * landingCost + monthlyFixed;
-    const payback = mProfit > 0 ? investment / mProfit : null;
+    const roi = investment > 0 ? (monthlyNetProfit / investment) * 100 : 0;
+    const payback = monthlyNetProfit > 0 ? investment / monthlyNetProfit : null;
     scenarios[name] = {
       '月销量': sales,
-      '月毛利': Math.round(mProfit * 100) / 100,
-      'ROI': Math.round(mProfit / investment * 1000) / 10,
+      '月毛利': Math.round(monthlyNetProfit * 100) / 100,
+      'ROI': Math.round(roi * 10) / 10,
       '回本周期': payback ? Math.round(payback * 10) / 10 : null,
     };
   }
@@ -1360,12 +1361,57 @@ function inferSegment(keyword: string, rootKeyword: string): string {
   return '其他细分型';
 }
 
+// 跨行业/相关品类映射：以核心类目为中心，向外穿透关联行业
+const RELATED_CATEGORIES: Record<string, { category: string; relation: number; keywords: string[] }[]> = {
+  pet_supplies: [
+    { category: '宠物零食', relation: 0.92, keywords: ['dog treats', 'natural dog treats', 'training treats', 'dental chews'] },
+    { category: '宠物窝垫', relation: 0.78, keywords: ['dog bed', 'calming bed', 'orthopedic dog bed', 'washable dog bed'] },
+    { category: '宠物牵引', relation: 0.65, keywords: ['dog leash', 'retractable leash', 'hands free leash', 'leather dog leash'] },
+    { category: '猫玩具', relation: 0.58, keywords: ['cat toy', 'interactive cat toy', 'catnip toy', 'automatic cat toy'] },
+  ],
+  electronics: [
+    { category: '手机配件', relation: 0.88, keywords: ['phone case', 'screen protector', 'magnetic charger', 'phone stand'] },
+    { category: '充电储能', relation: 0.82, keywords: ['portable charger', 'fast charger', 'wireless charger', 'power bank'] },
+    { category: '音频设备', relation: 0.75, keywords: ['bluetooth speaker', 'wireless earbuds', 'noise cancelling headphones', 'open ear headphones'] },
+    { category: '车载电子', relation: 0.60, keywords: ['carplay adapter', 'wireless carplay', 'car phone mount', 'dash cam'] },
+  ],
+  sports: [
+    { category: '健身器材', relation: 0.85, keywords: ['resistance bands', 'yoga mat', 'dumbbells', 'foam roller'] },
+    { category: '户外装备', relation: 0.72, keywords: ['camping tent', 'sleeping bag', 'hiking backpack', 'camping chair'] },
+    { category: '运动水壶', relation: 0.68, keywords: ['sports water bottle', 'insulated bottle', 'shaker bottle', 'collapsible bottle'] },
+    { category: '运动鞋服', relation: 0.55, keywords: ['running shoes', 'compression socks', 'gym shorts', 'yoga pants'] },
+  ],
+  home_kitchen: [
+    { category: '厨房收纳', relation: 0.86, keywords: ['kitchen organizer', 'spice rack', 'drawer organizer', 'pan organizer'] },
+    { category: '冰箱收纳', relation: 0.74, keywords: ['storage box', 'fridge organizer', 'food container', 'egg holder'] },
+    { category: '清洁工具', relation: 0.62, keywords: ['robot vacuum', 'vacuum cleaner', 'mop', 'cleaning gloves'] },
+    { category: '家居装饰', relation: 0.50, keywords: ['plant pot', 'wall shelf', 'decorative tray', 'candle holder'] },
+  ],
+  beauty: [
+    { category: '护肤精华', relation: 0.88, keywords: ['face serum', 'vitamin c serum', 'hyaluronic acid', 'retinol serum'] },
+    { category: '美妆工具', relation: 0.76, keywords: ['makeup brush', 'makeup sponge', 'brush set', 'eyelash curler'] },
+    { category: '美发电器', relation: 0.68, keywords: ['hair dryer', 'hair straightener', 'curling iron', 'hair clipper'] },
+    { category: '身体护理', relation: 0.55, keywords: ['body lotion', 'body scrub', 'shower gel', 'hand cream'] },
+  ],
+  baby: [
+    { category: '喂养用品', relation: 0.86, keywords: ['baby bottles', 'sippy cup', 'breast pump', 'bottle warmer'] },
+    { category: '出行推车', relation: 0.72, keywords: ['baby stroller', 'car seat', 'baby carrier', 'diaper bag'] },
+    { category: '婴童玩具', relation: 0.65, keywords: ['baby toy', 'teething toy', 'activity gym', 'soft book'] },
+    { category: '婴童寝居', relation: 0.58, keywords: ['crib sheets', 'baby blanket', 'swaddle', 'nursery organizer'] },
+  ],
+  general: [
+    { category: '关联品类 A', relation: 0.70, keywords: ['premium version', 'professional kit', 'travel set', 'bundle pack'] },
+    { category: '关联品类 B', relation: 0.55, keywords: ['replacement parts', 'accessories kit', 'cleaning kit', 'carrying case'] },
+  ],
+};
+
 type KeywordRelationships = NonNullable<AnalysisReport['market_analysis']['keyword_relationships']>;
 
 function buildKeywordRelationships(
   keyword: string,
   opportunities: AnalysisReport['market_analysis']['keyword_opportunities'],
-  summary: AnalysisReport['market_analysis']['keyword_summary']
+  summary: AnalysisReport['market_analysis']['keyword_summary'],
+  archetype: ProductArchetype
 ): KeywordRelationships {
   if (!opportunities || opportunities.length === 0) {
     return { nodes: [], links: [], expansion_suggestions: [] };
@@ -1376,6 +1422,7 @@ function buildKeywordRelationships(
   ];
   const links: KeywordRelationships['links'] = [];
 
+  // 1) 本类目细分关键词节点（按 segment 聚类）
   for (const opp of opportunities) {
     const segment = inferSegment(opp.keyword, keyword);
     nodes.push({
@@ -1396,6 +1443,42 @@ function buildKeywordRelationships(
     const seg = inferSegment(opp.keyword, keyword);
     if (!segmentGroups[seg]) segmentGroups[seg] = [];
     segmentGroups[seg].push(opp);
+  }
+
+  // 2) 跨行业相关品类节点（拓品穿透）
+  const relatedCategories = RELATED_CATEGORIES[archetype.category] || RELATED_CATEGORIES.general;
+  const rng = seededRng(keyword, archetype.category, 'related-categories');
+  for (const rc of relatedCategories) {
+    const categoryId = `category::${rc.category}`;
+    const categoryVolume = Math.round(rootVolume * rc.relation * rng.uniform(0.55, 0.95));
+    nodes.push({
+      id: categoryId,
+      name: rc.category,
+      value: categoryVolume,
+      type: 'category',
+      segment: '相关行业',
+      opportunity_score: Math.round(rc.relation * 100),
+    });
+    // 关系越近，连线越粗
+    links.push({ source: 'root', target: categoryId, value: Math.round(rc.relation * 100) });
+
+    // 为每个相关行业挂载 2-3 个代表性关键词
+    const sampleKeywords = rng.sample(rc.keywords, rng.randint(2, 3));
+    for (const kw of sampleKeywords) {
+      const nicheId = `niche::${kw}`;
+      const nicheVolume = Math.round(categoryVolume * rng.uniform(0.25, 0.55));
+      nodes.push({
+        id: nicheId,
+        name: kw,
+        value: nicheVolume,
+        type: 'niche',
+        segment: '相关行业',
+        trend: rng.choice(['rising', 'stable', 'falling']),
+        competition: rng.choice(['low', 'medium', 'high']),
+        opportunity_score: Math.round(rc.relation * rng.uniform(40, 90)),
+      });
+      links.push({ source: categoryId, target: nicheId, value: Math.round(rc.relation * 60) });
+    }
   }
 
   const expansion_suggestions = Object.entries(segmentGroups)
@@ -1464,7 +1547,7 @@ export function generateMockReport(
     top_niche_keywords: (keywordOpportunities || []).slice(0, 5).map((o) => o.keyword),
   };
   const globalTrends = buildGlobalTrends(keyword, archetype);
-  const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary);
+  const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary, archetype);
   const competitionScore = avgReviews < 1500 ? 20 : avgReviews < 8000 ? 12 : 5;
   const insightScore = archetype.pain_points.length > 0 ? 15 : 8;
   // 供应链稳定性：基于供应商平均评分、响应率与交期综合评估

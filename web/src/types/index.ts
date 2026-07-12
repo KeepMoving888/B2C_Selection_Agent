@@ -47,7 +47,7 @@ export interface AnalysisReport {
         id: string;
         name: string;
         value: number;
-        type: 'root' | 'niche';
+        type: 'root' | 'niche' | 'category';
         trend?: 'rising' | 'stable' | 'falling';
         competition?: 'low' | 'medium' | 'high';
         opportunity_score?: number;

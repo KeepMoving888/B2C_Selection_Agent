@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { analysisApi } from '../services/api';
 import { generateMockReport } from '../services/mockData';
@@ -48,7 +48,7 @@ export function useReport() {
   const [loading, setLoading] = useState(false);
   const [isMockMode, setIsMockMode] = useState(false);
 
-  const analyze = async (params: SearchParams) => {
+  const analyze = useCallback(async (params: SearchParams) => {
     setLoading(true);
     try {
       dispatch(setLastSearch(params));
@@ -90,7 +90,7 @@ export function useReport() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch]);
 
   return {
     report: currentReport,

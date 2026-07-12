@@ -35,35 +35,15 @@ const bottomItems = [
   { key: '/help', icon: <QuestionCircleOutlined />, label: '帮助' },
 ];
 
-export default function AppSidebar() {
+export default function AppSidebar({ mobile }: { mobile?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { sidebarCollapsed } = useSelector((state: RootState) => state.ui);
   const { token } = antTheme.useToken();
   const isDark = false;
 
-  return (
-    <Sider
-      trigger={null}
-      collapsible
-      collapsed={sidebarCollapsed}
-      width={250}
-      collapsedWidth={80}
-      style={{
-        background: isDark ? '#0f172a' : '#ffffff',
-        borderRight: `1px solid ${isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)'}`,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 68,
-        height: 'calc(100vh - 68px)',
-        maxHeight: 'calc(100vh - 68px)',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        alignSelf: 'flex-start',
-      }}
-    >
+  const menuContent = (
+    <>
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
@@ -92,6 +72,40 @@ export default function AppSidebar() {
         }}
         theme={isDark ? 'dark' : 'light'}
       />
+    </>
+  );
+
+  if (mobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {menuContent}
+      </div>
+    );
+  }
+
+  return (
+    <Sider
+      trigger={null}
+      collapsible
+      collapsed={sidebarCollapsed}
+      width={250}
+      collapsedWidth={80}
+      style={{
+        background: isDark ? '#0f172a' : '#ffffff',
+        borderRight: `1px solid ${isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)'}`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 68,
+        height: 'calc(100vh - 68px)',
+        maxHeight: 'calc(100vh - 68px)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        alignSelf: 'flex-start',
+      }}
+    >
+      {menuContent}
     </Sider>
   );
 }

@@ -1,6 +1,7 @@
 import {
   BellOutlined,
   MenuFoldOutlined,
+  MenuOutlined,
   MenuUnfoldOutlined,
   SearchOutlined,
   UserOutlined,
@@ -8,7 +9,8 @@ import {
 import { Avatar, Badge, Dropdown, Input, Layout, Space, theme as antTheme, Typography } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { toggleSidebar } from '../../store/slices/uiSlice';
+import { useMobile } from '../../hooks/useMobile';
+import { toggleMobileMenu, toggleSidebar } from '../../store/slices/uiSlice';
 import type { RootState } from '../../store';
 
 const { Header } = Layout;
@@ -18,6 +20,7 @@ export default function AppHeader() {
   const dispatch = useDispatch();
   const { sidebarCollapsed } = useSelector((state: RootState) => state.ui);
   const { token } = antTheme.useToken();
+  const isMobile = useMobile();
 
   const isDark = false;
 
@@ -31,7 +34,7 @@ export default function AppHeader() {
   return (
     <Header
       style={{
-        padding: '0 28px',
+        padding: isMobile ? '0 16px' : '0 28px',
         background: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
@@ -50,7 +53,7 @@ export default function AppHeader() {
     >
       <Space size={18}>
         <span
-          onClick={() => dispatch(toggleSidebar())}
+          onClick={() => dispatch(isMobile ? toggleMobileMenu() : toggleSidebar())}
           style={{
             cursor: 'pointer',
             fontSize: 18,
@@ -67,7 +70,7 @@ export default function AppHeader() {
           onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? 'rgba(51, 65, 85, 0.7)' : '#e2e8f0')}
           onMouseLeave={(e) => (e.currentTarget.style.background = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(241, 245, 249, 0.8)')}
         >
-          {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          {isMobile ? <MenuOutlined /> : sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         </span>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <div
@@ -98,19 +101,21 @@ export default function AppHeader() {
         </Link>
       </Space>
 
-      <Space size={20}>
-        <Input
-          prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
-          placeholder="搜索商品、报告..."
-          style={{
-            width: 300,
-            borderRadius: 24,
-            background: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(241, 245, 249, 0.8)',
-            border: 'none',
-            boxShadow: 'none',
-          }}
-          className="global-search"
-        />
+      <Space size={isMobile ? 12 : 20}>
+        {!isMobile && (
+          <Input
+            prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+            placeholder="搜索商品、报告..."
+            style={{
+              width: 300,
+              borderRadius: 24,
+              background: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(241, 245, 249, 0.8)',
+              border: 'none',
+              boxShadow: 'none',
+            }}
+            className="global-search"
+          />
+        )}
         <Badge count={3} size="small" style={{ cursor: 'pointer' }}>
           <span
             style={{
@@ -134,9 +139,11 @@ export default function AppHeader() {
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
           <Space style={{ cursor: 'pointer', padding: '4px 12px 4px 4px', borderRadius: 24, background: isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(241, 245, 249, 0.8)' }}>
             <Avatar icon={<UserOutlined />} size="small" style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)' }} />
-            <Text style={{ fontSize: 13, fontWeight: 700, color: token.colorText }} className="header-username">
-              Admin
-            </Text>
+            {!isMobile && (
+              <Text style={{ fontSize: 13, fontWeight: 700, color: token.colorText }} className="header-username">
+                Admin
+              </Text>
+            )}
           </Space>
         </Dropdown>
       </Space>

@@ -2311,37 +2311,193 @@
   }
 }
 
+/* 全局防止横向溢出（参赛关键：手机端不能出现横向滚动或裁切） */
+.main-layout-content,
+.page-container,
+.ant-layout-content {
+  overflow-x: hidden !important;
+  min-width: 0 !important;
+}
+
+/* 手机端全局缩放与间距 */
 @media (max-width: 768px) {
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  .main-layout-content {
+    padding: 16px !important;
+  }
+
   .page-hero {
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 16px;
   }
+
+  .page-header {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .page-header::before {
+    height: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    padding-left: 0;
+    margin-bottom: 0;
+  }
+
+  .search-card .ant-card-body {
+    padding: 16px !important;
+  }
+
+  .info-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .info-card-title {
+    font-size: 14px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+
+  .section-desc {
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  .section-badge {
+    font-size: 11px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .metric-box {
+    padding: 14px 12px;
+  }
+
+  .metric-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+
+  .metric-value {
+    font-size: 20px;
+  }
+
+  .metric-label {
+    font-size: 9px;
+  }
+
+  .metric-sub,
+  .metric-trend {
+    font-size: 10px;
+  }
+
   .verdict-banner-inner {
     flex-direction: column;
   }
+
   .verdict-actions {
     width: 100%;
     justify-content: flex-start;
   }
-  .metric-top {
-    margin-bottom: 10px;
-  }
-  .metric-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-  }
-  .metric-value {
-    font-size: 26px;
-  }
+
   .sentiment-grid {
     grid-template-columns: 1fr;
   }
+
   .review-overview {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .assumption-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 市场分析页手机适配 */
+  .market-summary-banner {
+    padding: 18px 20px;
+  }
+
+  .market-summary-title {
+    font-size: 18px;
+  }
+
+  .market-summary-tags {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .competitor-card {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .competitor-link-btn {
+    margin-left: auto;
+  }
+
+  /* 利润测算页手机适配 */
+  .profit-summary-banner {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .profit-summary-item::after {
+    display: none;
+  }
+
+  .profit-summary-value {
+    font-size: 18px;
+  }
+
+  .best-scenario-banner {
+    padding: 16px 18px;
+  }
+
+  .best-scenario-title {
+    font-size: 16px;
+  }
+
+  .best-scenario-action {
+    font-size: 12px;
+    padding: 10px 14px;
+  }
+
+  .cost-total-value {
+    font-size: 24px;
+  }
+
+  .simulator-result {
+    padding: 14px 16px;
+  }
+
+  .simulator-result-value {
+    font-size: 24px;
+  }
+
+  .scenario-metric-value {
+    font-size: 18px;
+  }
+
+  /* 图表容器手机适配 */
+  .echarts-for-react,
+  .echarts-for-react canvas {
+    max-width: 100% !important;
   }
 }
 
@@ -2358,17 +2514,15 @@
     grid-template-columns: repeat(4, 1fr);
   }
   .profit-summary-banner {
-    flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-  }
-  .profit-summary-divider {
-    width: 100%;
-    height: 1px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 16px;
   }
   .profit-summary-item {
     padding: 0;
-    width: 100%;
+  }
+  .profit-summary-item::after {
+    display: none;
   }
 }
 
@@ -2377,6 +2531,12 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .scenario-grid {
+    grid-template-columns: 1fr;
+  }
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .profit-summary-banner {
     grid-template-columns: 1fr;
   }
 }
@@ -3484,6 +3644,359 @@
   }
   main.ant-layout-content {
     padding: 16px !important;
+  }
+}
+
+/* =========================================================
+   移动端防御性适配与溢出兜底（参赛关键）
+   ========================================================= */
+
+/* 1. 基础视口与盒模型：杜绝横向溢出 */
+html {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+  min-width: 320px;
+  width: 100%;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* 2. 桌面端侧边栏在移动视口下强制隐藏（防止 SSR/ hydration 闪烁） */
+@media (max-width: 767px) {
+  .ant-layout > .ant-layout-sider {
+    display: none !important;
+  }
+}
+
+/* 3. 所有图表容器：宽度自适应，避免溢出 */
+.echarts-for-react,
+.echarts-for-react > div,
+.echarts-for-react canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* 4. 卡片与容器：防止内容撑破 */
+.ant-card,
+.info-card,
+.search-card,
+.verdict-banner,
+.market-summary-banner,
+.profit-summary-banner,
+.best-scenario-banner,
+.compliance-summary-banner,
+.welcome-guide,
+.simulator-card {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 5. 文本自动换行，防止长单词/URL撑破布局 */
+.page-header,
+.market-summary-title,
+.best-scenario-title,
+.verdict-title,
+.competitor-title,
+.keyword-opportunity-keyword,
+.opportunity-product-title,
+.supplier-name,
+.product-title,
+.action-step-title,
+.compliance-card-title,
+.section-desc,
+.simulator-slider-hint,
+.simulator-explain-body {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 6. 图片最大宽度限制 */
+img,
+video,
+svg,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 7. 触摸目标最小尺寸 */
+button,
+a,
+.ant-btn,
+.ant-menu-item,
+.ant-slider-handle,
+.ant-select-selector,
+.competitor-link-btn,
+.keyword-opportunity-keyword,
+.opportunity-product,
+.supplier-product-link,
+.best-scenario-switcher button {
+  min-height: 36px;
+  min-width: 36px;
+}
+
+/* 8. 移动端整体字号与间距缩放 */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+
+  .ant-layout-content {
+    padding: 16px !important;
+  }
+
+  .page-container {
+    padding: 0 4px;
+  }
+
+  .page-header {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* 搜索表单 */
+  .analysis-search-form {
+    gap: 10px;
+  }
+
+  .analysis-search-keyword input,
+  .analysis-search-market .ant-select-selector,
+  .analysis-search-budget .ant-select-selector,
+  .analysis-search-submit .ant-btn {
+    height: 40px;
+  }
+
+  /* 市场分析页 */
+  .market-summary-banner {
+    padding: 18px 20px;
+  }
+
+  .market-summary-title {
+    font-size: 18px;
+  }
+
+  .market-summary-tags {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .market-summary-tag {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* 竞品卡片 */
+  .competitor-card {
+    gap: 10px;
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+
+  .competitor-image {
+    width: 52px;
+    height: 52px;
+  }
+
+  .competitor-info {
+    flex: 1 1 calc(100% - 110px);
+    min-width: 0;
+  }
+
+  .competitor-title {
+    font-size: 13px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .competitor-metrics {
+    gap: 6px;
+  }
+
+  .competitor-link-btn {
+    margin-left: auto;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  /* 关键词机会卡片 */
+  .keyword-opportunity-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .keyword-opportunity-keyword-block {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .keyword-opportunity-keyword {
+    font-size: 14px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .keyword-opportunity-metrics {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .keyword-opportunity-metric {
+    padding: 8px 6px;
+  }
+
+  .keyword-opportunity-metric-value {
+    font-size: 13px;
+  }
+
+  .keyword-opportunity-product {
+    width: 100%;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--saas-border-subtle);
+    padding-top: 12px;
+  }
+
+  .opportunity-product {
+    width: 100%;
+  }
+
+  /* 利润测算页 */
+  .profit-summary-banner {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 8px;
+    padding: 16px;
+  }
+
+  .profit-summary-item::after {
+    display: none;
+  }
+
+  .profit-summary-value {
+    font-size: 18px;
+  }
+
+  .best-scenario-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .best-scenario-title {
+    font-size: 16px;
+  }
+
+  .best-scenario-switcher {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .scenario-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-metric-value {
+    font-size: 18px;
+  }
+
+  .simulator-result > div {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .simulator-result-value {
+    font-size: 24px;
+  }
+
+  /* 供应商页 */
+  .supplier-card-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .supplier-product-link {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .supplier-card-middle {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+  }
+
+  .supplier-metric-compact {
+    border-right: none;
+    border-bottom: 1px solid var(--saas-border-subtle);
+    padding: 10px;
+  }
+
+  .supplier-metric-compact:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+
+  /* 图表：限制最大高度，避免过高 */
+  .echarts-for-react {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 13px;
+  }
+
+  .page-header {
+    font-size: 20px;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profit-summary-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .keyword-opportunity-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .competitor-info {
+    flex: 1 1 100%;
+  }
+
+  .competitor-link-btn {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .best-scenario-switcher button {
+    flex: 1 1 calc(50% - 5px);
+    justify-content: center;
   }
 }
 
