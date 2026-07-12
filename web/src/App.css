@@ -2652,20 +2652,20 @@ div.echarts-tooltip-dark,
 .echarts-tooltip,
 .echarts-tooltip-dark,
 .echarts-tooltip .tooltip-content {
-  max-width: 200px !important;
+  max-width: 240px !important;
   min-width: 0 !important;
   width: auto !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   white-space: normal !important;
-  line-height: 1.4 !important;
+  line-height: 1.45 !important;
   font-size: 11px !important;
-  padding: 5px 8px !important;
-  border-radius: 4px !important;
+  padding: 6px 10px !important;
+  border-radius: 5px !important;
   background: rgba(30, 41, 59, 0.92) !important;
   border: none !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
 div.echarts-tooltip > div,

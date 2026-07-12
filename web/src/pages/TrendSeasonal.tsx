@@ -119,7 +119,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         padding: [5, 8],
         confine: true,
         textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
-        extraCssText: 'max-width:200px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         formatter: (params: any) => {
           const validParams = params.filter((p: any) => p.data != null && p.data !== undefined);
           const lines = validParams.map((p: any) => `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:10px;color:rgba(255,255,255,0.8)">${p.seriesName}: ${p.data ?? p.value}</span>`);

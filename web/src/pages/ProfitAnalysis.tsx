@@ -333,7 +333,7 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
         padding: [5, 8],
         confine: true,
         textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
-        extraCssText: 'max-width:200px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         formatter: (params: any) => `<div style="font-weight:800;font-size:12px;color:#fff;margin-bottom:3px">月销量 ${params[0].axisValue}</div><div style="color:rgba(255,255,255,0.8);font-size:10px">ROI ${params[0].data[1]?.toFixed?.(2) ?? params[0].data.toFixed(2)}%</div>`,
       },
       grid: { left: 20, right: 50, top: 30, bottom: 40, containLabel: true },
@@ -404,7 +404,7 @@ function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, p
         padding: [5, 8],
         confine: true,
         textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
-        extraCssText: 'max-width:200px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         formatter: (params: any) => {
           const lines = params.map((p: any) => `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:10px;color:rgba(255,255,255,0.8)">${p.seriesName}: ${p.data[1]?.toFixed?.(2) ?? p.data.toFixed(2)}%</span>`);
           return `<div style="font-weight:800;font-size:12px;color:#fff;margin-bottom:3px">月销量 ${params[0].axisValue}</div><div style="line-height:1.45">${lines.join('<br/>')}</div>`;
