@@ -1075,8 +1075,12 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
 
   try {
     const scale = 1.5
+    const canvasWidth = container.scrollWidth
+    const canvasHeight = container.scrollHeight
     const canvas = await html2canvas(container, {
       scale,
+      width: canvasWidth,
+      height: canvasHeight,
       backgroundColor: '#ffffff',
       useCORS: true,
       logging: false,
@@ -1089,7 +1093,7 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const imgHeight = (canvas.height * pdfWidth) / canvas.width
     const pxToMm = pdfWidth / canvas.width
     const pageHeightPx = pdfHeight / pxToMm
-    // 使用 canvas 实际渲染高度作为内容高度，比 container.scrollHeight 更可靠
+    // 使用 canvas 实际渲染高度作为内容高度
     const contentHeight = canvas.height / scale
 
     // 收集所有可能的分页边界（元素下边界）
