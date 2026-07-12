@@ -825,22 +825,76 @@ function generateCompetitors(
 // ------------------------------------------------------------------
 function generateTrendSeries(rng: ReturnType<typeof seededRng>, archetype: ProductArchetype) {
   const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-  const base = 45;
-  const values: number[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
 
+  // 生成全年 12 个月基础季节性曲线
+  const baseValues: number[] = [];
   for (let i = 0; i < 12; i++) {
     const monthIdx = i + 1;
-    let val = base + rng.randint(-10, 12);
+    let val = 45 + rng.randint(-10, 12);
     if (archetype.season_peak.includes(monthIdx)) val += rng.randint(35, 50);
     if (archetype.trend === 'rising') val += Math.round(i * 0.9);
     else if (archetype.trend === 'falling') val -= Math.round(i * 0.7);
-    values.push(Math.max(15, Math.min(100, val)));
+    baseValues.push(Math.max(15, Math.min(100, val)));
   }
 
-  const lastYear = values.map(v => Math.max(15, Math.min(100, v + rng.randint(-18, 12))));
+  // 为每一年生成略有差异的月度数据
+  const yearlyData: Record<number, { months: string[]; values: number[] }> = {};
+  for (let year = currentYear - 2; year <= currentYear; year++) {
+    const isCurrentYear = year === currentYear;
+    const availableMonths = isCurrentYear ? currentMonth - 1 : 12;
+    const yearRngOffset = (year - currentYear) * 7;
+    const yearValues = baseValues.map((v, i) => {
+      if (i >= availableMonths) return null as unknown as number;
+      return Math.max(15, Math.min(100, v + yearRngOffset + rng.randint(-12, 10)));
+    }).slice(0, availableMonths);
+    yearlyData[year] = {
+      months: months.slice(0, availableMonths),
+      values: yearValues,
+    };
+  }
+
+  // 本年度 1-12 月：已有月份用真实数据，未发生月份用去年同期推算
+  const currentYearValues = baseValues.map((_, i) => {
+    if (i < currentMonth - 1) {
+      return yearlyData[currentYear].values[i];
+    }
+    return Math.max(15, Math.min(100, yearlyData[currentYear - 1].values[i] + rng.randint(-8, 8)));
+  });
+
+  // 去年同期（完整 12 个月）
+  const lastYear = yearlyData[currentYear - 1].values.map(v => Math.max(15, Math.min(100, v + rng.randint(-5, 5))));
+
+  // 近 12 个月：从去年当前月份到本年度上个月
+  const trailingLabels: string[] = [];
+  const trailingValues: number[] = [];
+  const trailingLastYear: number[] = [];
+  for (let i = 0; i < 12; i++) {
+    let year: number;
+    let month: number;
+    if (i < currentMonth - 1) {
+      year = currentYear;
+      month = currentMonth - 1 - i;
+    } else {
+      year = currentYear - 1;
+      month = 12 - (i - (currentMonth - 1));
+    }
+    const label = `${year}年${month}月`;
+    trailingLabels.push(label);
+    const prevYear = year - 1;
+    const val = yearlyData[year]?.values[month - 1] ?? baseValues[month - 1];
+    const lyVal = yearlyData[prevYear]?.values[month - 1] ?? baseValues[month - 1];
+    trailingValues.push(val);
+    trailingLastYear.push(Math.max(15, Math.min(100, lyVal + rng.randint(-5, 5))));
+  }
+  trailingLabels.reverse();
+  trailingValues.reverse();
+  trailingLastYear.reverse();
 
   const forecast: number[] = [];
-  const lastVals = values.slice(-2);
+  const lastVals = currentYearValues.slice(-2);
   const delta = lastVals.length === 2 ? lastVals[1] - lastVals[0] : 0;
   for (let i = 1; i <= 3; i++) {
     forecast.push(Math.max(15, Math.min(100, lastVals[lastVals.length - 1] + delta * i + rng.randint(-5, 5))));
@@ -848,10 +902,12 @@ function generateTrendSeries(rng: ReturnType<typeof seededRng>, archetype: Produ
 
   return {
     months,
-    values,
+    values: currentYearValues,
     last_year_values: lastYear,
     forecast_values: forecast,
     forecast_months: ['+1月', '+2月', '+3月'],
+    yearly_data: yearlyData,
+    trailing_12_months: { labels: trailingLabels, values: trailingValues, last_year_values: trailingLastYear },
   };
 }
 

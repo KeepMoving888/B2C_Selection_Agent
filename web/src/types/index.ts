@@ -82,6 +82,8 @@ export interface AnalysisReport {
       last_year_values: number[];
       forecast_values: number[];
       forecast_months: string[];
+      yearly_data?: Record<number, { months: string[]; values: number[] }>;
+      trailing_12_months?: { labels: string[]; values: number[]; last_year_values: number[] };
     };
     peak_months: number[];
     entry_windows: number[];

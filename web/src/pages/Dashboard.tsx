@@ -207,7 +207,7 @@ function RadarChart({ report }: { report: AnalysisReport }) {
         borderWidth: 0,
         padding: [6, 10],
         confine: true,
-        extraCssText: 'max-width:180px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        extraCssText: 'max-width:200px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
         formatter: (params: any) => {
           if (params.seriesIndex === 1) {

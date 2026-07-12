@@ -1,9 +1,9 @@
 import { CalendarOutlined, CarryOutOutlined, FireOutlined, InboxOutlined, LineChartOutlined, RiseOutlined } from '@ant-design/icons';
-import { Card, Col, Row, Spin } from 'antd';
+import { Card, Col, Row, Segmented, Spin } from 'antd';
 import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
 import EmptyReport from '../components/EmptyReport';
@@ -33,28 +33,82 @@ const COLORS = {
 function TrendChart({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis;
   const isMobile = useMobile();
+  const now = useMemo(() => new Date(), []);
+  const currentYear = now.getFullYear();
+  const [view, setView] = useState<string>('trailing');
   const peakMonths = useMemo(() => new Set(trend.peak_months), [trend.peak_months]);
   const entryWindows = useMemo(() => new Set(trend.entry_windows), [trend.entry_windows]);
 
+  const viewOptions = useMemo(() => {
+    const options = [{ label: '近12个月', value: 'trailing' }];
+    for (let year = currentYear; year >= currentYear - 2; year--) {
+      options.push({ label: `${year}年`, value: String(year) });
+    }
+    return options;
+  }, [currentYear]);
+
   const option: EChartsOption = useMemo(() => {
-    const x = trend.series.months;
-    const y = trend.series.values;
-    const lastYear = trend.series.last_year_values || [];
+    let x: string[] = [];
+    let y: number[] = [];
+    let lastYear: number[] = [];
+    let currentName = '本年度搜索热度';
+    let lastYearName = '去年同期';
+
+    if (view === 'trailing') {
+      const trailing = trend.series.trailing_12_months;
+      if (trailing) {
+        x = trailing.labels;
+        y = trailing.values;
+        lastYear = trailing.last_year_values;
+      }
+      currentName = '近12个月搜索热度';
+      lastYearName = '去年同期近12个月';
+    } else {
+      const year = Number(view);
+      const yearly = trend.series.yearly_data?.[year];
+      if (yearly) {
+        x = yearly.months;
+        y = yearly.values;
+      }
+      // 去年同期取前一年完整数据
+      const prevYear = year - 1;
+      const prevYearly = trend.series.yearly_data?.[prevYear];
+      if (prevYearly && prevYearly.values.length === 12) {
+        lastYear = prevYearly.values;
+      }
+      currentName = `${year}年搜索热度`;
+      lastYearName = `${prevYear}年同期`;
+    }
+
+    // 如果数据缺失，回退到原始 series
+    if (!x.length) {
+      x = trend.series.months;
+      y = trend.series.values;
+      lastYear = trend.series.last_year_values || [];
+    }
+
     const forecastMonths = trend.series.forecast_months || [];
     const forecast = trend.series.forecast_values || [];
     const allX = [...x, ...forecastMonths];
-    const rawMaxY = Math.max(...y, ...lastYear.filter(Boolean), ...forecast.filter(Boolean));
+    const rawMaxY = Math.max(...y.filter(Boolean), ...lastYear.filter(Boolean), ...forecast.filter(Boolean));
     const maxY = Math.ceil(rawMaxY * 1.12 / 10) * 10;
 
+    // 标记区域：只有按自然年份查看时才按 1-12 月索引匹配；近12个月按相对位置展示
     const markAreas: any[] = [];
-    entryWindows.forEach((m) => {
-      const idx = (m as number) - 1;
-      markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.entryBg } }]);
-    });
-    peakMonths.forEach((m) => {
-      const idx = (m as number) - 1;
-      markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.peakBg } }]);
-    });
+    if (view !== 'trailing') {
+      entryWindows.forEach((m) => {
+        const idx = (m as number) - 1;
+        if (idx < x.length) {
+          markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.entryBg } }]);
+        }
+      });
+      peakMonths.forEach((m) => {
+        const idx = (m as number) - 1;
+        if (idx < x.length) {
+          markAreas.push([{ xAxis: idx - 0.5 }, { xAxis: idx + 0.5, itemStyle: { color: COLORS.peakBg } }]);
+        }
+      });
+    }
 
     return {
       backgroundColor: COLORS.bg,
@@ -65,7 +119,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         padding: [5, 8],
         confine: true,
         textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
-        extraCssText: 'max-width:180px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        extraCssText: 'max-width:200px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         formatter: (params: any) => {
           const validParams = params.filter((p: any) => p.data != null && p.data !== undefined);
           const lines = validParams.map((p: any) => `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:10px;color:rgba(255,255,255,0.8)">${p.seriesName}: ${p.data ?? p.value}</span>`);
@@ -82,7 +136,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         itemHeight: isMobile ? 10 : 14,
         textStyle: { color: COLORS.text, fontWeight: 700, fontFamily: 'var(--font-sans)', fontSize: isMobile ? 10 : 12 },
       },
-      grid: { left: isMobile ? 10 : 16, right: isMobile ? 10 : 16, top: isMobile ? 38 : 52, bottom: isMobile ? 48 : 32, containLabel: true },
+      grid: { left: isMobile ? 10 : 16, right: isMobile ? 10 : 16, top: isMobile ? 46 : 60, bottom: isMobile ? 48 : 32, containLabel: true },
       xAxis: {
         type: 'category',
         data: allX,
@@ -102,7 +156,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
       series: [
         {
           type: 'line',
-          name: '本年度搜索热度',
+          name: currentName,
           data: [...y, ...new Array(forecastMonths.length).fill(null)],
           smooth: true,
           lineStyle: { color: COLORS.currentLine, width: 3.5 },
@@ -124,7 +178,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         },
         {
           type: 'line',
-          name: '去年同期',
+          name: lastYearName,
           data: lastYear.length ? [...lastYear, ...new Array(forecastMonths.length).fill(null)] : [],
           smooth: false,
           lineStyle: { color: COLORS.lastYear, width: 2, type: 'dashed' },
@@ -159,9 +213,21 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         },
       ],
     };
-  }, [trend, peakMonths, entryWindows, isMobile]);
+  }, [trend, peakMonths, entryWindows, isMobile, view]);
 
-  return <ReactECharts option={option} style={{ height: isMobile ? 300 : 420, width: '100%' }} />;
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <Segmented
+          size={isMobile ? 'small' : 'middle'}
+          options={viewOptions}
+          value={view}
+          onChange={(v) => setView(v as string)}
+        />
+      </div>
+      <ReactECharts option={option} style={{ height: isMobile ? 300 : 420, width: '100%' }} />
+    </div>
+  );
 }
 
 function SeasonActionList({ report }: { report: AnalysisReport }) {

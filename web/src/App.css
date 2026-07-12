@@ -2652,7 +2652,7 @@ div.echarts-tooltip-dark,
 .echarts-tooltip,
 .echarts-tooltip-dark,
 .echarts-tooltip .tooltip-content {
-  max-width: 180px !important;
+  max-width: 200px !important;
   min-width: 0 !important;
   width: auto !important;
   word-wrap: break-word !important;
