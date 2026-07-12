@@ -1045,25 +1045,43 @@ function calculateProfit(
   const returnAllowance = sellingPrice * 0.03;
   const misc = 0.50;
 
+  // 基准单位经济
   const totalCost = unitCost + shipping + fbaFee + sellingPrice * rate + advertising + returnAllowance + misc;
-  const grossProfit = sellingPrice - totalCost;
-  const grossMargin = sellingPrice > 0 ? grossProfit / sellingPrice : 0;
+  const baseGrossProfit = sellingPrice - totalCost;
+  const baseGrossMargin = sellingPrice > 0 ? baseGrossProfit / sellingPrice : 0;
 
   // ROI 动态模型：投资随销量增加而增加（按销量备货 + 固定运营费用）
-  const landingCost = unitCost + shipping; // 单件到岸成本
   const inventoryMonths = 2; // 安全库存月数
   const monthlyFixed = 2000; // 月度固定运营成本
   const scenarios: Record<string, any> = {};
-  for (const [name, sales] of [['保守', 100], ['中性', 300], ['乐观', 600]] as const) {
-    const monthlyNetProfit = sales * grossProfit - monthlyFixed;
+
+  // 不同情景不仅销量不同，也对应不同的成本/售价假设，因此毛利率会不同
+  const scenarioAssumptions: Record<string, { sales: number; costFactor: number; adFactor: number; priceFactor: number }> = {
+    保守: { sales: 100, costFactor: 1.12, adFactor: 1.25, priceFactor: 0.95 },
+    中性: { sales: 300, costFactor: 1.0, adFactor: 1.0, priceFactor: 1.0 },
+    乐观: { sales: 600, costFactor: 0.90, adFactor: 0.80, priceFactor: 1.08 },
+  };
+
+  for (const [name, { sales, costFactor, adFactor, priceFactor }] of Object.entries(scenarioAssumptions)) {
+    const scenarioUnitCost = unitCost * costFactor;
+    const scenarioAd = advertising * adFactor;
+    const scenarioPrice = sellingPrice * priceFactor;
+    const scenarioCommission = scenarioPrice * rate;
+    const scenarioReturn = scenarioPrice * 0.03;
+    const scenarioTotalCost = scenarioUnitCost + shipping + fbaFee + scenarioCommission + scenarioAd + scenarioReturn + misc;
+    const scenarioGrossProfit = scenarioPrice - scenarioTotalCost;
+    const scenarioGrossMargin = scenarioPrice > 0 ? scenarioGrossProfit / scenarioPrice : 0;
+    const scenarioLandingCost = scenarioUnitCost + shipping;
+
+    const monthlyNetProfit = sales * scenarioGrossProfit - monthlyFixed;
     const inventoryUnits = Math.round(sales * inventoryMonths);
-    const investment = inventoryUnits * landingCost + monthlyFixed;
+    const investment = inventoryUnits * scenarioLandingCost + monthlyFixed;
     const roi = investment > 0 ? (monthlyNetProfit / investment) * 100 : 0;
     const payback = monthlyNetProfit > 0 ? investment / monthlyNetProfit : null;
     scenarios[name] = {
       '月销量': sales,
       '月毛利': Math.round(monthlyNetProfit * 100) / 100,
-      '毛利率': `${(grossMargin * 100).toFixed(1)}%`,
+      '毛利率': `${(scenarioGrossMargin * 100).toFixed(1)}%`,
       'ROI': Math.round(roi * 10) / 10,
       '回本周期': payback ? Math.round(payback * 10) / 10 : null,
     };
@@ -1083,15 +1101,15 @@ function calculateProfit(
     selling_price: sellingPrice,
     unit_cost: unitCost,
     total_cost_per_unit: Math.round(totalCost * 100) / 100,
-    gross_profit_per_unit: Math.round(grossProfit * 100) / 100,
-    gross_margin: grossMargin,
-    gross_margin_pct: `${(grossMargin * 100).toFixed(1)}%`,
+    gross_profit_per_unit: Math.round(baseGrossProfit * 100) / 100,
+    gross_margin: baseGrossMargin,
+    gross_margin_pct: `${(baseGrossMargin * 100).toFixed(1)}%`,
     cost_breakdown: costBreakdown,
     cost_breakdown_pct: Object.fromEntries(
       Object.entries(costBreakdown).map(([k, v]) => [k, `${((v / totalCost) * 100).toFixed(1)}%`])
     ),
     roi_scenarios: scenarios,
-    breakeven_units: grossProfit > 0 ? Math.round(monthlyFixed / grossProfit) : null,
+    breakeven_units: baseGrossProfit > 0 ? Math.round(monthlyFixed / baseGrossProfit) : null,
   };
 }
 

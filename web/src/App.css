@@ -2231,6 +2231,8 @@
   font-size: 15px;
   margin-bottom: 10px;
   line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .opportunity-ref-title {
@@ -2247,6 +2249,30 @@
   font-weight: 800;
   font-size: 12px;
   margin-top: 2px;
+}
+
+@media (max-width: 576px) {
+  .opportunity-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px;
+  }
+  .opportunity-title {
+    font-size: 14px;
+  }
+  .opportunity-ref {
+    min-width: 100%;
+    width: 100%;
+  }
+  .review-card-accent {
+    padding: 14px;
+    gap: 12px;
+  }
+  .review-card-accent > div:last-child {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
 }
 
 /* 成本明细 */
@@ -2542,30 +2568,66 @@
 }
 
 /* =========================================================
-   Tooltip / 提示卡片自适应（避免过长、过大、不换行）
+   Tooltip / 提示卡片：精致、紧凑、彻底去除大白块
    ========================================================= */
-.ant-tooltip-inner {
-  max-width: 280px !important;
+body .ant-tooltip,
+body .ant-slider-tooltip,
+body .ant-popover {
+  max-width: 260px !important;
+}
+
+body .ant-tooltip .ant-tooltip-inner,
+body .ant-slider-tooltip .ant-tooltip-inner,
+body .ant-popover .ant-popover-inner {
+  max-width: 240px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  padding: 7px 11px !important;
+  border-radius: 8px !important;
+  background: rgba(30, 41, 59, 0.94) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body .ant-tooltip .ant-tooltip-arrow::before,
+body .ant-popover .ant-popover-arrow-content {
+  background: rgba(30, 41, 59, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ECharts tooltip：深色小卡片，与大尺寸白色 tooltip 区分 */
+.echarts-tooltip,
+.echarts-tooltip .tooltip-content,
+.echarts-tooltip-dark {
+  max-width: 240px !important;
   min-width: 0 !important;
   word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
   white-space: normal !important;
-  font-size: 13px !important;
-  line-height: 1.6 !important;
-  padding: 10px 14px !important;
+  line-height: 1.45 !important;
+  font-size: 11px !important;
+  padding: 8px 12px !important;
   border-radius: 10px !important;
+  background: rgba(30, 41, 59, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: blur(6px) !important;
 }
 
-.ant-tooltip-arrow::before {
-  background-color: rgba(0, 0, 0, 0.75) !important;
-}
-
-/* ECharts tooltip 统一限制 */
-.echarts-tooltip,
-.echarts-tooltip .tooltip-content {
-  max-width: 260px !important;
-  word-wrap: break-word !important;
-  white-space: normal !important;
-  line-height: 1.5 !important;
+.echarts-tooltip div,
+.echarts-tooltip span,
+.echarts-tooltip strong,
+.echarts-tooltip b {
+  color: #ffffff !important;
 }
 
 /* 自定义提示文本 */
@@ -2581,15 +2643,18 @@
 
 /* Slider tooltip 防止白色矩形与溢出 */
 .ant-slider-tooltip .ant-tooltip-inner {
-  max-width: 160px !important;
+  max-width: 140px !important;
   white-space: nowrap !important;
-  font-size: 12px !important;
-  padding: 6px 10px !important;
+  font-size: 11px !important;
+  padding: 5px 9px !important;
+  background: rgba(30, 41, 59, 0.94) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-/* Slider 统一样式：去除白色矩形/异常边框 */
+/* Slider 统一样式：精致圆形按钮（直接让 handle 本身成圆，无需伪元素） */
 .ant-slider {
-  margin: 8px 6px;
+  margin: 10px 6px;
 }
 
 .ant-slider-rail {
@@ -2604,26 +2669,26 @@
 }
 
 .ant-slider-handle {
-  width: 20px;
-  height: 20px;
-  margin-top: -6px;
-  background-color: #ffffff;
-  border: 3px solid var(--saas-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: -6px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 3px solid var(--slider-accent, var(--saas-primary)) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14), 0 0 0 2px rgba(255, 255, 255, 0.6) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.ant-slider-handle::after,
+.ant-slider-handle::before {
+  display: none !important;
 }
 
 .ant-slider-handle:hover,
 .ant-slider-handle:focus,
 .ant-slider-handle:active {
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  border-color: var(--saas-primary);
-  outline: none;
-}
-
-.ant-slider-handle::after {
-  display: none !important;
+  transform: scale(1.18) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(255, 255, 255, 0.7) !important;
 }
 
 .ant-slider:hover .ant-slider-track {
@@ -2631,16 +2696,20 @@
 }
 
 @media (max-width: 768px) {
-  .ant-tooltip-inner {
-    max-width: 220px !important;
-    font-size: 12px !important;
-    padding: 8px 12px !important;
+  body .ant-tooltip .ant-tooltip-inner,
+  body .ant-slider-tooltip .ant-tooltip-inner,
+  body .ant-popover .ant-popover-inner {
+    max-width: 200px !important;
+    font-size: 11px !important;
+    padding: 6px 10px !important;
   }
 
   .echarts-tooltip,
-  .echarts-tooltip .tooltip-content {
-    max-width: 200px !important;
-    font-size: 12px !important;
+  .echarts-tooltip .tooltip-content,
+  .echarts-tooltip-dark {
+    max-width: 180px !important;
+    font-size: 11px !important;
+    padding: 6px 9px !important;
   }
 }
 

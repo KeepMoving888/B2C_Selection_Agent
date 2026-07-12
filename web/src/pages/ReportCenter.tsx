@@ -50,11 +50,21 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import { analysisApi } from '../services/api'
 import { getReportHistory } from '../hooks/useReport'
+import { useMobile } from '../hooks/useMobile'
 import { generateMockReport } from '../services/mockData'
 import { setCurrentReport, setPageTitle } from '../store/slices/uiSlice'
 import type { AnalysisHistoryItem, AnalysisReport } from '../types'
 
 const { Text, Title } = Typography
+
+const DARK_TOOLTIP = {
+  backgroundColor: 'rgba(30, 41, 59, 0.94)',
+  borderColor: 'rgba(255, 255, 255, 0.10)',
+  borderWidth: 1,
+  padding: [8, 12],
+  textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 12 },
+  extraCssText: 'max-width:240px;word-wrap:break-word;white-space:normal;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.22);backdrop-filter:blur(6px);',
+}
 
 const GRADE_COLORS: Record<string, string> = {
   A: '#16a34a',
@@ -84,6 +94,7 @@ export default function ReportCenter() {
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detail, setDetail] = useState<AnalysisReport | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const isMobile = useMobile()
 
   useEffect(() => {
     dispatch(setPageTitle('报告中心'))
@@ -219,57 +230,62 @@ export default function ReportCenter() {
     message.success('报告已删除')
   }
 
-  const columns = [
-    { title: '关键词', dataIndex: 'keyword', key: 'keyword', width: 180, ellipsis: true },
-    { title: '市场', dataIndex: 'market', key: 'market', width: 90, align: 'center' as const },
-    {
-      title: '等级',
-      dataIndex: 'grade',
-      key: 'grade',
-      width: 80,
-      align: 'center' as const,
-      render: (v: string) => (
-        <Tag color={GRADE_COLORS[v] || '#64748b'} style={{ fontWeight: 800 }}>{v}</Tag>
-      ),
-    },
-    {
-      title: '评分',
-      dataIndex: 'overall_score',
-      key: 'overall_score',
-      width: 90,
-      align: 'center' as const,
-      render: (v: number) => (
-        <Text strong style={{ color: v >= 70 ? '#16a34a' : v >= 50 ? '#d97706' : '#dc2626' }}>
-          {v}
-        </Text>
-      ),
-    },
-    {
-      title: '时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 170,
-      render: (v: string) => new Date(v).toLocaleString(),
-    },
-    {
+  const columns = useMemo(() => {
+    const base: any[] = [
+      { title: '关键词', dataIndex: 'keyword', key: 'keyword', width: isMobile ? 140 : 180, ellipsis: true },
+      { title: '市场', dataIndex: 'market', key: 'market', width: 80, align: 'center' as const },
+      {
+        title: '等级',
+        dataIndex: 'grade',
+        key: 'grade',
+        width: 70,
+        align: 'center' as const,
+        render: (v: string) => (
+          <Tag color={GRADE_COLORS[v] || '#64748b'} style={{ fontWeight: 800 }}>{v}</Tag>
+        ),
+      },
+      {
+        title: '评分',
+        dataIndex: 'overall_score',
+        key: 'overall_score',
+        width: 80,
+        align: 'center' as const,
+        render: (v: number) => (
+          <Text strong style={{ color: v >= 70 ? '#16a34a' : v >= 50 ? '#d97706' : '#dc2626' }}>
+            {v}
+          </Text>
+        ),
+      },
+    ]
+    if (!isMobile) {
+      base.push({
+        title: '时间',
+        dataIndex: 'created_at',
+        key: 'created_at',
+        width: 160,
+        render: (v: string) => new Date(v).toLocaleString(),
+      })
+    }
+    base.push({
       title: '操作',
       key: 'action',
-      width: 220,
+      width: isMobile ? 150 : 210,
       render: (_: unknown, record: AnalysisHistoryItem) => (
         <Space size="small">
-          <Button type="link" icon={<EyeOutlined />} onClick={() => showDetail(record.id)}>
-            详情
+          <Button type="link" icon={<EyeOutlined />} onClick={() => showDetail(record.id)} size={isMobile ? 'small' : 'middle'}>
+            {isMobile ? '' : '详情'}
           </Button>
-          <Button type="link" icon={<ShareAltOutlined />} onClick={() => shareReport(record.id)}>
-            分享
+          <Button type="link" icon={<ShareAltOutlined />} onClick={() => shareReport(record.id)} size={isMobile ? 'small' : 'middle'}>
+            {isMobile ? '' : '分享'}
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteReport(record.id)}>
-            删除
+          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => deleteReport(record.id)} size={isMobile ? 'small' : 'middle'}>
+            {isMobile ? '' : '删除'}
           </Button>
         </Space>
       ),
-    },
-  ]
+    })
+    return base
+  }, [isMobile])
 
   return (
     <div className="page-container">
@@ -313,17 +329,20 @@ export default function ReportCenter() {
           </Space>
         }
       >
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={filteredHistory}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
-        />
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <Table
+            rowKey="id"
+            columns={columns}
+            dataSource={filteredHistory}
+            loading={loading}
+            pagination={{ pageSize: 10 }}
+            scroll={{ x: isMobile ? 540 : 'max-content' }}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys,
+            }}
+          />
+        </div>
         {filteredHistory.length === 0 && !loading && (
           <Empty description="暂无报告">
             <Button type="primary" icon={<FileTextOutlined />} onClick={createSampleReports}>
@@ -519,7 +538,7 @@ function GlobalTrendsMiniChart({ trends }: { trends: NonNullable<AnalysisReport[
   const option = useMemo(() => {
     const months = trends[0].months
     return {
-      tooltip: { trigger: 'axis' as const, backgroundColor: 'rgba(255,255,255,0.95)', borderColor: 'var(--saas-border)', textStyle: { color: 'var(--saas-text)' } },
+      tooltip: { trigger: 'axis' as const, ...DARK_TOOLTIP },
       legend: { data: trends.map((t) => t.name), top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontSize: 11, fontWeight: 700 } },
       grid: { left: 10, right: 10, top: 34, bottom: 10, containLabel: true },
       xAxis: { type: 'category' as const, data: months, axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontSize: 11 } },
@@ -949,8 +968,8 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const pxToMm = pdfWidth / canvas.width
     const pageHeightPx = pdfHeight / pxToMm
 
-    // 智能分页：只在块级元素下边界处切割，避免段落/表格行/列表项被截断或重复
-    const protectedSelectors = ['.p-section', '.p-section > *', '.p-action', '.p-table tr', '.p-list li', '.p-header', '.p-title', '.p-metric']
+    // 智能分页：只在顶层块级元素下边界处切割，避免段落/表格行/列表项被截断或重复
+    const protectedSelectors = ['.p-header', '.p-section', '.p-action', '.p-table', '.p-list', '.p-title', '.p-metric', '.p-footer']
     const candidateBreaks = new Set<number>()
     candidateBreaks.add(0)
     protectedSelectors.forEach((sel) => {
@@ -962,7 +981,7 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const sortedBreaks = Array.from(candidateBreaks).sort((a, b) => a - b)
 
     const minPageHeight = pageHeightPx * 0.55
-    const safetyMargin = 12
+    const safetyMargin = 16
     const breaks: number[] = []
     let currentTop = 0
     while (currentTop + pageHeightPx < container.scrollHeight) {
@@ -1148,9 +1167,7 @@ function buildReportRadarOption(report: AnalysisReport): EChartsOption {
     color: ['#2563eb'],
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#ffffff',
-      borderColor: '#e2e8f0',
-      textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
+      ...DARK_TOOLTIP,
       formatter: (params: any) => {
         const list = params.value.map((v: number, i: number) => {
           const raw = values[i]
@@ -1159,7 +1176,7 @@ function buildReportRadarOption(report: AnalysisReport): EChartsOption {
           return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>
             <span style="font-weight:700">${categories[i]}</span>
-            <span style="color:#64748b;font-size:12px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
+            <span style="color:rgba(255,255,255,0.75);font-size:12px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
           </div>`
         }).join('')
         return `<div style="font-weight:800;margin-bottom:6px">综合评分 ${avg.toFixed(1)}</div>${list}`
@@ -1244,10 +1261,8 @@ function buildCostDonutOption(profit: AnalysisReport['profit_analysis']): EChart
     color: palette,
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#ffffff',
-      borderColor: '#e2e8f0',
-      textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
-      formatter: (params: any) => `<div style="font-weight:800">${params.name}</div><div style="color:#64748b;font-size:12px">$${params.value.toFixed(2)} · ${params.percent}%</div>`,
+      ...DARK_TOOLTIP,
+      formatter: (params: any) => `<div style="font-weight:800">${params.name}</div><div style="color:rgba(255,255,255,0.75);font-size:12px">$${params.value.toFixed(2)} · ${params.percent}%</div>`,
     },
     legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b', fontSize: 11 } },
     series: [{
@@ -1295,10 +1310,8 @@ function buildTrendLineOption(trend: AnalysisReport['trend_analysis']): EChartsO
     color: ['#2563eb'],
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#ffffff',
-      borderColor: '#e2e8f0',
-      textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
-      formatter: (params: any) => `<div style="font-weight:800;margin-bottom:4px">${params[0].name}</div><div style="color:#64748b;font-size:12px">搜索热度 <strong style="color:#2563eb">${params[0].value}</strong></div>`,
+      ...DARK_TOOLTIP,
+      formatter: (params: any) => `<div style="font-weight:800;margin-bottom:4px">${params[0].name}</div><div style="color:rgba(255,255,255,0.75);font-size:12px">搜索热度 <strong style="color:#60a5fa">${params[0].value}</strong></div>`,
     },
     grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
     xAxis: {
@@ -1348,10 +1361,8 @@ function buildCompetitorBarOption(competitors: any[]): EChartsOption {
     color: ['#3b82f6'],
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#ffffff',
-      borderColor: '#e2e8f0',
-      textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
-      formatter: (params: any) => `<div style="font-weight:800;margin-bottom:4px">${params[0].name}</div><div style="color:#64748b;font-size:12px">月销量 <strong style="color:#2563eb">${Number(params[0].value).toLocaleString()}</strong></div>`,
+      ...DARK_TOOLTIP,
+      formatter: (params: any) => `<div style="font-weight:800;margin-bottom:4px">${params[0].name}</div><div style="color:rgba(255,255,255,0.75);font-size:12px">月销量 <strong style="color:#60a5fa">${Number(params[0].value).toLocaleString()}</strong></div>`,
     },
     grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
     xAxis: {

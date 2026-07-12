@@ -192,16 +192,16 @@ function RadarChart({ report }: { report: AnalysisReport }) {
       color: ['#2563eb', '#94a3b8'],
       tooltip: {
         trigger: 'item',
-        backgroundColor: '#ffffff',
-        borderColor: '#e2e8f0',
+        backgroundColor: 'rgba(30, 41, 59, 0.92)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
         borderWidth: 1,
-        padding: [10, 14],
+        padding: [8, 12],
         confine: true,
-        extraCssText: 'max-width:260px;word-wrap:break-word;white-space:normal;',
-        textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)', fontSize: 12 },
+        extraCssText: 'max-width:240px;word-wrap:break-word;white-space:normal;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(4px);',
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 12 },
         formatter: (params: any) => {
           if (params.seriesIndex === 1) {
-            return '<div style="font-weight:800;font-size:13px">行业基准</div><div style="color:#64748b;font-size:12px;margin-top:4px">五维均衡参考线：60%</div>';
+            return '<div style="font-weight:800;font-size:13px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.72);font-size:12px;margin-top:4px">五维均衡参考线：60%</div>';
           }
           const list = params.value.map((v: number, i: number) => {
             const raw = values[i];
@@ -209,11 +209,11 @@ function RadarChart({ report }: { report: AnalysisReport }) {
             const color = SCORE_COLORS[categories[i]].start;
             return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap">
               <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
-              <span style="font-weight:700;font-size:12px">${categories[i]}</span>
-              <span style="color:#64748b;font-size:11px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
+              <span style="font-weight:700;font-size:12px;color:#fff">${categories[i]}</span>
+              <span style="color:rgba(255,255,255,0.72);font-size:11px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
             </div>`;
           }).join('');
-          return `<div style="font-weight:800;margin-bottom:6px;font-size:13px">选品能力评分</div>${list}`;
+          return `<div style="font-weight:800;margin-bottom:6px;font-size:13px;color:#fff">选品能力评分</div>${list}`;
         },
       },
       radar: {
@@ -443,6 +443,24 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { report, lastSearch, loading, analyze } = useReport();
 
+  // 优先使用 URL 参数作为表单初始值，避免从关键词点击打开时污染原页面的 lastSearch
+  const urlParams = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      keyword: params.get('keyword')?.trim() || '',
+      market: params.get('market')?.trim() || lastSearch.market || 'US',
+      budget: params.get('budget')?.trim() || lastSearch.budget || '5000-10000',
+      auto: params.get('auto') === '1',
+      nopersist: params.get('nopersist') === '1',
+    };
+  }, [lastSearch]);
+
+  const formInitialValues = useMemo(() => {
+    return urlParams.keyword
+      ? { keyword: urlParams.keyword, market: urlParams.market, budget: urlParams.budget }
+      : lastSearch;
+  }, [urlParams, lastSearch]);
+
   useEffect(() => {
     dispatch(setPageTitle('首页概览'));
   }, [dispatch]);
@@ -451,25 +469,24 @@ export default function Dashboard() {
   const autoAnalyzed = useRef(false);
   useEffect(() => {
     if (autoAnalyzed.current) return;
-    const params = new URLSearchParams(window.location.search);
-    const auto = params.get('auto') === '1';
-    const keyword = params.get('keyword')?.trim();
-    const market = params.get('market')?.trim();
-    const budget = params.get('budget')?.trim();
-    if (auto && keyword) {
+    if (urlParams.auto && urlParams.keyword) {
       autoAnalyzed.current = true;
-      analyze({
-        keyword,
-        market: market || lastSearch?.market || 'US',
-        budget: budget || lastSearch?.budget || '5000-10000',
-      }).then(() => {
-        // 分析完成后清理 auto 参数，避免刷新重复触发
+      analyze(
+        {
+          keyword: urlParams.keyword,
+          market: urlParams.market,
+          budget: urlParams.budget,
+        },
+        { persist: !urlParams.nopersist }
+      ).then(() => {
+        // 分析完成后清理 auto/nopersist 参数，避免刷新重复触发
         const next = new URLSearchParams(window.location.search);
         next.delete('auto');
+        next.delete('nopersist');
         window.history.replaceState({}, '', `${window.location.pathname}?${next.toString()}`);
       });
     }
-  }, [analyze, lastSearch]);
+  }, [analyze, urlParams]);
 
   return (
     <div className="page-container">
@@ -485,7 +502,7 @@ export default function Dashboard() {
         )}
       </div>
       <Card className="search-card">
-        <AnalysisSearchForm initialValues={lastSearch} onSubmit={analyze} loading={loading} />
+        <AnalysisSearchForm initialValues={formInitialValues} onSubmit={analyze} loading={loading} />
       </Card>
 
       {loading && (

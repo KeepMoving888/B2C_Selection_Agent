@@ -48,10 +48,13 @@ export function useReport() {
   const [loading, setLoading] = useState(false);
   const [isMockMode, setIsMockMode] = useState(false);
 
-  const analyze = useCallback(async (params: SearchParams) => {
+  const analyze = useCallback(async (params: SearchParams, options?: { persist?: boolean }) => {
     setLoading(true);
+    const persist = options?.persist !== false;
     try {
-      dispatch(setLastSearch(params));
+      if (persist) {
+        dispatch(setLastSearch(params));
+      }
 
       // 检查是否强制使用 Mock 模式（通过环境变量或 URL 参数）
       const forceMock = import.meta.env.VITE_USE_MOCK === 'true' ||
@@ -61,7 +64,7 @@ export function useReport() {
         // 强制 Mock 模式
         const report = generateMockReport(params.keyword, params.market, params.budget);
         dispatch(setCurrentReport(report));
-        saveReportToHistory(report);
+        if (persist) saveReportToHistory(report);
         setIsMockMode(true);
         return report;
       }
@@ -75,7 +78,7 @@ export function useReport() {
         });
         const report: AnalysisReport = res.data.report;
         dispatch(setCurrentReport(report));
-        saveReportToHistory(report);
+        if (persist) saveReportToHistory(report);
         setIsMockMode(false);
         return report;
       } catch (apiError) {
@@ -83,7 +86,7 @@ export function useReport() {
         console.warn('API 调用失败，降级到 Mock 数据:', apiError);
         const report = generateMockReport(params.keyword, params.market, params.budget);
         dispatch(setCurrentReport(report));
-        saveReportToHistory(report);
+        if (persist) saveReportToHistory(report);
         setIsMockMode(true);
         return report;
       }

@@ -47,7 +47,7 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
     const maxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
 
     return {
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: 'var(--saas-border)', textStyle: { color: 'var(--saas-text)' } },
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.92)', borderColor: 'rgba(255, 255, 255, 0.08)', textStyle: { color: '#ffffff' }, extraCssText: 'border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(4px);' },
       legend: { orient: 'horizontal', top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700 } },
       grid: { left: 20, right: 60, top: 50, bottom: 20, containLabel: true },
       xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
@@ -247,13 +247,10 @@ function KeywordOpportunityRow({ opp, index, market, budget }: { opp: any; index
       market,
       budget,
       auto: '1',
+      nopersist: '1',
     });
     const url = `${window.location.origin}/dashboard?${params.toString()}`;
-    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!newWindow) {
-      // 如果弹窗被拦截，回退到当前页跳转
-      window.location.href = url;
-    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -353,9 +350,10 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
     return {
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderColor: 'var(--saas-border)',
-        textStyle: { color: 'var(--saas-text)' },
+        backgroundColor: 'rgba(30, 41, 59, 0.92)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        textStyle: { color: '#ffffff' },
+        extraCssText: 'border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(4px);',
       },
       legend: {
         data: active.map((t) => t.name),
@@ -464,97 +462,90 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
     const data: any[] = [];
     const links: any[] = [];
 
+    // 径向布局：中心词在 (0,0)，关联度越高（机会分越高）离中心越近
+    const innerRMin = isMobile ? 55 : 75;
+    const innerRMax = isMobile ? 110 : 155;
+    const outerRMin = isMobile ? 140 : 190;
+    const outerRMax = isMobile ? 210 : 280;
+
+    const placeNodes = (nodes: typeof sameCategory, rMin: number, rMax: number, catIndex: number, palette: string[]) => {
+      const count = nodes.length || 1;
+      nodes.forEach((n, idx) => {
+        const score = Math.max(0, Math.min(100, n.opportunity_score || 50));
+        // 分数越高半径越小（离中心越近）
+        const r = rMax - ((score / 100) * (rMax - rMin));
+        const angle = (idx / count) * 2 * Math.PI - Math.PI / 2;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        const displayName = n.name.replace(/^niche::/, '');
+        data.push({
+          ...n,
+          id: n.id,
+          name: displayName,
+          value: n.value,
+          category: catIndex,
+          x,
+          y,
+          symbolSize: Math.max(isMobile ? 16 : 18, (n.value / maxVal) * (isMobile ? 32 : 40)),
+          label: {
+            show: true,
+            position: x >= 0 ? 'right' : 'left',
+            distance: 8,
+            fontSize: isMobile ? 11 : 12,
+            fontWeight: 800,
+            color: '#1e293b',
+            backgroundColor: 'rgba(255,255,255,0.78)',
+            borderColor: 'rgba(0,0,0,0.06)',
+            borderWidth: 1,
+            borderRadius: 6,
+            padding: [2, 6],
+            shadowBlur: 4,
+            shadowColor: 'rgba(0,0,0,0.08)',
+            textBorderColor: 'rgba(255,255,255,0.85)',
+            textBorderWidth: 2,
+            formatter: (p: any) => {
+              const name: string = p.name;
+              return name.length > 24 ? name.slice(0, 22) + '…' : name;
+            },
+          },
+          itemStyle: {
+            color: palette[idx % palette.length],
+            borderWidth: 2,
+            borderColor: '#fff',
+            shadowBlur: 8,
+            shadowColor: 'rgba(0,0,0,0.12)',
+          },
+        });
+        links.push({
+          source: rootNode?.id,
+          target: n.id,
+          value: score,
+          lineStyle: { width: Math.max(1, score / 25), opacity: 0.45 },
+        });
+      });
+    };
+
     if (rootNode) {
       data.push({
         id: rootNode.id,
         name: rootNode.name,
         value: rootNode.value,
-        symbolSize: isMobile ? 44 : 54,
-        label: { show: true, fontSize: 14, fontWeight: 800, color: '#fff' },
+        x: 0,
+        y: 0,
+        symbolSize: isMobile ? 52 : 66,
+        label: { show: true, fontSize: isMobile ? 13 : 14, fontWeight: 800, color: '#fff' },
         itemStyle: {
           color: '#dc2626',
-          shadowBlur: 20,
-          shadowColor: 'rgba(220,38,38,0.35)',
+          shadowBlur: 24,
+          shadowColor: 'rgba(220,38,38,0.4)',
         },
         category: undefined,
-        fixed: false,
+        fixed: true,
       });
     }
 
-    // 本类目细分词：蓝色系
-    sameCategory.forEach((n, idx) => {
-      data.push({
-        ...n,
-        id: n.id,
-        name: n.name,
-        value: n.value,
-        category: 0,
-        symbolSize: Math.max(14, (n.value / maxVal) * 28),
-        label: {
-          show: true,
-          position: 'right',
-          distance: 5,
-          fontSize: 11,
-          fontWeight: 700,
-          color: 'var(--saas-text)',
-          formatter: (p: any) => {
-            const name: string = p.name;
-            return name.length > 18 ? name.slice(0, 16) + '…' : name;
-          },
-        },
-        itemStyle: {
-          color: SEGMENT_COLORS[idx % SEGMENT_COLORS.length],
-          borderWidth: 2,
-          borderColor: '#fff',
-          shadowBlur: 6,
-          shadowColor: 'rgba(0,0,0,0.08)',
-        },
-      });
-      links.push({
-        source: rootNode?.id,
-        target: n.id,
-        value: n.opportunity_score || 0,
-        lineStyle: { width: Math.max(1, (n.opportunity_score || 0) / 30), opacity: 0.5 },
-      });
-    });
-
-    // 跨行业拓品词：紫/橙系，使用第二类别；直接挂到 root，不在图中显示品类名
-    crossCategory.forEach((n, idx) => {
-      const displayName = n.name.replace(/^niche::/, '');
-      data.push({
-        ...n,
-        id: n.id,
-        name: displayName,
-        value: n.value,
-        category: 1,
-        symbolSize: Math.max(14, (n.value / maxVal) * 26),
-        label: {
-          show: true,
-          position: 'right',
-          distance: 5,
-          fontSize: 11,
-          fontWeight: 700,
-          color: 'var(--saas-text)',
-          formatter: (p: any) => {
-            const name: string = p.name;
-            return name.length > 18 ? name.slice(0, 16) + '…' : name;
-          },
-        },
-        itemStyle: {
-          color: ['#7c3aed', '#d97706', '#0891b2', '#db2777', '#64748b'][idx % 5],
-          borderWidth: 2,
-          borderColor: '#fff',
-          shadowBlur: 6,
-          shadowColor: 'rgba(0,0,0,0.08)',
-        },
-      });
-      links.push({
-        source: rootNode?.id,
-        target: n.id,
-        value: n.opportunity_score || 0,
-        lineStyle: { width: Math.max(1, (n.opportunity_score || 0) / 30), opacity: 0.5 },
-      });
-    });
+    placeNodes(sameCategory, innerRMin, innerRMax, 0, SEGMENT_COLORS);
+    placeNodes(crossCategory, outerRMin, outerRMax, 1, ['#7c3aed', '#d97706', '#0891b2', '#db2777', '#64748b']);
 
     return { categories, data, links, nameMap };
   }, [rel, report.keyword, isMobile]);
@@ -564,27 +555,28 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
 
     return {
       tooltip: {
-        backgroundColor: 'rgba(255,255,255,0.96)',
-        borderColor: 'var(--saas-border)',
+        trigger: 'item',
+        backgroundColor: 'rgba(30, 41, 59, 0.96)',
+        borderColor: 'rgba(255, 255, 255, 0.10)',
         borderWidth: 1,
-        padding: [10, 14],
-        textStyle: { color: 'var(--saas-text)', fontFamily: 'var(--font-sans)', fontSize: 12 },
+        padding: [8, 12],
+        textStyle: { color: '#ffffff', fontSize: 12 },
+        extraCssText: 'max-width:240px;word-wrap:break-word;white-space:normal;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.22);backdrop-filter:blur(6px);',
         confine: true,
-        extraCssText: 'max-width:260px;word-wrap:break-word;white-space:normal;',
         formatter: (params: any) => {
           if (params.dataType === 'edge') {
             const sName = nameMap.get(params.data.source) || params.data.source;
             const tName = nameMap.get(params.data.target) || params.data.target;
-            return `<div style="font-weight:800;font-size:13px">${sName} → ${tName}</div><div style="color:#64748b;font-size:12px;margin-top:4px">关联机会分 ${params.data.value}</div>`;
+            return `<div style="font-weight:800">${sName} → ${tName}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:4px">关联机会分 ${params.data.value}</div>`;
           }
           const node = params.data;
           if (node.id === report.keyword) {
-            return `<div style="font-weight:800;font-size:13px">${node.name}</div><div style="color:#64748b;font-size:12px;margin-top:4px">搜索量 ${node.value.toLocaleString()}</div>`;
+            return `<div style="font-weight:800">${node.name}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;margin-top:4px">搜索量 ${node.value.toLocaleString()}</div>`;
           }
           const trendLabel = node.trend === 'rising' ? '上升' : node.trend === 'falling' ? '下滑' : '稳定';
           const compLabel = node.competition === 'low' ? '低' : node.competition === 'high' ? '高' : '中';
           const typeLabel = String(node.id).startsWith('niche::') ? '跨行业拓品词' : '本类目细分词';
-          return `<div style="font-weight:800;font-size:13px;margin-bottom:4px">${node.name}</div><div style="color:#64748b;font-size:12px;line-height:1.6">搜索量 ${node.value.toLocaleString()} · 机会分 ${node.opportunity_score || '-'}<br/>趋势 ${trendLabel} · 竞争 ${compLabel} · ${typeLabel}</div>`;
+          return `<div style="font-weight:800;margin-bottom:4px">${node.name}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;line-height:1.55">搜索量 ${node.value.toLocaleString()} · 机会分 ${node.opportunity_score || '-'}<br/>趋势 ${trendLabel} · 竞争 ${compLabel} · ${typeLabel}</div>`;
         },
       },
       legend: {
@@ -598,21 +590,20 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
       series: [
         {
           type: 'graph' as const,
-          layout: 'force',
+          layout: 'none',
           data,
           links,
           categories,
           roam: true,
           draggable: true,
-          label: { show: true, position: 'right', distance: 5 },
-          force: {
-            repulsion: isMobile ? 320 : 480,
-            gravity: 0.1,
-            edgeLength: [60, 140],
-            layoutAnimation: true,
+          label: { show: true, position: 'right', distance: 6 },
+          labelLayout: { hideOverlap: false },
+          lineStyle: { color: 'source', curveness: 0.1, opacity: 0.45 },
+          emphasis: {
+            focus: 'adjacency',
+            label: { show: true, fontSize: isMobile ? 12 : 13 },
+            lineStyle: { width: 3, opacity: 0.85 },
           },
-          lineStyle: { color: 'source', curveness: 0.1, opacity: 0.5 },
-          emphasis: { focus: 'adjacency', lineStyle: { width: 3, opacity: 0.85 } },
         },
       ],
     };

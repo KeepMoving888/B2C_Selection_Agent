@@ -149,7 +149,7 @@ function CostRow({ item, value, pct, total }: { item: string; value: number; pct
           <span className="cost-amount">USD {value.toFixed(2)}</span>
         </div>
         <div className="cost-bar-row">
-          <div className="cost-bar-wrapper">
+          <div className="cost-bar-wrapper" style={{ background: `${color.start}18` }}>
             <div className="cost-bar-fill" style={{
               width: `${width}%`,
               background: `linear-gradient(90deg, ${color.start}, ${color.end})`,
@@ -315,10 +315,13 @@ function RoiChart({ report, currentVolume, setCurrentVolume }: { report: Analysi
       backgroundColor: '#ffffff',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#ffffff',
-        borderColor: '#e2e8f0',
-        textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
-        formatter: (params: any) => `月销量：${params[0].axisValue}<br/>ROI：${params[0].data[1]?.toFixed?.(2) ?? params[0].data.toFixed(2)}%`,
+        backgroundColor: 'rgba(30, 41, 59, 0.96)',
+        borderColor: 'rgba(255, 255, 255, 0.10)',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 12 },
+        extraCssText: 'max-width:220px;word-wrap:break-word;white-space:normal;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.22);backdrop-filter:blur(6px);',
+        formatter: (params: any) => `<div style="font-weight:800;margin-bottom:4px">月销量 ${params[0].axisValue}</div><div style="color:rgba(255,255,255,0.75);font-size:11px">ROI ${params[0].data[1]?.toFixed?.(2) ?? params[0].data.toFixed(2)}%</div>`,
       },
       grid: { left: 20, right: 50, top: 30, bottom: 40, containLabel: true },
       xAxis: {
@@ -383,12 +386,15 @@ function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, p
       backgroundColor: '#ffffff',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#ffffff',
-        borderColor: '#e2e8f0',
-        textStyle: { color: '#1e293b', fontFamily: 'var(--font-sans)' },
+        backgroundColor: 'rgba(30, 41, 59, 0.96)',
+        borderColor: 'rgba(255, 255, 255, 0.10)',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 12 },
+        extraCssText: 'max-width:220px;word-wrap:break-word;white-space:normal;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.22);backdrop-filter:blur(6px);',
         formatter: (params: any) => {
-          const lines = params.map((p: any) => `${p.seriesName}: ${p.data[1]?.toFixed?.(2) ?? p.data.toFixed(2)}%`);
-          return `<div style="font-weight:800;margin-bottom:4px">月销量 ${params[0].axisValue}</div>${lines.join('<br/>')}`;
+          const lines = params.map((p: any) => `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>${p.seriesName}: ${p.data[1]?.toFixed?.(2) ?? p.data.toFixed(2)}%`);
+          return `<div style="font-weight:800;margin-bottom:6px">月销量 ${params[0].axisValue}</div><div style="color:rgba(255,255,255,0.75);font-size:11px;line-height:1.6">${lines.join('<br/>')}</div>`;
         },
       },
       legend: {
@@ -449,7 +455,7 @@ function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, p
 
 function SimulatorSlider({ label, value, max, step, onChange, formatter, accent, icon, hint }: { label: string; value: number; max: number; step: number; onChange: (v: number) => void; formatter: (v?: number) => string; accent?: string; icon?: React.ReactNode; hint?: string }) {
   return (
-    <div className="simulator-slider">
+    <div className="simulator-slider" style={{ ['--slider-accent' as string]: accent } as React.CSSProperties}>
       <div className="simulator-slider-header">
         <span className="simulator-slider-label">
           <span style={{ color: accent, marginRight: 6 }}>{icon}</span>
@@ -458,7 +464,7 @@ function SimulatorSlider({ label, value, max, step, onChange, formatter, accent,
         <span className="simulator-slider-value" style={{ color: accent }}>{formatter(value)}</span>
       </div>
       {hint && <div className="simulator-slider-hint">{hint}</div>}
-      <Slider min={0} max={max} step={step} value={value} onChange={onChange} tooltip={{ formatter }} trackStyle={{ background: accent }} handleStyle={{ borderColor: accent }} />
+      <Slider min={0} max={max} step={step} value={value} onChange={onChange} tooltip={{ formatter }} trackStyle={{ background: accent }} />
     </div>
   );
 }

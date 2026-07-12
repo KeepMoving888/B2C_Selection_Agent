@@ -1,5 +1,5 @@
 import { ConfigProvider, Drawer, Layout, theme as antTheme } from 'antd';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Outlet, useLocation } from 'react-router-dom';
 import { lightTheme } from '../../theme';
@@ -17,9 +17,16 @@ export default function MainLayout() {
   const location = useLocation();
   const { mobileMenuOpen } = useSelector((state: RootState) => state.ui);
   const isMobile = useMobile();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     dispatch(setMobileMenuOpen(false));
+    // 页面切换后滚动到内容区顶部，避免从长页面切过来仍停留在底部
+    const el = contentRef.current;
+    if (el) {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname, dispatch]);
 
   // 参赛版本强制浅色主题：保证自定义 CSS 全部生效，视觉统一
@@ -36,6 +43,7 @@ export default function MainLayout() {
           {!isMobile && <AppSidebar />}
           <Layout style={{ display: 'flex', flexDirection: 'column', minWidth: 0, height: 'calc(100vh - 68px)' }}>
             <Content
+              ref={contentRef}
               className="main-layout-content"
               style={{
                 padding: isMobile ? 16 : 32,
