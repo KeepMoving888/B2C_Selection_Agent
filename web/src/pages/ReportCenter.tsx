@@ -1044,13 +1044,11 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
   await new Promise((resolve) => setTimeout(resolve, 80))
 
   const container = document.createElement('div')
-  container.style.position = 'fixed'
-  container.style.left = '0'
-  container.style.top = '0'
+  container.style.position = 'absolute'
+  container.style.left = '-9999px'
+  container.style.top = '-9999px'
   container.style.width = '794px'
-  container.style.visibility = 'hidden'
-  container.style.pointerEvents = 'none'
-  container.style.zIndex = '-10000'
+  container.style.zIndex = '-1'
   document.body.appendChild(container)
 
   const root = createRoot(container)
