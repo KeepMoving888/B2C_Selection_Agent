@@ -2533,6 +2533,17 @@
     align-items: flex-start;
     gap: 8px;
   }
+  .cost-row .cost-info {
+    width: 100%;
+    flex: none;
+  }
+  .cost-row .cost-bar-row {
+    width: 100%;
+  }
+  .cost-row .cost-bar-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
   .assumption-grid {
     grid-template-columns: 1fr;
   }
@@ -2568,59 +2579,75 @@
 }
 
 /* =========================================================
-   Tooltip / 提示卡片：精致、紧凑、彻底去除大白块
+   Tooltip / 提示：纯文字小标签，彻底无卡片感
+   用户明确要求“没有大卡片”，因此把背景、阴影、圆角
+   全部压缩到接近不可见，仅作为一行小字提示。
    ========================================================= */
 body .ant-tooltip,
 body .ant-slider-tooltip,
 body .ant-popover {
-  max-width: 260px !important;
+  max-width: 140px !important;
+  pointer-events: none !important;
 }
 
 body .ant-tooltip .ant-tooltip-inner,
 body .ant-slider-tooltip .ant-tooltip-inner,
 body .ant-popover .ant-popover-inner {
-  max-width: 240px !important;
+  max-width: 130px !important;
   min-width: 0 !important;
   width: auto !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   white-space: normal !important;
-  font-size: 12px !important;
-  line-height: 1.5 !important;
-  padding: 7px 11px !important;
-  border-radius: 8px !important;
-  background: rgba(30, 41, 59, 0.94) !important;
+  font-size: 9px !important;
+  line-height: 1.25 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  background: rgba(30, 41, 59, 0.75) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+body .ant-tooltip .ant-tooltip-arrow,
+body .ant-popover .ant-popover-arrow {
+  display: none !important;
 }
 
 body .ant-tooltip .ant-tooltip-arrow::before,
 body .ant-popover .ant-popover-arrow-content {
-  background: rgba(30, 41, 59, 0.94) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.75) !important;
+  border: none !important;
+  width: 4px !important;
+  height: 4px !important;
 }
 
-/* ECharts tooltip：深色小卡片，与大尺寸白色 tooltip 区分 */
+/* Slider tooltip：更小的数字标签 */
+.ant-slider-tooltip .ant-tooltip-inner {
+  max-width: 90px !important;
+  white-space: nowrap !important;
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+}
+
+/* ECharts tooltip：同样保持极简小标签 */
 .echarts-tooltip,
 .echarts-tooltip .tooltip-content,
 .echarts-tooltip-dark {
-  max-width: 240px !important;
+  max-width: 140px !important;
   min-width: 0 !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   white-space: normal !important;
-  line-height: 1.45 !important;
-  font-size: 11px !important;
-  padding: 8px 12px !important;
-  border-radius: 10px !important;
-  background: rgba(30, 41, 59, 0.94) !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  line-height: 1.25 !important;
+  font-size: 9px !important;
+  padding: 3px 6px !important;
+  border-radius: 3px !important;
+  background: rgba(30, 41, 59, 0.78) !important;
+  border: none !important;
   color: #ffffff !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22) !important;
-  backdrop-filter: blur(6px) !important;
+  box-shadow: none !important;
 }
 
 .echarts-tooltip div,
@@ -2641,54 +2668,50 @@ body .ant-popover .ant-popover-arrow-content {
   overflow-wrap: break-word;
 }
 
-/* Slider tooltip 防止白色矩形与溢出 */
-.ant-slider-tooltip .ant-tooltip-inner {
-  max-width: 140px !important;
-  white-space: nowrap !important;
-  font-size: 11px !important;
-  padding: 5px 9px !important;
-  background: rgba(30, 41, 59, 0.94) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
-}
-
-/* Slider 统一样式：精致圆形按钮（直接让 handle 本身成圆，无需伪元素） */
+/* Slider 统一样式：更精致的小圆钮 */
 .ant-slider {
-  margin: 10px 6px;
+  margin: 4px 2px;
+  padding: 4px 0;
 }
 
 .ant-slider-rail {
   background-color: #e2e8f0 !important;
-  border-radius: 4px;
-  height: 8px;
+  border-radius: 2px;
+  height: 3px;
 }
 
 .ant-slider-track {
-  border-radius: 4px;
-  height: 8px;
+  border-radius: 2px;
+  height: 3px;
 }
 
 .ant-slider-handle {
-  width: 20px !important;
-  height: 20px !important;
-  margin-top: -6px !important;
+  width: 10px !important;
+  height: 10px !important;
+  margin-top: -3.5px !important;
   border-radius: 50% !important;
   background: #ffffff !important;
-  border: 3px solid var(--slider-accent, var(--saas-primary)) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14), 0 0 0 2px rgba(255, 255, 255, 0.6) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+  border: 1.5px solid var(--slider-accent, var(--saas-primary)) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
 }
 
+/* 强制去除 Ant Design 滑块自带的白色外圈/矩形 */
 .ant-slider-handle::after,
-.ant-slider-handle::before {
+.ant-slider-handle::before,
+.ant-slider-handle .ant-slider-handle-dragging::after {
   display: none !important;
+  content: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
 }
 
 .ant-slider-handle:hover,
 .ant-slider-handle:focus,
 .ant-slider-handle:active {
   transform: scale(1.18) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.14) !important;
 }
 
 .ant-slider:hover .ant-slider-track {
@@ -2699,17 +2722,35 @@ body .ant-popover .ant-popover-arrow-content {
   body .ant-tooltip .ant-tooltip-inner,
   body .ant-slider-tooltip .ant-tooltip-inner,
   body .ant-popover .ant-popover-inner {
-    max-width: 200px !important;
-    font-size: 11px !important;
-    padding: 6px 10px !important;
+    max-width: 120px !important;
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
   }
 
   .echarts-tooltip,
   .echarts-tooltip .tooltip-content,
   .echarts-tooltip-dark {
-    max-width: 180px !important;
-    font-size: 11px !important;
-    padding: 6px 9px !important;
+    max-width: 120px !important;
+    font-size: 9px !important;
+    padding: 3px 5px !important;
+  }
+
+  .ant-slider {
+    margin: 3px 2px;
+    padding: 3px 0;
+  }
+
+  .ant-slider-rail,
+  .ant-slider-track {
+    height: 2px;
+  }
+
+  .ant-slider-handle {
+    width: 9px !important;
+    height: 9px !important;
+    margin-top: -3.5px !important;
+    border-width: 1.5px !important;
   }
 }
 

@@ -8,7 +8,6 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
   DollarOutlined,
-  DownloadOutlined,
   EyeOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
@@ -54,6 +53,7 @@ import { useMobile } from '../hooks/useMobile'
 import { generateMockReport } from '../services/mockData'
 import { setCurrentReport, setPageTitle } from '../store/slices/uiSlice'
 import type { AnalysisHistoryItem, AnalysisReport } from '../types'
+import { getMarketCurrency } from '../utils/currency'
 
 const { Text, Title } = Typography
 
@@ -205,15 +205,46 @@ export default function ReportCenter() {
     message.success(`已导出 ${items.length} 条报告`)
   }
 
-  const exportJSON = (items: AnalysisHistoryItem[]) => {
-    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `reports_${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success(`已导出 ${items.length} 条报告`)
+  const exportSinglePdfFromRecord = async (record: AnalysisHistoryItem) => {
+    let report: AnalysisReport | null = null
+    try {
+      const local = localStorage.getItem(`xuanpin_report_detail_${record.id}`)
+      if (local) {
+        const parsed = JSON.parse(local) as AnalysisReport
+        const hasEnoughOpportunities = (parsed.market_analysis?.keyword_opportunities?.length || 0) >= 10
+        if (parsed.version === 3 && hasEnoughOpportunities) {
+          report = parsed
+        } else if (parsed.keyword && parsed.market && parsed.budget) {
+          report = generateMockReport(parsed.keyword, parsed.market, parsed.budget)
+        }
+      }
+    } catch {}
+    if (!report) {
+      report = generateMockReport(record.keyword, record.market, '$5,000 - $10,000')
+    }
+    await downloadReportPdf(report)
+  }
+
+  const exportSelectedPDF = async () => {
+    const items = selectedRowKeys.length > 0
+      ? filteredHistory.filter((h) => selectedRowKeys.includes(h.id))
+      : filteredHistory.slice(0, 1)
+    if (items.length === 0) {
+      message.warning('没有可导出的报告')
+      return
+    }
+    setPdfLoading(true)
+    try {
+      for (const item of items) {
+        await exportSinglePdfFromRecord(item)
+      }
+      message.success(`已导出 ${items.length} 条报告 PDF`)
+    } catch (error) {
+      console.error('批量 PDF 导出失败:', error)
+      message.error('PDF 导出失败')
+    } finally {
+      setPdfLoading(false)
+    }
   }
 
   const shareReport = (id: string) => {
@@ -269,11 +300,14 @@ export default function ReportCenter() {
     base.push({
       title: '操作',
       key: 'action',
-      width: isMobile ? 150 : 210,
+      width: isMobile ? 170 : 260,
       render: (_: unknown, record: AnalysisHistoryItem) => (
         <Space size="small">
           <Button type="link" icon={<EyeOutlined />} onClick={() => showDetail(record.id)} size={isMobile ? 'small' : 'middle'}>
             {isMobile ? '' : '详情'}
+          </Button>
+          <Button type="link" icon={<FilePdfOutlined />} onClick={() => exportSinglePdfFromRecord(record)} size={isMobile ? 'small' : 'middle'}>
+            {isMobile ? '' : 'PDF'}
           </Button>
           <Button type="link" icon={<ShareAltOutlined />} onClick={() => shareReport(record.id)} size={isMobile ? 'small' : 'middle'}>
             {isMobile ? '' : '分享'}
@@ -323,8 +357,8 @@ export default function ReportCenter() {
             <Button icon={<FileExcelOutlined />} onClick={() => exportCSV(filteredHistory)}>
               导出 Excel
             </Button>
-            <Button icon={<DownloadOutlined />} onClick={() => exportJSON(filteredHistory)}>
-              导出 JSON
+            <Button icon={<FilePdfOutlined />} loading={pdfLoading} onClick={exportSelectedPDF}>
+              导出 PDF
             </Button>
           </Space>
         }
@@ -401,7 +435,7 @@ function ReportDetailView({ report }: { report: AnalysisReport }) {
     {
       key: 'market',
       label: '市场分析',
-      children: <ReportMarketTab market={market} />,
+      children: <ReportMarketTab market={market} currencySymbol={getMarketCurrency(report.market).symbol} />,
     },
     {
       key: 'trend',
@@ -411,7 +445,7 @@ function ReportDetailView({ report }: { report: AnalysisReport }) {
     {
       key: 'profit',
       label: '利润测算',
-      children: <ReportProfitTab profit={profit} />,
+      children: <ReportProfitTab profit={profit} currencySymbol={getMarketCurrency(report.market).symbol} />,
     },
     {
       key: 'review',
@@ -480,6 +514,7 @@ function ReportOverviewTab({ report }: { report: AnalysisReport }) {
   const market = report.market_analysis
   const profit = report.profit_analysis
   const trend = report.trend_analysis
+  const { symbol } = getMarketCurrency(report.market)
   const radarOption = useMemo(() => buildReportRadarOption(report), [report])
 
   return (
@@ -495,7 +530,7 @@ function ReportOverviewTab({ report }: { report: AnalysisReport }) {
           <MetricCard label="评论基数" value={`${market.avg_reviews.toLocaleString()}+`} icon={<BarChartOutlined />} color="#7c3aed" />
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <MetricCard label="单件毛利" value={`USD ${profit.gross_profit_per_unit.toFixed(2)}`} icon={<RiseOutlined />} color="#16a34a" />
+          <MetricCard label="单件毛利" value={`${symbol}${profit.gross_profit_per_unit.toFixed(2)}`} icon={<RiseOutlined />} color="#16a34a" />
         </Col>
         <Col xs={24} sm={12} lg={8}>
           <MetricCard label="盈亏平衡" value={`${profit.breakeven_units ?? 'N/A'} 件`} icon={<StockOutlined />} color="#0891b2" />
@@ -590,13 +625,13 @@ function KeywordRelationSuggestions({ rel }: { rel: NonNullable<AnalysisReport['
   )
 }
 
-function ReportMarketTab({ market }: { market: AnalysisReport['market_analysis'] }) {
+function ReportMarketTab({ market, currencySymbol }: { market: AnalysisReport['market_analysis']; currencySymbol: string }) {
   const top5 = market.competitors.slice(0, 5)
   const data = top5.map((c: any, i: number) => ({
     rank: i + 1,
     title: c.title,
     brand: c.brand,
-    price: `${c.price}`,
+    price: `${currencySymbol}${c.price.toFixed(2)}`,
     rating: c.rating,
     reviews: c.review_count.toLocaleString(),
     bsr: c.bsr,
@@ -665,22 +700,22 @@ function ReportMarketTab({ market }: { market: AnalysisReport['market_analysis']
   )
 }
 
-function ReportProfitTab({ profit }: { profit: AnalysisReport['profit_analysis'] }) {
+function ReportProfitTab({ profit, currencySymbol }: { profit: AnalysisReport['profit_analysis']; currencySymbol: string }) {
   const costRows = Object.entries(profit.cost_breakdown).map(([name, value]) => ({
     name,
     value,
     pct: profit.cost_breakdown_pct[name] || '0.0%',
   }))
-  const donutOption = useMemo(() => buildCostDonutOption(profit), [profit])
+  const donutOption = useMemo(() => buildCostDonutOption(profit, currencySymbol), [profit, currencySymbol])
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
       <Row gutter={[16, 16]}>
         <Col xs={12} sm={8}>
-          <MiniMetric label="售价" value={`$${profit.selling_price.toFixed(2)}`} />
+          <MiniMetric label="售价" value={`${currencySymbol}${profit.selling_price.toFixed(2)}`} />
         </Col>
         <Col xs={12} sm={8}>
-          <MiniMetric label="单件成本" value={`$${profit.total_cost_per_unit.toFixed(2)}`} />
+          <MiniMetric label="单件成本" value={`${currencySymbol}${profit.total_cost_per_unit.toFixed(2)}`} />
         </Col>
         <Col xs={12} sm={8}>
           <MiniMetric label="毛利率" value={profit.gross_margin_pct} highlight />
@@ -693,7 +728,7 @@ function ReportProfitTab({ profit }: { profit: AnalysisReport['profit_analysis']
               rowKey="name"
               columns={[
                 { title: '成本项', dataIndex: 'name' },
-                { title: '金额', dataIndex: 'value', render: (v: number) => `$${v.toFixed(2)}`, align: 'right' as const },
+                { title: '金额', dataIndex: 'value', render: (v: number) => `${currencySymbol}${v.toFixed(2)}`, align: 'right' as const },
                 { title: '占比', dataIndex: 'pct', align: 'right' as const },
               ]}
               dataSource={costRows}
@@ -715,7 +750,7 @@ function ReportProfitTab({ profit }: { profit: AnalysisReport['profit_analysis']
               <div style={{ textAlign: 'center', padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, marginBottom: 8 }}>{name}</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#1e40af' }}>ROI {s['ROI']}%</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>月毛利 ${s['月毛利']}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>月毛利 {currencySymbol}{s['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
               </div>
             </Col>
           ))}
@@ -1005,10 +1040,11 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
       currentTop = bestBreak
     }
 
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
-    breaks.forEach((breakY) => {
-      pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, -breakY * pxToMm, imgWidth, imgHeight)
+    // 使用 breaks 作为每一页的顶部偏移，避免第一页重复渲染整图导致分页内容重叠
+    const pageTops = [0, ...breaks.filter((b) => b > 0 && b < container.scrollHeight)]
+    pageTops.forEach((top, index) => {
+      if (index > 0) pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, -top * pxToMm, imgWidth, imgHeight)
     })
 
     pdf.save(`${report.keyword.replace(/\s+/g, '_').toLowerCase()}_${report.market.toLowerCase()}_report.pdf`)
@@ -1031,6 +1067,7 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis
   const review = report.review_insights
   const compliance = report.compliance
+  const { symbol } = getMarketCurrency(report.market)
   const trendText = trend.trend_direction === 'rising' ? '上升' : trend.trend_direction === 'stable' ? '稳定' : '下滑'
 
   return (
@@ -1095,16 +1132,16 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
       <div className="p-section">
         <div className="p-title">四、利润测算</div>
         <div className="p-grid">
-          <div className="p-metric"><div className="p-metric-label">售价</div><div className="p-metric-value">${profit.selling_price.toFixed(2)}</div></div>
-          <div className="p-metric"><div className="p-metric-label">单件总成本</div><div className="p-metric-value">${profit.total_cost_per_unit.toFixed(2)}</div></div>
-          <div className="p-metric"><div className="p-metric-label">单件毛利</div><div className="p-metric-value">${profit.gross_profit_per_unit.toFixed(2)}</div></div>
+          <div className="p-metric"><div className="p-metric-label">售价</div><div className="p-metric-value">{symbol}{profit.selling_price.toFixed(2)}</div></div>
+          <div className="p-metric"><div className="p-metric-label">单件总成本</div><div className="p-metric-value">{symbol}{profit.total_cost_per_unit.toFixed(2)}</div></div>
+          <div className="p-metric"><div className="p-metric-label">单件毛利</div><div className="p-metric-value">{symbol}{profit.gross_profit_per_unit.toFixed(2)}</div></div>
           <div className="p-metric"><div className="p-metric-label">盈亏平衡</div><div className="p-metric-value">{profit.breakeven_units} 件</div></div>
         </div>
         <table className="p-table">
           <thead><tr><th>成本项</th><th>金额</th><th>占比</th></tr></thead>
           <tbody>
             {Object.entries(profit.cost_breakdown).map(([name, value]) => (
-              <tr key={name}><td>{name}</td><td>${(value as number).toFixed(2)}</td><td>{profit.cost_breakdown_pct[name] || '0%'}</td></tr>
+              <tr key={name}><td>{name}</td><td>{symbol}{(value as number).toFixed(2)}</td><td>{profit.cost_breakdown_pct[name] || '0%'}</td></tr>
             ))}
           </tbody>
         </table>
@@ -1112,7 +1149,7 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           <thead><tr><th>情景</th><th>月销量</th><th>ROI</th><th>月毛利</th><th>回本周期</th></tr></thead>
           <tbody>
             {Object.entries(profit.roi_scenarios).map(([name, data]: [string, any]) => (
-              <tr key={name}><td>{name}</td><td>{data['月销量']}</td><td>{data['ROI'].toFixed(2)}%</td><td>${data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td>{data['回本周期']} 月</td></tr>
+              <tr key={name}><td>{name}</td><td>{data['月销量']}</td><td>{data['ROI'].toFixed(2)}%</td><td>{symbol}{data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td>{data['回本周期']} 月</td></tr>
             ))}
           </tbody>
         </table>
@@ -1250,7 +1287,7 @@ function buildReportRadarOption(report: AnalysisReport): EChartsOption {
   }
 }
 
-function buildCostDonutOption(profit: AnalysisReport['profit_analysis']): EChartsOption {
+function buildCostDonutOption(profit: AnalysisReport['profit_analysis'], currencySymbol = '$'): EChartsOption {
   const data = Object.entries(profit.cost_breakdown)
     .filter(([, v]) => v > 0)
     .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
@@ -1262,7 +1299,7 @@ function buildCostDonutOption(profit: AnalysisReport['profit_analysis']): EChart
     tooltip: {
       trigger: 'item',
       ...DARK_TOOLTIP,
-      formatter: (params: any) => `<div style="font-weight:800">${params.name}</div><div style="color:rgba(255,255,255,0.75);font-size:12px">$${params.value.toFixed(2)} · ${params.percent}%</div>`,
+      formatter: (params: any) => `<div style="font-weight:800">${params.name}</div><div style="color:rgba(255,255,255,0.75);font-size:12px">${currencySymbol}${params.value.toFixed(2)} · ${params.percent}%</div>`,
     },
     legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b', fontSize: 11 } },
     series: [{
@@ -1287,7 +1324,7 @@ function buildCostDonutOption(profit: AnalysisReport['profit_analysis']): EChart
           type: 'text',
           left: 'center',
           top: 'center',
-          style: { text: `$${profit.total_cost_per_unit.toFixed(2)}`, fontSize: 18, fontWeight: 900, fill: '#1e293b', fontFamily: 'var(--font-sans)', y: -4 },
+          style: { text: `${currencySymbol}${profit.total_cost_per_unit.toFixed(2)}`, fontSize: 18, fontWeight: 900, fill: '#1e293b', fontFamily: 'var(--font-sans)', y: -4 },
         },
         {
           type: 'text',

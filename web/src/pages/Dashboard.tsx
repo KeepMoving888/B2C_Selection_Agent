@@ -22,9 +22,11 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
 import WelcomeGuide from '../components/WelcomeGuide';
+import { useMobile } from '../hooks/useMobile';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
+import { getMarketCurrency } from '../utils/currency';
 
 const MAX_VALUES: Record<string, number> = {
   利润空间: 40,
@@ -116,6 +118,7 @@ function KpiCards({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis;
   const breakeven = profit.breakeven_units ?? 'N/A';
   const trendLabel = trend.trend_direction === 'rising' ? '上升' : trend.trend_direction === 'stable' ? '稳定' : '下滑';
+  const { symbol } = getMarketCurrency(report.market);
   // 选品行业配色：上升=红色（热门/积极），稳定=黄色（警惕），下滑=绿色（冷却）
   const trendColor = trend.trend_direction === 'rising' ? '#dc2626' : trend.trend_direction === 'stable' ? '#d97706' : '#059669';
   const trendBg = trend.trend_direction === 'rising' ? '#fef2f2' : trend.trend_direction === 'stable' ? '#fffbeb' : '#ecfdf5';
@@ -133,7 +136,7 @@ function KpiCards({ report }: { report: AnalysisReport }) {
     {
       label: '毛利率',
       value: profit.gross_margin_pct,
-      sub: `单件毛利 USD ${profit.gross_profit_per_unit.toFixed(2)}`,
+      sub: `单件毛利 ${symbol}${profit.gross_profit_per_unit.toFixed(2)}`,
       trend: '基于市场均价测算',
       accent: METRIC_ACCENTS['毛利率'],
     },
@@ -181,55 +184,63 @@ function KpiCards({ report }: { report: AnalysisReport }) {
 }
 
 function RadarChart({ report }: { report: AnalysisReport }) {
+  const isMobile = useMobile();
   const option: EChartsOption = useMemo(() => {
     const categories = Object.keys(report.score_breakdown);
     const values = Object.values(report.score_breakdown);
     const normalized = categories.map((cat, i) => Math.min(100, (values[i] / MAX_VALUES[cat]) * 100));
     const avg = normalized.reduce((a, b) => a + b, 0) / normalized.length;
     const benchmark = categories.map(() => 60);
+    const shortNames: Record<string, string> = {
+      利润空间: '利润\n空间',
+      趋势热度: '趋势\n热度',
+      竞争强度: '竞争\n强度',
+      评论洞察: '评论\n洞察',
+      供应链稳定性: '供应链\n稳定性',
+    };
 
     return {
       color: ['#2563eb', '#94a3b8'],
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(30, 41, 59, 0.92)',
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        borderWidth: 1,
-        padding: [8, 12],
+        backgroundColor: 'rgba(30, 41, 59, 0.78)',
+        borderWidth: 0,
+        padding: [4, 8],
         confine: true,
-        extraCssText: 'max-width:240px;word-wrap:break-word;white-space:normal;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(4px);',
-        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 12 },
+        extraCssText: 'max-width:200px;word-wrap:break-word;white-space:normal;border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);',
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 10 },
         formatter: (params: any) => {
           if (params.seriesIndex === 1) {
-            return '<div style="font-weight:800;font-size:13px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.72);font-size:12px;margin-top:4px">五维均衡参考线：60%</div>';
+            return '<div style="font-weight:800;font-size:10px;color:#fff">行业基准</div><div style="color:rgba(255,255,255,0.72);font-size:9px;margin-top:2px">五维均衡参考线：60%</div>';
           }
           const list = params.value.map((v: number, i: number) => {
             const raw = values[i];
             const max = MAX_VALUES[categories[i]];
             const color = SCORE_COLORS[categories[i]].start;
-            return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap">
-              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
-              <span style="font-weight:700;font-size:12px;color:#fff">${categories[i]}</span>
-              <span style="color:rgba(255,255,255,0.72);font-size:11px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
+            return `<div style="display:flex;align-items:center;gap:6px;margin:2px 0;flex-wrap:wrap">
+              <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${color};flex-shrink:0"></span>
+              <span style="font-weight:700;font-size:10px;color:#fff">${categories[i]}</span>
+              <span style="color:rgba(255,255,255,0.72);font-size:9px;margin-left:auto">${raw}/${max} · ${v.toFixed(1)}%</span>
             </div>`;
           }).join('');
-          return `<div style="font-weight:800;margin-bottom:6px;font-size:13px;color:#fff">选品能力评分</div>${list}`;
+          return `<div style="font-weight:800;margin-bottom:4px;font-size:10px;color:#fff">选品能力评分</div>${list}`;
         },
       },
       radar: {
         indicator: categories.map((cat) => ({
-          name: cat,
+          name: isMobile ? shortNames[cat] || cat : cat,
           max: 100,
           color: SCORE_COLORS[cat].start,
         })),
-        radius: '72%',
-        center: ['50%', '50%'],
+        radius: isMobile ? '58%' : '72%',
+        center: ['50%', isMobile ? '52%' : '50%'],
         shape: 'polygon',
         splitNumber: 5,
         axisName: {
-          fontSize: 13,
+          fontSize: isMobile ? 10 : 13,
           fontWeight: 900,
           fontFamily: 'var(--font-sans)',
+          lineHeight: 14,
         },
         axisLine: {
           lineStyle: { color: '#cbd5e1', width: 1.5 },
@@ -356,9 +367,9 @@ function RadarChart({ report }: { report: AnalysisReport }) {
         },
       ],
     };
-  }, [report]);
+  }, [report, isMobile]);
 
-  return <ReactECharts key={`radar-${report.keyword}`} option={option} style={{ height: 440 }} notMerge={true} />;
+  return <ReactECharts key={`radar-${report.keyword}`} option={option} style={{ height: isMobile ? 340 : 440 }} notMerge={true} />;
 }
 
 function ScoreBreakdown({ report }: { report: AnalysisReport }) {

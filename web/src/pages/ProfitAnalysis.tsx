@@ -10,7 +10,7 @@ import { Card, Col, Row, Slider, Spin } from 'antd';
 import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AnalysisSearchForm from '../components/AnalysisSearchForm';
 import EmptyReport from '../components/EmptyReport';
@@ -18,6 +18,7 @@ import { useMobile } from '../hooks/useMobile';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
+import { getMarketCurrency } from '../utils/currency';
 
 const COST_COLORS: Record<string, { start: string; end: string; text: string; icon: React.ReactNode }> = {
   产品成本: { start: '#2563eb', end: '#60a5fa', text: '#ffffff', icon: <PieChartOutlined /> },
@@ -48,9 +49,15 @@ function roiBgColor(roi: number) {
 }
 
 function assumptionRiskColor(name: string, value: number) {
-  if (['平台佣金', '广告占比', '退货预留'].includes(name)) {
-    if (value >= 15) return '#dc2626';
-    if (value >= 10) return '#d97706';
+  if (['平台佣金', '广告占比'].includes(name)) {
+    // 占售价比例：>20% 高风险，>15% 关注
+    if (value >= 20) return '#dc2626';
+    if (value >= 15) return '#d97706';
+    return '#059669';
+  }
+  if (name === '退货预留') {
+    if (value >= 8) return '#dc2626';
+    if (value >= 5) return '#d97706';
     return '#059669';
   }
   if (name === 'FBA 费用') {
@@ -133,10 +140,15 @@ function calculateOptimizedRoiModel(
   };
 }
 
-function CostRow({ item, value, pct, total }: { item: string; value: number; pct: string; total: number }) {
+function CostRow({ item, value, pct, total, market, sellingPrice }: { item: string; value: number; pct: string; total: number; market: string; sellingPrice: number }) {
   const width = total > 0 ? Math.min(100, Math.max(0, (value / total) * 100)) : 0;
   const pctNum = parseFloat(pct.replace('%', '')) || 0;
   const color = costColor(item);
+  const { symbol } = getMarketCurrency(market);
+  const ofSellingPct = sellingPrice > 0 ? (value / sellingPrice) * 100 : 0;
+  const tooltipText = item === '平台佣金'
+    ? `平台佣金：${symbol}${value.toFixed(2)}（占售价 ${ofSellingPct.toFixed(1)}%，与类目佣金率一致）`
+    : `成本构成：${symbol}${value.toFixed(2)}（占总成本 ${pctNum.toFixed(1)}%）`;
 
   return (
     <div className="cost-row">
@@ -146,21 +158,21 @@ function CostRow({ item, value, pct, total }: { item: string; value: number; pct
       <div className="cost-info">
         <div className="cost-meta">
           <span className="cost-name">{item}</span>
-          <span className="cost-amount">USD {value.toFixed(2)}</span>
+          <span className="cost-amount">{symbol}{value.toFixed(2)}</span>
         </div>
         <div className="cost-bar-row">
-          <div className="cost-bar-wrapper" style={{ background: `${color.start}18` }}>
+          <div className="cost-bar-wrapper" style={{ background: `${color.start}18`, flex: 1, minWidth: 0 }}>
             <div className="cost-bar-fill" style={{
               width: `${width}%`,
               background: `linear-gradient(90deg, ${color.start}, ${color.end})`,
               color: color.text,
             }} />
           </div>
-          <span className="cost-bar-outside-pct" style={{ color: color.start }}>
+          <span className="cost-bar-outside-pct" style={{ color: color.start, minWidth: 42, textAlign: 'right' }}>
             {pctNum.toFixed(1)}%
           </span>
         </div>
-        <div className="cost-tooltip">成本构成：USD {value.toFixed(2)} ({pctNum.toFixed(1)}%)</div>
+        <div className="cost-tooltip">{tooltipText}</div>
       </div>
     </div>
   );
@@ -196,8 +208,9 @@ const SCENARIO_THEME: Record<string, { bg: string; border: string; accent: strin
   },
 };
 
-function ScenarioCard({ name, data }: { name: string; data: any }) {
+function ScenarioCard({ name, data, market }: { name: string; data: any; market: string }) {
   const c = SCENARIO_THEME[name];
+  const { symbol } = getMarketCurrency(market);
 
   return (
     <div className="scenario-card" style={{ ['--border' as string]: c.border, ['--bg' as string]: c.bg, ['--accent' as string]: c.accent, ['--value' as string]: c.value, ['--pill' as string]: c.pill, ['--light' as string]: c.light } as React.CSSProperties}>
@@ -223,7 +236,7 @@ function ScenarioCard({ name, data }: { name: string; data: any }) {
       <div className="scenario-card-footer">
         <div className="scenario-footer-row">
           <span className="scenario-footer-label">月毛利</span>
-          <span className="scenario-footer-value">${data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+          <span className="scenario-footer-value">{symbol}{data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
         </div>
         <div className="scenario-footer-row">
           <span className="scenario-footer-label">回本周期</span>
@@ -453,7 +466,7 @@ function OptimizedRoiChart({ report, costReduction, adReduction, fbaReduction, p
   return <ReactECharts option={option} style={{ height: isMobile ? 240 : 280, width: '100%' }} />;
 }
 
-function SimulatorSlider({ label, value, max, step, onChange, formatter, accent, icon, hint }: { label: string; value: number; max: number; step: number; onChange: (v: number) => void; formatter: (v?: number) => string; accent?: string; icon?: React.ReactNode; hint?: string }) {
+const SimulatorSlider = React.memo(function SimulatorSlider({ label, value, max, step, onChange, onChangeComplete, formatter, accent, icon, hint }: { label: string; value: number; max: number; step: number; onChange: (v: number) => void; onChangeComplete: (v: number) => void; formatter: (v?: number) => string; accent?: string; icon?: React.ReactNode; hint?: string }) {
   return (
     <div className="simulator-slider" style={{ ['--slider-accent' as string]: accent } as React.CSSProperties}>
       <div className="simulator-slider-header">
@@ -464,17 +477,18 @@ function SimulatorSlider({ label, value, max, step, onChange, formatter, accent,
         <span className="simulator-slider-value" style={{ color: accent }}>{formatter(value)}</span>
       </div>
       {hint && <div className="simulator-slider-hint">{hint}</div>}
-      <Slider min={0} max={max} step={step} value={value} onChange={onChange} tooltip={{ formatter }} trackStyle={{ background: accent }} />
+      <Slider min={0} max={max} step={step} value={value} onChange={onChange} onChangeComplete={onChangeComplete} tooltip={{ formatter }} trackStyle={{ background: accent }} />
     </div>
   );
-}
+});
 
 function ProfitSummaryBanner({ report }: { report: AnalysisReport }) {
   const profit = report.profit_analysis;
+  const { symbol } = getMarketCurrency(report.market);
   const items = [
-    { label: '市场售价', value: `$${profit.selling_price.toFixed(2)}`, color: '#2563eb' },
-    { label: '单件总成本', value: `$${profit.total_cost_per_unit.toFixed(2)}`, color: '#475569' },
-    { label: '单件毛利', value: `$${profit.gross_profit_per_unit.toFixed(2)}`, color: '#059669' },
+    { label: '市场售价', value: `${symbol}${profit.selling_price.toFixed(2)}`, color: '#2563eb' },
+    { label: '单件总成本', value: `${symbol}${profit.total_cost_per_unit.toFixed(2)}`, color: '#475569' },
+    { label: '单件毛利', value: `${symbol}${profit.gross_profit_per_unit.toFixed(2)}`, color: '#059669' },
     { label: '毛利率', value: profit.gross_margin_pct, color: profit.gross_margin_pct.startsWith('-') ? '#dc2626' : '#059669' },
     { label: '盈亏平衡', value: `${profit.breakeven_units} 件/月`, color: '#0891b2' },
   ];
@@ -501,13 +515,14 @@ function BestScenarioBanner({ report, activeScenario, onScenarioChange }: { repo
     乐观: '积极备货并加大广告，抢占旺季窗口',
   };
   const theme = SCENARIO_THEME[activeScenario];
+  const { symbol } = getMarketCurrency(report.market);
 
   return (
     <div className="best-scenario-banner" style={{ ['--bg' as string]: theme.bg, ['--border' as string]: theme.border, ['--pill' as string]: theme.pill } as React.CSSProperties}>
       <div style={{ flex: 1, minWidth: 260 }}>
         <div className="best-scenario-label">ROI 情景切换</div>
         <div className="best-scenario-title" style={{ color: theme.pill }}>
-          {activeScenario}情景 · ROI {activeData.ROI.toFixed(2)}% · 月毛利 USD {activeData['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          {activeScenario}情景 · ROI {activeData.ROI.toFixed(2)}% · 月毛利 {symbol}{activeData['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </div>
         <div className="best-scenario-action" style={{ marginTop: 12, display: 'inline-block' }}>
           建议操作：{actionMap[activeScenario]}
@@ -550,14 +565,36 @@ function BestScenarioBanner({ report, activeScenario, onScenarioChange }: { repo
 
 const SCENARIO_VOLUME: Record<string, number> = { 保守: 100, 中性: 300, 乐观: 600 };
 
+// 滑动条本地显示值 + 拖动结束提交值，避免滑动时高频 setState 触发页面错误
+function useSliderState(initial = 0) {
+  const [committed, setCommitted] = useState(initial);
+  const [display, setDisplay] = useState(initial);
+
+  const onChange = useCallback((value: number) => {
+    setDisplay(value);
+  }, []);
+
+  const onChangeComplete = useCallback((value: number) => {
+    setDisplay(value);
+    setCommitted(value);
+  }, []);
+
+  const reset = useCallback((value: number) => {
+    setDisplay(value);
+    setCommitted(value);
+  }, []);
+
+  return { committed, display, onChange, onChangeComplete, reset } as const;
+}
+
 export default function ProfitAnalysis() {
   const dispatch = useDispatch();
   const { report, lastSearch, loading, analyze } = useReport();
   const [currentVolume, setCurrentVolume] = useState(300);
-  const [costReduction, setCostReduction] = useState(0);
-  const [adReduction, setAdReduction] = useState(0);
-  const [fbaReduction, setFbaReduction] = useState(0);
-  const [priceIncrease, setPriceIncrease] = useState(0);
+  const costSlider = useSliderState(0);
+  const adSlider = useSliderState(0);
+  const fbaSlider = useSliderState(0);
+  const priceSlider = useSliderState(0);
   const [activeScenario, setActiveScenario] = useState<string>('中性');
 
   useEffect(() => {
@@ -568,11 +605,12 @@ export default function ProfitAnalysis() {
     if (report) {
       setActiveScenario('中性');
       setCurrentVolume(SCENARIO_VOLUME['中性']);
-      setCostReduction(0);
-      setAdReduction(0);
-      setFbaReduction(0);
-      setPriceIncrease(0);
+      costSlider.reset(0);
+      adSlider.reset(0);
+      fbaSlider.reset(0);
+      priceSlider.reset(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report]);
 
   return (
@@ -625,7 +663,7 @@ export default function ProfitAnalysis() {
                 <div className="cost-breakdown-card" style={{ boxShadow: 'none', padding: 0, border: 'none' }}>
                   <div className="cost-total-row">
                     <span className="cost-total-label">总成本</span>
-                    <span className="cost-total-value">USD {report.profit_analysis.total_cost_per_unit.toFixed(2)}</span>
+                    <span className="cost-total-value">{getMarketCurrency(report.market).symbol}{report.profit_analysis.total_cost_per_unit.toFixed(2)}</span>
                   </div>
                   {Object.entries(report.profit_analysis.cost_breakdown).map(([item, value]) => (
                     <CostRow
@@ -634,6 +672,8 @@ export default function ProfitAnalysis() {
                       value={value as number}
                       pct={report.profit_analysis.cost_breakdown_pct[item] || '0%'}
                       total={report.profit_analysis.total_cost_per_unit}
+                      market={report.market}
+                      sellingPrice={report.profit_analysis.selling_price}
                     />
                   ))}
                 </div>
@@ -649,7 +689,7 @@ export default function ProfitAnalysis() {
                 </div>
                 <div className="scenario-grid">
                   {Object.entries(report.profit_analysis.roi_scenarios).map(([name, data]) => (
-                    <ScenarioCard key={name} name={name} data={data} />
+                    <ScenarioCard key={name} name={name} data={data} market={report.market} />
                   ))}
                 </div>
                 <RoiChart report={report} currentVolume={currentVolume} setCurrentVolume={setCurrentVolume} />
@@ -667,25 +707,26 @@ export default function ProfitAnalysis() {
                   拖动滑块模拟成本优化与售价提升对利润的影响。上限根据当前成本结构动态计算：采购/FBA/广告优化最多可将对应成本降为零，售价提升上限为当前售价的 30%。
                 </div>
                 <Row gutter={[32, 0]}>
-                  <Col xs={24} md={12}>
-                    <SimulatorSlider
+                  <Col xs={24} md={12}><SimulatorSlider
                       label="产品成本优化（降低）"
-                      value={costReduction}
+                      value={costSlider.display}
                       max={Number(report.profit_analysis.unit_cost.toFixed(2))}
                       step={0.05}
-                      onChange={setCostReduction}
-                      formatter={(v) => `−USD ${(v ?? 0).toFixed(2)}`}
+                      onChange={costSlider.onChange}
+                      onChangeComplete={costSlider.onChangeComplete}
+                      formatter={(v) => `−${getMarketCurrency(report.market).symbol}${(v ?? 0).toFixed(2)}`}
                       accent="#2563eb"
                       icon={<PieChartOutlined />}
                       hint="向右拖动表示降低单件采购成本（上限为当前产品成本，可降至 0）"
                     />
                     <SimulatorSlider
                       label="广告费用优化（降低）"
-                      value={adReduction}
+                      value={adSlider.display}
                       max={Number(((report.profit_analysis.cost_breakdown['广告费用'] || 0)).toFixed(2))}
                       step={0.05}
-                      onChange={setAdReduction}
-                      formatter={(v) => `−USD ${(v ?? 0).toFixed(2)}`}
+                      onChange={adSlider.onChange}
+                      onChangeComplete={adSlider.onChangeComplete}
+                      formatter={(v) => `−${getMarketCurrency(report.market).symbol}${(v ?? 0).toFixed(2)}`}
                       accent="#dc2626"
                       icon={<RiseOutlined />}
                       hint="向右拖动表示降低单件广告支出（上限为当前广告费用，可降至 0）"
@@ -694,22 +735,24 @@ export default function ProfitAnalysis() {
                   <Col xs={24} md={12}>
                     <SimulatorSlider
                       label="FBA 费用优化（降低）"
-                      value={fbaReduction}
+                      value={fbaSlider.display}
                       max={Number(((report.profit_analysis.cost_breakdown['FBA 费用'] || 0)).toFixed(2))}
                       step={0.05}
-                      onChange={setFbaReduction}
-                      formatter={(v) => `−USD ${(v ?? 0).toFixed(2)}`}
+                      onChange={fbaSlider.onChange}
+                      onChangeComplete={fbaSlider.onChangeComplete}
+                      formatter={(v) => `−${getMarketCurrency(report.market).symbol}${(v ?? 0).toFixed(2)}`}
                       accent="#d97706"
                       icon={<SafetyOutlined />}
                       hint="向右拖动表示降低单件 FBA 费用（上限为当前 FBA 费用，可降至 0）"
                     />
                     <SimulatorSlider
                       label="售价提升（增加）"
-                      value={priceIncrease}
+                      value={priceSlider.display}
                       max={Number((report.profit_analysis.selling_price * 0.3).toFixed(2))}
                       step={0.05}
-                      onChange={setPriceIncrease}
-                      formatter={(v) => `+USD ${(v ?? 0).toFixed(2)}`}
+                      onChange={priceSlider.onChange}
+                      onChangeComplete={priceSlider.onChangeComplete}
+                      formatter={(v) => `+${getMarketCurrency(report.market).symbol}${(v ?? 0).toFixed(2)}`}
                       accent="#059669"
                       icon={<DollarOutlined />}
                       hint="向右拖动表示提升单件售价（上限为当前售价的 30%）"
@@ -718,8 +761,9 @@ export default function ProfitAnalysis() {
                 </Row>
                 {(() => {
                   const profit = report.profit_analysis;
+                  const { symbol } = getMarketCurrency(report.market);
                   const base = calculateOptimizedRoiModel(report, 0, 0, 0, 0);
-                  const optimized = calculateOptimizedRoiModel(report, costReduction, adReduction, fbaReduction, priceIncrease);
+                  const optimized = calculateOptimizedRoiModel(report, costSlider.committed, adSlider.committed, fbaSlider.committed, priceSlider.committed);
                   const newMargin = optimized.newSellingPrice > 0 ? optimized.netProfitPerUnit / optimized.newSellingPrice : 0;
                   const baseMonthlyNet = 300 * base.netProfitPerUnit - base.monthlyFixed;
                   const newMonthlyNet = 300 * optimized.netProfitPerUnit - optimized.monthlyFixed;
@@ -731,10 +775,10 @@ export default function ProfitAnalysis() {
                   const roiDelta = optimizedRoiAt300 - baseRoiAt300;
 
                   const impactLines = [];
-                  if (costReduction > 0) impactLines.push(`产品成本降低 USD ${costReduction.toFixed(2)}`);
-                  if (adReduction > 0) impactLines.push(`广告费用降低 USD ${adReduction.toFixed(2)}`);
-                  if (fbaReduction > 0) impactLines.push(`FBA 费用降低 USD ${fbaReduction.toFixed(2)}`);
-                  if (priceIncrease > 0) impactLines.push(`售价提升 USD ${priceIncrease.toFixed(2)}`);
+                  if (costSlider.committed > 0) impactLines.push(`产品成本降低 ${symbol}${costSlider.committed.toFixed(2)}`);
+                  if (adSlider.committed > 0) impactLines.push(`广告费用降低 ${symbol}${adSlider.committed.toFixed(2)}`);
+                  if (fbaSlider.committed > 0) impactLines.push(`FBA 费用降低 ${symbol}${fbaSlider.committed.toFixed(2)}`);
+                  if (priceSlider.committed > 0) impactLines.push(`售价提升 ${symbol}${priceSlider.committed.toFixed(2)}`);
 
                   return (
                     <>
@@ -746,7 +790,7 @@ export default function ProfitAnalysis() {
                           </div>
                           <div>
                             <div className="simulator-result-label">月净利润变化（300件）</div>
-                            <div className="simulator-result-value" style={{ color: impactColor }}>{monthlyIncrease > 0 ? '+' : ''}USD {monthlyIncrease.toFixed(2)}</div>
+                            <div className="simulator-result-value" style={{ color: impactColor }}>{monthlyIncrease > 0 ? '+' : ''}{symbol}{monthlyIncrease.toFixed(2)}</div>
                           </div>
                           <div>
                             <div className="simulator-result-label">300件 ROI 变化</div>
@@ -754,7 +798,7 @@ export default function ProfitAnalysis() {
                           </div>
                         </div>
                         <div className="simulator-result-note">
-                          当前单件净利 USD {optimized.netProfitPerUnit.toFixed(2)} · 到岸成本 USD {optimized.landingCost.toFixed(2)} · 月度固定费用 USD {optimized.monthlyFixed.toLocaleString()} · 稳态 ROI {optimized.asymptoticRoi.toFixed(2)}%
+                          当前单件净利 {symbol}{optimized.netProfitPerUnit.toFixed(2)} · 到岸成本 {symbol}{optimized.landingCost.toFixed(2)} · 月度固定费用 {symbol}{optimized.monthlyFixed.toLocaleString()} · 稳态 ROI {optimized.asymptoticRoi.toFixed(2)}%
                         </div>
                       </div>
                       {impactLines.length > 0 && (
@@ -769,17 +813,17 @@ export default function ProfitAnalysis() {
                         </div>
                         <OptimizedRoiChart
                           report={report}
-                          costReduction={costReduction}
-                          adReduction={adReduction}
-                          fbaReduction={fbaReduction}
-                          priceIncrease={priceIncrease}
+                          costReduction={costSlider.committed}
+                          adReduction={adSlider.committed}
+                          fbaReduction={fbaSlider.committed}
+                          priceIncrease={priceSlider.committed}
                         />
                       </div>
                       <div className="simulator-explain">
                         <div className="simulator-explain-title">ROI 计算逻辑与销量关系</div>
                         <div className="simulator-explain-body">
                           本系统采用 C 端真实 ROI 模型：<strong>ROI = 月净利润 ÷ 月总投资</strong>。<br />
-                          其中：月净利润 = 月销量 × 单件净利 - 月度固定运营费用 USD {optimized.monthlyFixed.toLocaleString()}；<br />
+                          其中：月净利润 = 月销量 × 单件净利 - 月度固定运营费用 {symbol}{optimized.monthlyFixed.toLocaleString()}；<br />
                           月总投资 = 安全库存投资（月销量 × 2 个月 × 到岸成本）+ 月度固定运营费用。<br />
                           当销量上升时，产品成本、物流、FBA、佣金、广告、退货等变动成本会随销量线性增加，但<strong>月度固定费用被摊薄</strong>，因此 ROI 会逐步上升并趋近于理论上限 = 单件净利 ÷（安全库存月数 × 到岸成本）。<br />
                           优化器降低的是单件变动成本，直接提升单件净利，从而推动整条 ROI 曲线上移。
@@ -801,24 +845,30 @@ export default function ProfitAnalysis() {
                 <div className="assumption-grid">
                   {(() => {
                     const profit = report.profit_analysis;
-                    const total = profit.total_cost_per_unit;
+                    const { symbol } = getMarketCurrency(report.market);
                     const breakdown = profit.cost_breakdown;
+                    const sellingPrice = profit.selling_price || 1;
                     const assumptions = [
-                      { label: '平台佣金', value: (breakdown['平台佣金'] || 0) / total * 100, fmt: '%' },
-                      { label: 'FBA 费用', value: breakdown['FBA 费用'] || 0, fmt: 'USD' },
-                      { label: '广告占比', value: (breakdown['广告费用'] || 0) / total * 100, fmt: '%' },
-                      { label: '退货预留', value: (breakdown['退货预留'] || 0) / total * 100, fmt: '%' },
-                      { label: '头程物流', value: breakdown['头程物流'] || 0, fmt: 'USD' },
-                      { label: '盈亏平衡', value: profit.breakeven_units || 0, fmt: 'units' },
+                      { label: '平台佣金', value: ((breakdown['平台佣金'] || 0) / sellingPrice) * 100, fmt: '%', hint: '占售价比例' },
+                      { label: 'FBA 费用', value: breakdown['FBA 费用'] || 0, fmt: 'money', hint: '单件费用' },
+                      { label: '广告占比', value: ((breakdown['广告费用'] || 0) / sellingPrice) * 100, fmt: '%', hint: '占售价比例' },
+                      { label: '退货预留', value: ((breakdown['退货预留'] || 0) / sellingPrice) * 100, fmt: '%', hint: '占售价比例' },
+                      { label: '头程物流', value: breakdown['头程物流'] || 0, fmt: 'money', hint: '单件费用' },
+                      { label: '盈亏平衡', value: profit.breakeven_units || 0, fmt: 'units', hint: '月销量' },
                     ];
                     return assumptions.map((a) => {
-                      const valueText = a.fmt === '%' ? `${a.value.toFixed(2)}%` : a.fmt === 'USD' ? `USD ${a.value.toFixed(2)}` : `${Math.round(a.value)} 件/月`;
+                      const valueText = a.fmt === '%'
+                        ? `${a.value.toFixed(1)}%`
+                        : a.fmt === 'money'
+                          ? `${symbol}${a.value.toFixed(2)}`
+                          : `${Math.round(a.value)} 件/月`;
                       const color = assumptionRiskColor(a.label, a.value);
                       const bg = assumptionRiskBg(color);
                       return (
                         <div key={a.label} className="assumption-card" style={{ ['--risk-bg' as string]: bg, ['--risk-color' as string]: color } as React.CSSProperties}>
                           <div className="assumption-label">{a.label}</div>
                           <div className="assumption-value" style={{ color }}>{valueText}</div>
+                          <div style={{ fontSize: 10, color: 'var(--saas-text-muted)', marginTop: 4, fontWeight: 600 }}>{a.hint}</div>
                         </div>
                       );
                     });

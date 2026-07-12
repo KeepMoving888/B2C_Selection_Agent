@@ -25,6 +25,7 @@ import { useMobile } from '../hooks/useMobile';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
 import type { AnalysisReport } from '../types';
+import { getMarketCurrency } from '../utils/currency';
 
 const softPalette = ['#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'];
 
@@ -41,27 +42,28 @@ const SEGMENT_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '
 function PriceSalesChart({ report }: { report: AnalysisReport }) {
   const competitors = report.market_analysis.competitors.slice(0, 10);
   const isMobile = useMobile();
+  const { symbol } = getMarketCurrency(report.market);
 
   const option: EChartsOption = useMemo(() => {
     const maxPrice = Math.max(...competitors.map((p) => p.price));
     const maxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
 
     return {
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.92)', borderColor: 'rgba(255, 255, 255, 0.08)', textStyle: { color: '#ffffff' }, extraCssText: 'border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(4px);' },
-      legend: { orient: 'horizontal', top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700 } },
-      grid: { left: 20, right: 60, top: 50, bottom: 20, containLabel: true },
-      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.78)', borderWidth: 0, padding: [3, 6], textStyle: { color: '#ffffff', fontSize: 9 }, extraCssText: 'border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);' },
+      legend: { orient: 'horizontal', top: 0, right: isMobile ? undefined : 0, left: isMobile ? 'center' : undefined, itemGap: isMobile ? 12 : 20, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 10 : 12 } },
+      grid: { left: isMobile ? 6 : 14, right: isMobile ? 6 : 60, top: isMobile ? 34 : 46, bottom: isMobile ? 16 : 20, containLabel: true },
+      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11, interval: isMobile ? 1 : 0, rotate: isMobile ? 30 : 0 } },
       yAxis: [
-        { type: 'value', name: '售价 (USD)', max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
-        { type: 'value', name: '月销量', max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 } },
+        { type: 'value', name: `售价 (${symbol})`, nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11, padding: isMobile ? [0, 0, 0, -20] : undefined }, max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 } },
+        { type: 'value', name: '月销量', nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 }, max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 } },
       ],
       series: [
         {
           type: 'bar',
           name: '售价',
           data: competitors.map((p, i) => ({ value: p.price, itemStyle: { color: softPalette[i % softPalette.length], borderRadius: [6, 6, 0, 0] } })),
-          barWidth: '45%',
-          label: { show: true, position: 'top', formatter: '${c}', color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
+          barWidth: isMobile ? '40%' : '45%',
+          label: { show: !isMobile, position: 'top', formatter: `${symbol}{c}`, color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
         },
         {
           type: 'line',
@@ -71,19 +73,20 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
           smooth: true,
           lineStyle: { color: '#f59e0b', width: 3 },
           itemStyle: { color: '#f59e0b', borderColor: '#fff', borderWidth: 2 },
-          label: { show: true, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
+          label: { show: !isMobile, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
         },
       ],
     };
-  }, [competitors]);
+  }, [competitors, isMobile, symbol]);
 
-  return <ReactECharts option={option} style={{ height: isMobile ? 280 : 360, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height: isMobile ? 300 : 360, width: '100%' }} />;
 }
 
-function CompetitorCard({ product, index }: { product: any; index: number }) {
+function CompetitorCard({ product, index, market }: { product: any; index: number; market: string }) {
   const parts = product.subtitle?.split(' · ') || [];
   const subtitle = parts[1] || product.subtitle || '';
   const accent = softPalette[index % softPalette.length];
+  const { symbol } = getMarketCurrency(market);
 
   return (
     <div className="competitor-card" style={{ ['--competitor-accent' as string]: accent } as React.CSSProperties}>
@@ -97,7 +100,7 @@ function CompetitorCard({ product, index }: { product: any; index: number }) {
         </a>
         <div className="competitor-store">{product.store} · {subtitle}</div>
         <div className="competitor-metrics">
-          <Tag className="competitor-price-tag">${product.price}</Tag>
+          <Tag className="competitor-price-tag">{symbol}{product.price.toFixed(2)}</Tag>
           <span className="competitor-metric"><StarFilled style={{ color: '#f59e0b' }} /> {product.rating}</span>
           <span className="competitor-metric">{product.review_count.toLocaleString()} 评论</span>
           <span className="competitor-metric"><ShoppingOutlined style={{ color: 'var(--saas-primary)' }} /> 月销 {product.estimated_monthly_sales.toLocaleString()}</span>
@@ -183,6 +186,7 @@ function KeywordSummary({ report }: { report: AnalysisReport }) {
   const trend = TREND_COLORS[summary.trend];
   const comp = COMPETITION_COLORS[summary.competition];
   const scoreColor = summary.opportunity_score >= 70 ? '#dc2626' : summary.opportunity_score >= 45 ? '#d97706' : '#059669';
+  const { symbol } = getMarketCurrency(report.market);
 
   return (
     <div className="info-card" style={{ marginBottom: 24 }}>
@@ -214,7 +218,7 @@ function KeywordSummary({ report }: { report: AnalysisReport }) {
         <Col xs={12} sm={6}>
           <div style={{ textAlign: 'center', padding: 16, background: '#fffbeb', borderRadius: 10, border: '1px solid #fde68a' }}>
             <div style={{ fontSize: 11, color: '#d97706', fontWeight: 800, marginBottom: 6 }}>参考 CPC</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#d97706' }}>${summary.cpc}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#d97706' }}>{symbol}{summary.cpc.toFixed(2)}</div>
           </div>
         </Col>
       </Row>
@@ -350,32 +354,38 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
     return {
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(30, 41, 59, 0.92)',
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        textStyle: { color: '#ffffff' },
-        extraCssText: 'border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(4px);',
+        backgroundColor: 'rgba(30, 41, 59, 0.78)',
+        borderWidth: 0,
+        padding: [3, 6],
+        textStyle: { color: '#ffffff', fontSize: 9 },
+        extraCssText: 'border-radius:3px;box-shadow:none;backdrop-filter:blur(4px);',
       },
       legend: {
         data: active.map((t) => t.name),
-        top: 0,
-        right: 0,
-        textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700 },
+        bottom: 0,
+        left: 'center',
+        itemGap: isMobile ? 10 : 20,
+        icon: 'circle',
+        itemWidth: 8,
+        itemHeight: 8,
+        textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 9 : 11 },
       },
-      grid: { left: 20, right: 20, top: 50, bottom: 20, containLabel: true },
+      grid: { left: isMobile ? 6 : 16, right: isMobile ? 6 : 20, top: isMobile ? 34 : 44, bottom: isMobile ? 34 : 44, containLabel: true },
       xAxis: {
         type: 'category',
         data: months,
         boundaryGap: false,
         axisLine: { lineStyle: { color: 'var(--saas-border)' } },
-        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 },
+        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 },
       },
       yAxis: {
         type: 'value',
         name: '搜索热度指数',
+        nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 },
         min: 0,
         max: 100,
         splitLine: { lineStyle: { color: 'var(--saas-border)' } },
-        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600 },
+        axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 },
       },
       series: active.map((t) => {
         const color = COUNTRY_COLORS[t.code] || '#64748b';
@@ -392,7 +402,7 @@ function GlobalTrendsChart({ report }: { report: AnalysisReport }) {
         };
       }),
     };
-  }, [trends, selected]);
+  }, [trends, selected, isMobile]);
 
   if (trends.length === 0) return null;
 
@@ -713,7 +723,7 @@ export default function MarketAnalysis() {
               <div className="market-summary-title">{report.keyword} · {report.market_analysis.market_profile.name}</div>
               <div className="market-summary-tags">
                 <span className="market-summary-tag">市场 {report.market}</span>
-                <span className="market-summary-tag">均价 USD {report.market_analysis.avg_price}</span>
+                <span className="market-summary-tag">均价 {getMarketCurrency(report.market).symbol}{report.market_analysis.avg_price}</span>
                 <span className="market-summary-tag">平均评分 {report.market_analysis.avg_rating} / 5.0</span>
               </div>
             </div>
@@ -760,7 +770,7 @@ export default function MarketAnalysis() {
                   已分析 {report.market_analysis.competitors.length} 款竞品，当前展示按销量与 relevance 排序的头部 TOP10。
                 </div>
                 {report.market_analysis.competitors.slice(0, 10).map((p: any, i: number) => (
-                  <CompetitorCard key={i} product={p} index={i} />
+                  <CompetitorCard key={i} product={p} index={i} market={report.market} />
                 ))}
               </div>
             </Col>
