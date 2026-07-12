@@ -30,6 +30,7 @@ import {
   Input,
   Modal,
   Row,
+  Segmented,
   Select,
   Space,
   Table,
@@ -570,27 +571,75 @@ function ReportOverviewTab({ report }: { report: AnalysisReport }) {
 }
 
 function GlobalTrendsMiniChart({ trends }: { trends: NonNullable<AnalysisReport['market_analysis']['global_trends']> }) {
+  const isMobile = useMobile()
+  const now = useMemo(() => new Date(), [])
+  const currentYear = now.getFullYear()
+  const [view, setView] = useState<string>('trailing')
+  const viewOptions = useMemo(() => {
+    const opts = [{ label: '近12个月', value: 'trailing' }]
+    for (let year = currentYear; year >= currentYear - 2; year--) {
+      opts.push({ label: `${year}年`, value: String(year) })
+    }
+    return opts
+  }, [currentYear])
+
   const option = useMemo(() => {
-    const months = trends[0].months
+    const first = trends[0]
+    let x: string[] = []
+    const seriesData: Record<string, number[]> = {}
+
+    if (view === 'trailing') {
+      trends.forEach((t) => {
+        const data = t.trailing_12_months
+        if (data) {
+          x = data.labels
+          seriesData[t.code] = data.values
+        }
+      })
+    } else {
+      const year = Number(view)
+      trends.forEach((t) => {
+        const data = t.yearly_data?.[year]
+        if (data) {
+          x = data.months
+          seriesData[t.code] = data.values
+        }
+      })
+    }
+
+    if (!x.length) {
+      x = first.months
+      trends.forEach((t) => {
+        seriesData[t.code] = t.values
+      })
+    }
+
     return {
       tooltip: { trigger: 'axis' as const, ...DARK_TOOLTIP },
       legend: { data: trends.map((t) => t.name), top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontSize: 11, fontWeight: 700 } },
       grid: { left: 10, right: 10, top: 34, bottom: 10, containLabel: true },
-      xAxis: { type: 'category' as const, data: months, axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontSize: 11 } },
+      xAxis: { type: 'category' as const, data: x, axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontSize: 11, interval: isMobile && x.length > 6 ? 1 : 0, rotate: isMobile && x.length > 6 ? 30 : 0 } },
       yAxis: { type: 'value' as const, name: '热度', min: 0, max: 100, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontSize: 11 } },
       series: trends.map((t) => ({
         type: 'line' as const,
         name: t.name,
-        data: t.values,
+        data: seriesData[t.code] || t.values,
         smooth: true,
         symbol: 'none',
         lineStyle: { width: 2, color: COUNTRY_COLORS[t.code] || '#64748b' },
         itemStyle: { color: COUNTRY_COLORS[t.code] || '#64748b' },
       })),
     }
-  }, [trends])
+  }, [trends, view, isMobile])
 
-  return <ReactECharts option={option} style={{ height: 200 }} />
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <Segmented size={isMobile ? 'small' : 'middle'} options={viewOptions} value={view} onChange={(v) => setView(v as string)} />
+      </div>
+      <ReactECharts option={option} style={{ height: 200 }} />
+    </div>
+  )
 }
 
 function KeywordRelationSuggestions({ rel }: { rel: NonNullable<AnalysisReport['market_analysis']['keyword_relationships']> }) {
@@ -811,13 +860,28 @@ function ReportTrendComplianceTab({ report }: { report: AnalysisReport }) {
   const trend = report.trend_analysis
   const compliance = report.compliance
   const market = report.market_analysis
-  const trendOption = useMemo(() => buildTrendLineOption(trend), [trend])
+  const isMobile = useMobile()
+  const now = useMemo(() => new Date(), [])
+  const currentYear = now.getFullYear()
+  const [view, setView] = useState<string>('trailing')
+  const viewOptions = useMemo(() => {
+    const opts = [{ label: '近12个月', value: 'trailing' }]
+    for (let year = currentYear; year >= currentYear - 2; year--) {
+      opts.push({ label: `${year}年`, value: String(year) })
+    }
+    return opts
+  }, [currentYear])
+  const trendOption = useMemo(() => buildTrendLineOption(trend, view), [trend, view])
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card size="small" title={<><CalendarOutlined /> 季节趋势</>}>
+          <Card
+            size="small"
+            title={<><CalendarOutlined /> 季节趋势</>}
+            extra={<Segmented size={isMobile ? 'small' : 'middle'} options={viewOptions} value={view} onChange={(v) => setView(v as string)} />}
+          >
             <ReactECharts option={trendOption} style={{ height: 240 }} />
             <div style={{ marginTop: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div>
@@ -930,37 +994,37 @@ function getPrintStyles(report: AnalysisReport) {
     .p-header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 14px; margin-bottom: 18px; page-break-inside: avoid; break-inside: avoid; }
     .p-header h1 { margin: 0 0 6px; font-size: 22px; color: #1e293b; }
     .p-header .p-meta { color: #64748b; font-size: 11px; }
-    .p-section { margin-bottom: 18px; color: #1e293b; }
-    .p-title { font-size: 14px; font-weight: 900; color: #1e293b; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
-    .p-subtitle { font-size: 12px; font-weight: 800; color: #334155; margin: 12px 0 8px; page-break-after: avoid; break-after: avoid; }
-    .p-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-    .p-metric { flex: 1 1 110px; min-width: 110px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 8px 12px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+    .p-section { margin-bottom: 14px; color: #1e293b; }
+    .p-title { font-size: 14px; font-weight: 900; color: #1e293b; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #e2e8f0; page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
+    .p-subtitle { font-size: 12px; font-weight: 800; color: #334155; margin: 10px 0 6px; page-break-after: avoid; break-after: avoid; }
+    .p-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .p-metric { flex: 1 1 100px; min-width: 100px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 6px 10px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
     .p-metric-label { font-size: 10px; color: #64748b; font-weight: 800; margin-bottom: 4px; }
-    .p-metric-value { font-size: 16px; font-weight: 900; color: #2563eb; }
-    .p-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: auto; }
-    .p-table th, .p-table td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; font-size: 10px; vertical-align: top; }
+    .p-metric-value { font-size: 15px; font-weight: 900; color: #2563eb; }
+    .p-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; table-layout: auto; }
+    .p-table th, .p-table td { border: 1px solid #e2e8f0; padding: 5px 6px; text-align: left; font-size: 9.5px; vertical-align: top; }
     .p-table th { background: #f1f5f9; font-weight: 800; }
     .p-table tr { page-break-inside: avoid; break-inside: avoid; }
     .p-table thead { display: table-header-group; }
-    .p-trend-table th, .p-trend-table td { text-align: center; padding: 5px 3px; font-size: 9px; white-space: nowrap; }
+    .p-trend-table th, .p-trend-table td { text-align: center; padding: 4px 3px; font-size: 9px; white-space: nowrap; }
     .p-list { margin: 0; padding-left: 16px; }
-    .p-list li { margin-bottom: 4px; padding-bottom: 2px; page-break-inside: avoid; break-inside: avoid; }
-    .p-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-right: 4px; margin-bottom: 4px; background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+    .p-list li { margin-bottom: 3px; padding-bottom: 2px; page-break-inside: avoid; break-inside: avoid; }
+    .p-tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 9.5px; font-weight: 700; margin-right: 3px; margin-bottom: 3px; background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
     .p-tag-risk { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
     .p-tag-cert { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
-    .p-action { page-break-inside: avoid; break-inside: avoid; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 10px 12px; margin-bottom: 8px; }
+    .p-action { page-break-inside: avoid; break-inside: avoid; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px 10px; margin-bottom: 8px; }
     .p-action-title { font-weight: 900; margin-bottom: 3px; font-size: 12px; }
     .p-verdict { color: ${report.verdict_color}; font-weight: 900; }
     .p-grade { display: inline-block; padding: 3px 10px; border-radius: 12px; background: ${report.verdict_color}; color: #fff; font-weight: 900; font-size: 13px; }
-    .p-score-row { display: flex; align-items: center; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
+    .p-score-row { display: flex; align-items: center; margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid; }
     .p-score-name { width: 84px; font-weight: 800; font-size: 10px; }
     .p-score-bar { flex: 1; height: 9px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
     .p-score-fill { height: 100%; border-radius: 5px; }
     .p-score-value { width: 60px; text-align: right; font-weight: 900; font-size: 10px; }
-    .p-suggestion { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
+    .p-suggestion { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
     .p-suggestion-title { font-weight: 900; margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
     .p-suggestion-desc { color: #475569; font-size: 10px; line-height: 1.5; margin-bottom: 6px; }
-    .p-footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 9px; text-align: center; }
+    .p-footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 9px; text-align: center; }
   `
 }
 
@@ -991,7 +1055,7 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
   const root = createRoot(container)
   root.render(<ReportPdfContent report={report} />)
 
-  await new Promise((resolve) => setTimeout(resolve, 120))
+  await new Promise((resolve) => setTimeout(resolve, 220))
 
   try {
     // scale 降至 1.5 可显著减少渲染耗时，同时保持打印清晰度
@@ -1011,11 +1075,11 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const pageHeightPx = pdfHeight / pxToMm
 
     // 智能分页：收集所有可见块级元素的下边界作为候选切分点，
-    // 每次在目标页高附近选择最合适的边界，避免行内截断或分页处内容重复。
+    // 优先在 section 边界、标题、表格行、卡片等完整元素后分页，避免截断内容。
     const protectedSelectors = [
-      '.p-header', '.p-footer', '.p-section', '.p-section > *',
-      '.p-title', '.p-grid', '.p-metric', '.p-action',
-      '.p-table', '.p-table tr', '.p-list', 'li', 'p', 'h1', 'h2', 'h3',
+      '.p-header', '.p-footer', '.p-section', '.p-title', '.p-subtitle',
+      '.p-grid', '.p-metric', '.p-action', '.p-suggestion',
+      '.p-table', '.p-table tr', '.p-list', 'li', 'p',
     ]
     const candidateBreaks = new Set<number>()
     candidateBreaks.add(0)
@@ -1032,23 +1096,58 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
       .filter((b) => b > 0 && b < container.scrollHeight)
       .sort((a, b) => a - b)
 
-    const minPageHeight = pageHeightPx * 0.45
-    const safetyMargin = 14
+    const minPageHeight = pageHeightPx * 0.38
+    const safetyMargin = 20
     const pageTops: number[] = [0]
     let currentTop = 0
-    const minAdvance = 20
+    const minAdvance = 30
+
+    // 检测目标分页位置是否落在不可分断元素内部，避免截断表格/卡片/建议块
+    const unbreakableSelectors = ['.p-table', '.p-action', '.p-suggestion', '.p-metric', '.p-score-row', '.p-grid']
+    const findEnclosingBlock = (y: number): { top: number; bottom: number } | null => {
+      const blocks: { top: number; bottom: number }[] = []
+      unbreakableSelectors.forEach((sel) => {
+        container.querySelectorAll(sel).forEach((el) => {
+          const htmlEl = el as HTMLElement
+          if (!htmlEl.offsetParent) return
+          const rect = htmlEl.getBoundingClientRect()
+          const top = rect.top + container.scrollTop
+          const bottom = top + rect.height
+          if (top < y && bottom > y) {
+            blocks.push({ top, bottom })
+          }
+        })
+      })
+      if (blocks.length === 0) return null
+      return blocks.reduce((best, b) => (b.bottom - b.top < best.bottom - best.top ? b : best))
+    }
 
     while (currentTop + pageHeightPx < container.scrollHeight) {
       const targetBottom = currentTop + pageHeightPx
-      // 优先找不超过目标底部的最大候选边界
-      let bestBreak = sortedBreaks.reduce((best, b) => {
-        if (b > currentTop + safetyMargin && b <= targetBottom - safetyMargin) {
-          return b
-        }
-        return best
-      }, -1)
+      let bestBreak = -1
 
-      // 若候选边界导致页面过短，则 fallback 到目标底部硬切
+      // 若目标分页线落在不可分断元素内，优先在该元素边界处分页
+      const enclosing = findEnclosingBlock(targetBottom)
+      if (enclosing) {
+        const blockHeight = enclosing.bottom - enclosing.top
+        if (blockHeight <= pageHeightPx * 0.8) {
+          bestBreak = Math.round(enclosing.bottom)
+        } else if (enclosing.top > currentTop + safetyMargin) {
+          bestBreak = Math.round(enclosing.top)
+        }
+      }
+
+      // 否则选择最接近目标底部的候选边界
+      if (bestBreak < 0) {
+        bestBreak = sortedBreaks.reduce((best, b) => {
+          if (b > currentTop + safetyMargin && b <= targetBottom - safetyMargin) {
+            return Math.max(best, b)
+          }
+          return best
+        }, -1)
+      }
+
+      // 若候选边界导致页面过短，fallback 到目标底部硬切
       if (bestBreak < 0 || bestBreak - currentTop < minPageHeight) {
         bestBreak = targetBottom
       }
@@ -1103,6 +1202,32 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
     ...(compliance.industry_patent_risks || []),
     ...(compliance.market_specific || []),
   ]
+
+  // 默认以「近12个月」作为报告详情与 PDF 的时间维度，与 MarketAnalysis/TrendSeasonal 保持一致
+  const trailing = trend.series.trailing_12_months
+  const trendLabels = trailing?.labels.length ? trailing.labels : trend.series.months
+  const trendValues = trailing?.values.length ? trailing.values : trend.series.values
+  const trendLastYear = trailing?.last_year_values.length ? trailing.last_year_values : trend.series.last_year_values
+
+  // PDF 表格为避免 A4 宽度过宽导致截断，仅展示最近 6 个月
+  const recentCount = 6
+  const trendTableLabels = trendLabels.slice(-recentCount)
+  const trendTableValues = trendValues.slice(-recentCount)
+  const trendTableLastYear = trendLastYear.slice(-recentCount)
+
+  const firstGlobal = market.global_trends?.[0]
+  const globalTrailing = firstGlobal?.trailing_12_months
+  const globalLabelsRaw = globalTrailing?.labels.length ? globalTrailing.labels : firstGlobal?.months || []
+  const globalLabels = globalLabelsRaw.slice(-recentCount)
+  const globalTrendsWithData = (market.global_trends || []).map((t) => {
+    const labels = t.trailing_12_months?.labels.length ? t.trailing_12_months.labels : t.months
+    const values = t.trailing_12_months?.values.length ? t.trailing_12_months.values : t.values
+    return {
+      ...t,
+      displayLabels: labels.slice(-recentCount),
+      displayValues: values.slice(-recentCount),
+    }
+  })
 
   return (
     <div>
@@ -1168,18 +1293,18 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           </>
         )}
 
-        {market.global_trends && market.global_trends.length > 0 && (
+        {globalTrendsWithData.length > 0 && (
           <>
-            <div className="p-subtitle">全球市场月度热度</div>
-            <table className="p-table">
+            <div className="p-subtitle">全球市场月度热度（近6个月）</div>
+            <table className="p-table p-trend-table">
               <thead>
-                <tr><th>月份</th>{market.global_trends.map((t) => <th key={t.code}>{t.name}</th>)}</tr>
+                <tr><th>月份</th>{globalTrendsWithData.map((t) => <th key={t.code}>{t.name}</th>)}</tr>
               </thead>
               <tbody>
-                {(market.global_trends[0].months || []).map((m, i) => (
+                {globalLabels.map((m, i) => (
                   <tr key={i}>
                     <td>{m}</td>
-                    {market.global_trends!.map((t) => <td key={t.code}>{t.values[i] ?? '-'}</td>)}
+                    {globalTrendsWithData.map((t) => <td key={t.code}>{t.displayValues[i] ?? '-'}</td>)}
                   </tr>
                 ))}
               </tbody>
@@ -1263,24 +1388,24 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
         </div>
         <p><strong>季节洞察：</strong>{trend.season_narrative.season_desc}</p>
         <p><strong>趋势判断：</strong>{trend.season_narrative.trend_desc}</p>
-        <div className="p-subtitle">月度热度走势</div>
+        <div className="p-subtitle">月度热度走势（近6个月 + 预测）</div>
         <table className="p-table p-trend-table">
           <thead>
             <tr>
               <th>月份</th>
-              {trend.series.months.map((m, i) => <th key={i}>{m}</th>)}
+              {trendTableLabels.map((m, i) => <th key={i}>{m}</th>)}
               {trend.series.forecast_months.map((m, i) => <th key={`f-${i}`}>{m}</th>)}
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>热度</td>
-              {trend.series.values.map((v, i) => <td key={i}>{v}</td>)}
+              {trendTableValues.map((v, i) => <td key={i}>{v}</td>)}
               {trend.series.forecast_values.map((v, i) => <td key={`fv-${i}`} style={{ color: '#7c3aed', fontWeight: 800 }}>{v}</td>)}
             </tr>
             <tr>
               <td>去年同期</td>
-              {trend.series.last_year_values.map((v, i) => <td key={i}>{v}</td>)}
+              {trendTableLastYear.map((v, i) => <td key={i}>{v}</td>)}
               <td colSpan={trend.series.forecast_months.length} style={{ color: '#94a3b8' }}>—</td>
             </tr>
           </tbody>
@@ -1318,7 +1443,7 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
                 <td>{data['毛利率']}</td>
                 <td>{data['ROI'].toFixed(2)}%</td>
                 <td>{symbol}{data['月毛利'].toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                <td>{data['回本周期']} 月</td>
+                <td>{data['回本周期'] ? `${data['回本周期']} 月` : '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -1359,7 +1484,14 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
           <table className="p-table">
             <thead>
               <tr>
-                <th>排名</th><th>供应商</th><th>MOQ</th><th>交期</th><th>评分</th><th>产能</th><th>单件成本</th><th>样品费</th><th>样品交期</th><th>响应率</th><th>成交数</th>
+                <th style={{ width: 40 }}>排名</th>
+                <th>供应商</th>
+                <th style={{ width: 60 }}>MOQ</th>
+                <th style={{ width: 60 }}>交期</th>
+                <th style={{ width: 50 }}>评分</th>
+                <th style={{ width: 70 }}>单件成本</th>
+                <th style={{ width: 60 }}>响应率</th>
+                <th style={{ width: 70 }}>从业年限</th>
               </tr>
             </thead>
             <tbody>
@@ -1370,23 +1502,24 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
                   <td>{s.moq}</td>
                   <td>{s.lead_time}</td>
                   <td>{s.rating}</td>
-                  <td>{s.capacity}</td>
                   <td>{symbol}{s.unit_cost?.toFixed(2) ?? '-'}</td>
-                  <td>{symbol}{s.sample_cost}</td>
-                  <td>{s.sample_days ?? '-'} 天</td>
                   <td>{s.response_rate}%</td>
-                  <td>{s.transactions ?? '-'}</td>
+                  <td>{s.years ?? '-'} 年</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="p-subtitle">主营爆款</div>
+          <div className="p-subtitle">供应商详情</div>
           <div className="p-grid">
-            {suppliers.slice(0, 3).map((s: any, i: number) => (
-              <div key={i} className="p-metric" style={{ flex: '1 1 160px' }}>
-                <div className="p-metric-label" style={{ fontSize: 9, lineHeight: 1.4 }}>{s.name}</div>
-                <div className="p-metric-value" style={{ fontSize: 12 }}>{(s.hot_categories || []).join('、')}</div>
-                <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>从业 {s.years ?? '-'} 年 · 产能 {s.capacity}</div>
+            {suppliers.slice(0, 4).map((s: any, i: number) => (
+              <div key={i} className="p-metric" style={{ flex: '1 1 160px', textAlign: 'left', padding: 10 }}>
+                <div className="p-metric-label" style={{ fontSize: 9, lineHeight: 1.4, marginBottom: 4 }}>{s.name}</div>
+                <div style={{ fontSize: 10, color: '#475569', lineHeight: 1.6 }}>
+                  <div>产能：{s.capacity}</div>
+                  <div>样品费：{symbol}{s.sample_cost} / {s.sample_days ?? '-'} 天</div>
+                  <div>成交数：{s.transactions ?? '-'}</div>
+                  <div style={{ marginTop: 4, color: '#64748b' }}>主营：{(s.hot_categories || []).join('、')}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -1571,23 +1704,61 @@ function buildCostDonutOption(profit: AnalysisReport['profit_analysis'], currenc
   }
 }
 
-function buildTrendLineOption(trend: AnalysisReport['trend_analysis']): EChartsOption {
-  const months = trend.series.months
-  const values = trend.series.values
-  const max = Math.max(...values)
-  const min = Math.min(...values)
+function buildTrendLineOption(trend: AnalysisReport['trend_analysis'], view: string = 'trailing'): EChartsOption {
+  let months: string[] = []
+  let values: number[] = []
+  let lastYearValues: number[] = []
+  let forecastMonths: string[] = trend.series.forecast_months || []
+  let forecastValues: number[] = trend.series.forecast_values || []
+
+  if (view === 'trailing') {
+    const data = trend.series.trailing_12_months
+    if (data) {
+      months = data.labels
+      values = data.values
+      lastYearValues = data.last_year_values
+    }
+  } else {
+    const year = Number(view)
+    const yearly = trend.series.yearly_data?.[year]
+    if (yearly) {
+      months = yearly.months
+      values = yearly.values
+    }
+    const prevYearly = trend.series.yearly_data?.[year - 1]
+    if (prevYearly && prevYearly.values.length === 12) {
+      lastYearValues = prevYearly.values
+    }
+  }
+
+  if (!months.length) {
+    months = trend.series.months
+    values = trend.series.values
+    lastYearValues = trend.series.last_year_values || []
+  }
+
+  const allValues = [...values, ...lastYearValues, ...forecastValues].filter((v) => typeof v === 'number')
+  const max = allValues.length ? Math.max(...allValues) : 100
+  const min = allValues.length ? Math.min(...allValues) : 0
+  const allX = [...months, ...forecastMonths]
 
   return {
-    color: ['#2563eb'],
+    color: ['#2563eb', '#94a3b8', '#f59e0b'],
     tooltip: {
       trigger: 'axis',
       ...DARK_TOOLTIP,
-      formatter: (params: any) => `<div style="font-weight:800;margin-bottom:4px">${params[0].name}</div><div style="color:rgba(255,255,255,0.75);font-size:12px">搜索热度 <strong style="color:#60a5fa">${params[0].value}</strong></div>`,
+      formatter: (params: any) => {
+        const lines = params
+          .filter((p: any) => p.value != null)
+          .map((p: any) => `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:11px;color:rgba(255,255,255,0.8)">${p.seriesName}: <strong>${p.value}</strong></span>`)
+        return `<div style="font-weight:800;margin-bottom:4px">${params[0].name}</div><div style="line-height:1.45">${lines.join('<br/>')}</div>`
+      },
     },
-    grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+    legend: { data: ['搜索热度', '去年同期', '趋势预测（推演）'], top: 0, right: 0, textStyle: { color: 'var(--saas-text-secondary)', fontSize: 10, fontWeight: 700 } },
+    grid: { left: 16, right: 16, top: 34, bottom: 24, containLabel: true },
     xAxis: {
       type: 'category',
-      data: months,
+      data: allX,
       axisLine: { lineStyle: { color: '#e2e8f0' } },
       axisTick: { show: false },
       axisLabel: { color: '#64748b', fontSize: 11, fontFamily: 'var(--font-sans)' },
@@ -1595,32 +1766,50 @@ function buildTrendLineOption(trend: AnalysisReport['trend_analysis']): EChartsO
     yAxis: {
       type: 'value',
       min: Math.max(0, Math.round(min * 0.8)),
+      max: Math.ceil(max * 1.12 / 10) * 10,
       splitLine: { lineStyle: { color: '#f1f5f9' } },
       axisLabel: { color: '#94a3b8', fontSize: 11 },
     },
-    series: [{
-      type: 'line',
-      data: values,
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 6,
-      lineStyle: { width: 3, shadowBlur: 10, shadowColor: 'rgba(37,99,235,0.2)' },
-      itemStyle: { color: '#2563eb', borderColor: '#fff', borderWidth: 2 },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(37, 99, 235, 0.25)' },
-          { offset: 1, color: 'rgba(37, 99, 235, 0.02)' },
-        ]),
+    series: [
+      {
+        name: '搜索热度',
+        type: 'line',
+        data: [...values, ...new Array(forecastMonths.length).fill(null)],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 3, shadowBlur: 10, shadowColor: 'rgba(37,99,235,0.2)' },
+        itemStyle: { color: '#2563eb', borderColor: '#fff', borderWidth: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(37, 99, 235, 0.25)' },
+            { offset: 1, color: 'rgba(37, 99, 235, 0.02)' },
+          ]),
+        },
+        animationDuration: 1000,
+        animationEasing: 'cubicOut',
       },
-      markLine: {
-        silent: true,
-        symbol: 'none',
-        lineStyle: { color: '#94a3b8', type: 'dashed', width: 1 },
-        data: [{ yAxis: Math.round((max + min) / 2) }],
+      {
+        name: '去年同期',
+        type: 'line',
+        data: lastYearValues.length ? [...lastYearValues, ...new Array(forecastMonths.length).fill(null)] : [],
+        smooth: false,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width: 2, type: 'dashed', color: '#94a3b8' },
+        itemStyle: { color: '#94a3b8' },
       },
-      animationDuration: 1000,
-      animationEasing: 'cubicOut',
-    }],
+      {
+        name: '趋势预测（推演）',
+        type: 'line',
+        data: [...new Array(months.length).fill(null), ...forecastValues],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 3, type: 'dashed', color: '#f59e0b' },
+        itemStyle: { color: '#f59e0b' },
+      },
+    ],
   }
 }
 
