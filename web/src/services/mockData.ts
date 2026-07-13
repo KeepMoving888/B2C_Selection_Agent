@@ -1633,7 +1633,7 @@ export function generateMockReport(
   const trending = generateTrendingProducts(rng, keyword);
   const keywordOpportunities = buildKeywordOpportunities(rng, keyword, archetype.category, competitors);
 
-  // 综合评分（四维加权：利润 30、趋势 25、竞争 25、评论 20，总分 100）
+  // 综合评分（五维）
   const grossMargin = profit.gross_margin;
   const marginScore = Math.min(40, Math.max(-20, grossMargin * 120));
   const trendScore = archetype.trend === 'rising' ? 25 : archetype.trend === 'stable' ? 18 : 8;
@@ -1649,28 +1649,27 @@ export function generateMockReport(
   const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary, archetype);
   const competitionScore = avgReviews < 1500 ? 20 : avgReviews < 8000 ? 12 : 5;
   const insightScore = archetype.pain_points.length > 0 ? 15 : 8;
-
-  const totalScore = Math.round(
-    ((marginScore / 40) * 30 +
-      (trendScore / 25) * 25 +
-      (competitionScore / 20) * 25 +
-      (insightScore / 15) * 20) *
-      10
+  // 供应链稳定性：基于供应商平均评分、响应率与交期综合评估
+  const avgSupplierRating = suppliers.reduce((sum, s) => sum + s.rating, 0) / suppliers.length;
+  const avgResponseRate = suppliers.reduce((sum, s) => sum + s.response_rate, 0) / suppliers.length;
+  const supplyScore = Math.round(
+    Math.min(15, Math.max(5, (avgSupplierRating * 2.2) + (avgResponseRate / 20) - 2)) * 10
   ) / 10;
+  const totalScore = Math.round((marginScore + trendScore + competitionScore + insightScore + supplyScore) * 10) / 10;
 
-  // 综合判定：基于四维加权总分
+  // 综合判定：基于五维总分（利润+趋势+竞争+洞察+供应链）
   let verdict: string;
   let verdictColor: string;
   let grade: string;
-  if (totalScore >= 75) {
+  if (totalScore >= 85) {
     verdict = '推荐进入';
     verdictColor = '#16a34a';
     grade = 'A';
-  } else if (totalScore >= 60) {
+  } else if (totalScore >= 70) {
     verdict = '谨慎进入';
     verdictColor = '#d97706';
     grade = 'B';
-  } else if (totalScore >= 40) {
+  } else if (totalScore >= 50) {
     verdict = '观察';
     verdictColor = '#0891b2';
     grade = 'C';
@@ -1728,6 +1727,7 @@ export function generateMockReport(
       '趋势热度': trendScore,
       '竞争强度': competitionScore,
       '评论洞察': insightScore,
+      '供应链稳定性': supplyScore,
     },
     market_analysis: {
       avg_price: avgPrice,

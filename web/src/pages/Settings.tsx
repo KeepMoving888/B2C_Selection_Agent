@@ -71,7 +71,7 @@ interface AppSettings {
 }
 
 const defaultSettings: AppSettings = {
-  weights: { profit: 30, trend: 25, competition: 25, review: 20 },
+  weights: { profit: 50, trend: 25, competition: 20, review: 15 },
   thresholds: { recommend: 70, risky: 50 },
   notifications: { email: true, browser: true, weekly: true, riskAlert: true },
   apiKeys: [],
