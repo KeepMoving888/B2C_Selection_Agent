@@ -1,4 +1,4 @@
-import { Button, Card, Col, Row, Segmented, Select, Space, Spin, Tag } from 'antd';
+import { Button, Card, Col, Row, Segmented, Select, Spin, Tag } from 'antd';
 import {
   ApartmentOutlined,
   BarChartOutlined,
@@ -531,7 +531,7 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
     const outerRMin = isMobile ? 175 : 250;
     const outerRMax = isMobile ? 210 : 270;
 
-    const placeNodes = (nodes: typeof sameCategory, rMin: number, rMax: number, catIndex: number, palette: string[]) => {
+    const placeNodes = (nodes: typeof sameCategory, rMin: number, rMax: number, catIndex: number, palette: string[], linkWeight: number) => {
       const count = nodes.length || 1;
       nodes.forEach((n, idx) => {
         const score = Math.max(0, Math.min(100, n.opportunity_score || 50));
@@ -540,6 +540,15 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         const angle = (idx / count) * 2 * Math.PI - Math.PI / 2;
         const x = Math.cos(angle) * r;
         const y = Math.sin(angle) * r;
+        // 根据角度把标签放到圆球外侧，减少互相遮挡
+        const labelPosition =
+          angle >= -Math.PI / 4 && angle < Math.PI / 4
+            ? 'right'
+            : angle >= Math.PI / 4 && angle < (3 * Math.PI) / 4
+              ? 'bottom'
+              : angle >= (3 * Math.PI) / 4 && angle < (5 * Math.PI) / 4
+                ? 'left'
+                : 'top';
         const displayName = n.name.replace(/^niche::/, '');
         data.push({
           ...n,
@@ -552,7 +561,7 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
           symbolSize: Math.max(isMobile ? 18 : 22, (n.value / maxVal) * (isMobile ? 36 : 48)),
           label: {
             show: true,
-            position: x >= 0 ? 'right' : 'left',
+            position: labelPosition,
             distance: 10,
             fontSize: isMobile ? 12 : 13,
             fontWeight: 800,
@@ -568,7 +577,7 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
             textBorderWidth: 2,
             formatter: (p: any) => {
               const name: string = p.name;
-              return name.length > 24 ? name.slice(0, 22) + '…' : name;
+              return name.length > 32 ? name.slice(0, 30) + '…' : name;
             },
           },
           itemStyle: {
@@ -582,7 +591,8 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         links.push({
           source: rootNode?.id,
           target: n.id,
-          value: score,
+          value: linkWeight,
+          score,
           lineStyle: { width: Math.max(1, score / 25), opacity: 0.45 },
         });
       });
@@ -593,8 +603,6 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         id: rootNode.id,
         name: rootNode.name,
         value: rootNode.value,
-        x: 0,
-        y: 0,
         symbolSize: isMobile ? 48 : 58,
         label: { show: true, fontSize: isMobile ? 13 : 14, fontWeight: 800, color: '#fff' },
         itemStyle: {
@@ -603,12 +611,11 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
           shadowColor: 'rgba(220,38,38,0.4)',
         },
         category: undefined,
-        fixed: true,
       });
     }
 
-    placeNodes(sameCategory, innerRMin, innerRMax, 0, SEGMENT_COLORS);
-    placeNodes(crossCategory, outerRMin, outerRMax, 1, ['#7c3aed', '#d97706', '#0891b2', '#db2777', '#64748b']);
+    placeNodes(sameCategory, innerRMin, innerRMax, 0, SEGMENT_COLORS, 1);
+    placeNodes(crossCategory, outerRMin, outerRMax, 1, ['#7c3aed', '#d97706', '#0891b2', '#db2777', '#64748b'], 4);
 
     return { categories, data, links, nameMap };
   }, [rel, report.keyword, isMobile]);
@@ -629,7 +636,7 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
           if (params.dataType === 'edge') {
             const sName = nameMap.get(params.data.source) || params.data.source;
             const tName = nameMap.get(params.data.target) || params.data.target;
-            return `<div style="font-weight:800;font-size:12px;color:#fff">${sName} → ${tName}</div><div style="color:rgba(255,255,255,0.75);font-size:10px;margin-top:2px">关联分 ${params.data.value}</div>`;
+            return `<div style="font-weight:800;font-size:12px;color:#fff">${sName} → ${tName}</div><div style="color:rgba(255,255,255,0.75);font-size:10px;margin-top:2px">关联分 ${params.data.score ?? params.data.value}</div>`;
           }
           const node = params.data;
           if (node.id === report.keyword) {
@@ -652,13 +659,21 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
       series: [
         {
           type: 'graph' as const,
-          layout: 'none',
+          layout: 'force',
           data,
           links,
           categories,
           roam: true,
           draggable: true,
-          label: { show: true, position: 'right', distance: 6 },
+          zoom: 0.72,
+          force: {
+            repulsion: 2000,
+            gravity: 0.04,
+            edgeLength: [100, 260],
+            friction: 0.65,
+            layoutAnimation: true,
+          },
+          label: { show: true, position: 'right', distance: 8 },
           labelLayout: { hideOverlap: false, moveOverlap: 'shiftY' },
           lineStyle: { color: 'source', curveness: 0.1, opacity: 0.45 },
           emphasis: {
@@ -679,55 +694,51 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         <ApartmentOutlined style={{ color: 'var(--saas-primary)' }} /> 关键词关系网络与拓品建议
       </div>
       <div className="section-desc">
-        以「{report.keyword}」为核心，直接展示真实细分关键词与跨行业拓品关键词；<strong>圆球越大代表搜索热度越高，离中心越近代表关联度越强</strong>。右侧为基于聚类的拓品方向建议。
+        以「{report.keyword}」为核心，直接展示真实细分关键词与跨行业拓品关键词；<strong>圆球越大代表搜索热度越高，离中心越近代表关联度越强</strong>。下方为基于聚类的拓品方向建议。
       </div>
-      <Row gutter={[24, 24]}>
-        <Col xs={24} lg={17}>
-          <ReactECharts option={chartOption} style={{ height: isMobile ? 420 : 620, width: '100%' }} />
-        </Col>
-        <Col xs={24} lg={7}>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            {(rel?.expansion_suggestions || []).map((s, i) => (
+      <ReactECharts option={chartOption} style={{ height: isMobile ? 420 : 800, width: '100%' }} />
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
+        {(rel?.expansion_suggestions || []).map((s, i) => (
+          <Col key={i} xs={24} md={12} lg={8}>
+            <div
+              style={{
+                padding: 14,
+                background: '#f8fafc',
+                border: '1px solid var(--saas-border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                height: '100%',
+              }}
+            >
               <div
-                key={i}
                 style={{
-                  padding: 14,
-                  background: '#f8fafc',
-                  border: '1px solid var(--saas-border-subtle)',
-                  borderRadius: 'var(--radius-md)',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: 'var(--saas-text)',
+                  marginBottom: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 800,
-                    color: 'var(--saas-text)',
-                    marginBottom: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
-                  {s.segment}
-                  <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
-                    平均机会分 {s.avg_score}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
-                  {s.rationale}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {s.keywords.map((kw, j) => (
-                    <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                      {kw}
-                    </Tag>
-                  ))}
-                </div>
+                <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                {s.segment}
+                <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
+                  平均机会分 {s.avg_score}
+                </span>
               </div>
-            ))}
-          </Space>
-        </Col>
+              <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
+                {s.rationale}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {s.keywords.map((kw, j) => (
+                  <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                    {kw}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          </Col>
+        ))}
       </Row>
     </div>
   );
