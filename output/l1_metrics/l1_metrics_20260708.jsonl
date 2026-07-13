@@ -1,1 +1,0 @@
-{"report_id": "RPT20260708001", "date": "2026-07-08", "selection_adoption_rate": 0.42, "first_month_success_rate": 0.6667, "cost_per_selection": 0.864, "avg_inference_latency_p95": 8.948, "daily_throughput": 1250, "raw": {"total_recommended": 100, "adopted": 42, "first_month_hit": 28, "total_cost_cny": 86.4}, "created_at": 1783489010}

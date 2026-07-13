@@ -126,7 +126,7 @@ cross-border-agent/
 ├── monitoring/       # Prometheus / Grafana / Alerts 业务指标
 ├── scripts/          # 选品报告 / 数据采集 / 索引构建 / 模型校验
 ├── web/              # React + Vite 新版前端
-├── frontend/         # Streamlit 快速体验前端
+├── frontend/         # Streamlit 示例数据前端（旧版，保留作为本地 fallback）
 ├── tests/            # 单元测试
 └── config/           # 配置中心
 ```
@@ -189,7 +189,7 @@ E:/models/
 
 AWQ 量化脚本与完整复现见 [`finetune/quantize_awq_with_metrics.py`](finetune/quantize_awq_with_metrics.py)。
 
-### 复现 ORPO 训练与 AWQ 量化
+### ORPO 训练与 AWQ 量化
 
 ```bash
 # 1. ORPO 训练（QLoRA）
@@ -227,14 +227,6 @@ python scripts/verify_model_integrity.py
 若某模型总大小与期望值偏差超过 30%，脚本会标记为未通过，便于在部署前发现迁移损坏。
 
 ## 部署方案
-
-### 快速体验：Streamlit 前端
-
-```bash
-docker compose up -d
-```
-
-无需 GPU、无需模型，使用示例数据运行 `frontend/app.py`，适合产品演示与代码评审。
 
 ### 生产部署：完整推理栈
 
