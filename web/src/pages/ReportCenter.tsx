@@ -1040,6 +1040,7 @@ function ReportPdfContent({ report }: { report: AnalysisReport }) {
 
 async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: boolean) => void) {
   setLoading?.(true)
+  console.log('[PDF] report next_steps count:', report.next_steps?.length, 'keyword:', report.keyword)
   const hideLoading = message.loading('正在生成 PDF，请稍候...', 0)
   await new Promise((resolve) => setTimeout(resolve, 80))
 
@@ -1072,11 +1073,18 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     lastHeight = height
     await new Promise((resolve) => setTimeout(resolve, 50))
   }
+  console.log('[PDF] action elements in container:', container.querySelectorAll('.p-action').length)
+  const containerRect2 = container.getBoundingClientRect()
+  container.querySelectorAll('.p-action').forEach((el, idx) => {
+    const rect = (el as HTMLElement).getBoundingClientRect()
+    console.log('[PDF] action', idx, 'top:', rect.top - containerRect2.top, 'height:', rect.height, 'text:', (el as HTMLElement).innerText.slice(0, 40))
+  })
 
   try {
     const scale = 1.5
     const canvasWidth = container.scrollWidth
     const canvasHeight = container.scrollHeight
+    console.log('[PDF] container scroll size:', canvasWidth, canvasHeight)
     const canvas = await html2canvas(container, {
       scale,
       width: canvasWidth,
@@ -1085,16 +1093,21 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
       useCORS: true,
       logging: false,
     })
-    const imgData = canvas.toDataURL('image/png')
+    console.log('[PDF] canvas size:', canvas.width, canvas.height)
     const pdf = new jsPDF('p', 'mm', 'a4')
     const pdfWidth = 210
     const pdfHeight = 297
     const imgWidth = pdfWidth
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width
-    const pxToMm = pdfWidth / canvas.width
+    // 关键：使用 CSS 像素（容器原始宽度）计算 mm/px，避免 scale 导致单页高度被放大
+    const pxToMm = pdfWidth / canvasWidth
     const pageHeightPx = pdfHeight / pxToMm
     // 使用 canvas 实际渲染高度作为内容高度
     const contentHeight = canvas.height / scale
+    console.log('[PDF] contentHeight/pageHeightPx/pages:', contentHeight, pageHeightPx, Math.ceil(contentHeight / pageHeightPx))
+
+    // 容器位于视口外，所有 getBoundingClientRect 均为负值，需要以容器左上角为原点计算相对偏移
+    const containerRect = container.getBoundingClientRect()
+    const containerTop = containerRect.top
 
     // 收集所有可能的分页边界（元素下边界）
     const boundarySelectors = [
@@ -1109,7 +1122,7 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
         const htmlEl = el as HTMLElement
         if (!htmlEl.offsetParent) return
         const rect = htmlEl.getBoundingClientRect()
-        const top = rect.top + container.scrollTop
+        const top = rect.top - containerTop
         const bottom = Math.round(top + rect.height)
         if (bottom > 0 && bottom <= contentHeight) candidateBreaks.add(bottom)
       })
@@ -1126,7 +1139,7 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
           const htmlEl = el as HTMLElement
           if (!htmlEl.offsetParent) return
           const rect = htmlEl.getBoundingClientRect()
-          const top = rect.top + container.scrollTop
+          const top = rect.top - containerTop
           const bottom = top + rect.height
           if (top < y && bottom > y) {
             // 优先选择更大的块（外层），避免内层小元素被截断
@@ -1142,22 +1155,22 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     const safetyMargin = 30
     const minAdvance = 50
     const minPageHeight = pageHeightPx * 0.32
+    const maxPageHeight = pageHeightPx
     const pageTops: number[] = [0]
     let currentTop = 0
 
-    while (currentTop + pageHeightPx < contentHeight) {
-      const targetBottom = currentTop + pageHeightPx
+    while (currentTop + maxPageHeight < contentHeight) {
+      const targetBottom = currentTop + maxPageHeight
       let bestBreak = -1
 
       // 1) 若目标分页线落在不可分断元素内部，优先在该元素边界处分页
       const enclosing = getEnclosingBlock(targetBottom)
       if (enclosing) {
-        const blockHeight = enclosing.bottom - enclosing.top
-        // 如果元素能完整放入一页，选择其底部
-        if (blockHeight <= pageHeightPx * 0.9 && enclosing.bottom > currentTop + safetyMargin) {
+        // 元素整体能放入当前页：直接分到元素底部
+        if (enclosing.bottom <= currentTop + maxPageHeight && enclosing.bottom > currentTop + safetyMargin) {
           bestBreak = Math.round(enclosing.bottom)
         } else if (enclosing.top > currentTop + safetyMargin) {
-          // 否则回退到该元素顶部，避免元素被截断
+          // 元素放不下的情况：回退到元素顶部，把整块推到下一页
           bestBreak = Math.round(enclosing.top)
         }
       }
@@ -1172,14 +1185,15 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
         }, -1)
       }
 
-      // 3) 兜底：直接硬切到目标底部
+      // 3) 兜底：直接硬切到目标底部，并强制不超过 A4 单页高度
       if (bestBreak < 0 || bestBreak - currentTop < minPageHeight) {
         bestBreak = targetBottom
       }
+      bestBreak = Math.min(bestBreak, currentTop + maxPageHeight)
 
       // 4) 保证分页点严格前进，防止死循环或内容重复
       if (bestBreak <= currentTop + minAdvance) {
-        bestBreak = Math.min(currentTop + pageHeightPx, contentHeight)
+        bestBreak = Math.min(currentTop + maxPageHeight, contentHeight)
       }
 
       pageTops.push(bestBreak)
@@ -1192,11 +1206,38 @@ async function downloadReportPdf(report: AnalysisReport, setLoading?: (loading: 
     }
 
     const uniqueTops = Array.from(new Set(pageTops)).sort((a, b) => a - b)
+    console.log('[PDF] pageTops:', uniqueTops, 'total:', uniqueTops.length)
 
-    uniqueTops.forEach((top, index) => {
-      if (index > 0) pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, -top * pxToMm, imgWidth, imgHeight)
-    })
+    // 分块渲染：从已捕获的完整 canvas 中切片，避免多次调用 html2canvas 导致离屏内容丢失
+    for (let i = 0; i < uniqueTops.length; i++) {
+      const top = uniqueTops[i]
+      const nextTop = i + 1 < uniqueTops.length ? uniqueTops[i + 1] : contentHeight
+      const pageH = nextTop - top
+      if (pageH <= 0) continue
+      console.log('[PDF] slicing page', i + 1, 'top:', top, 'height:', pageH)
+      const sliceCanvas = document.createElement('canvas')
+      sliceCanvas.width = canvas.width
+      sliceCanvas.height = Math.ceil(pageH * scale)
+      const sliceCtx = sliceCanvas.getContext('2d')
+      if (!sliceCtx) continue
+      sliceCtx.fillStyle = '#ffffff'
+      sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
+      sliceCtx.drawImage(
+        canvas,
+        0,
+        Math.round(top * scale),
+        canvas.width,
+        sliceCanvas.height,
+        0,
+        0,
+        canvas.width,
+        sliceCanvas.height
+      )
+      const pageImgData = sliceCanvas.toDataURL('image/png')
+      const pageImgHeight = (sliceCanvas.height * pdfWidth) / sliceCanvas.width
+      if (i > 0) pdf.addPage()
+      pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, pageImgHeight)
+    }
 
     pdf.save(`${report.keyword.replace(/\s+/g, '_').toLowerCase()}_${report.market.toLowerCase()}_report.pdf`)
     hideLoading()
