@@ -189,7 +189,6 @@ function RadarChart({ report }: { report: AnalysisReport }) {
     const categories = Object.keys(report.score_breakdown);
     const values = Object.values(report.score_breakdown);
     const normalized = categories.map((cat, i) => Math.min(100, (values[i] / MAX_VALUES[cat]) * 100));
-    const avg = normalized.reduce((a, b) => a + b, 0) / normalized.length;
     const benchmark = categories.map(() => 60);
     const shortNames: Record<string, string> = {
       利润空间: '利润\n空间',
@@ -248,11 +247,9 @@ function RadarChart({ report }: { report: AnalysisReport }) {
             width: 1,
           },
         },
+        // 移除 splitArea 彩色环状背景，使雷达图更清爽、避免底层圆环视觉干扰
         splitArea: {
-          show: true,
-          areaStyle: {
-            color: ['rgba(248, 250, 252, 0.9)', 'rgba(241, 245, 249, 0.7)', 'rgba(248, 250, 252, 0.85)', 'rgba(241, 245, 249, 0.6)', 'rgba(248, 250, 252, 0.95)'],
-          },
+          show: false,
         },
       },
       series: [
@@ -300,69 +297,7 @@ function RadarChart({ report }: { report: AnalysisReport }) {
           z: 5,
         },
       ],
-      graphic: [
-        {
-          type: 'group',
-          left: 'center',
-          top: '50%',
-          z: 100,
-          children: [
-            {
-              type: 'circle',
-              shape: { cx: 0, cy: 0, r: 44 },
-              style: {
-                fill: 'rgba(255, 255, 255, 0.98)',
-                stroke: 'rgba(226, 232, 240, 0.8)',
-                lineWidth: 1,
-                shadowBlur: 18,
-                shadowColor: 'rgba(37, 99, 235, 0.14)',
-              },
-            },
-            {
-              type: 'circle',
-              shape: { cx: 0, cy: 0, r: 40 },
-              style: {
-                fill: 'none',
-                stroke: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: '#60a5fa' },
-                  { offset: 1, color: '#1d4ed8' },
-                ]),
-                lineWidth: 5,
-              },
-            },
-            {
-              type: 'text',
-              left: 'center',
-              top: 'center',
-              style: {
-                text: `${Math.round(avg)}`,
-                fontSize: 28,
-                fontWeight: 900,
-                fill: '#1e40af',
-                textAlign: 'center',
-                textVerticalAlign: 'middle',
-                fontFamily: 'var(--font-sans)',
-                y: -8,
-              },
-            },
-            {
-              type: 'text',
-              left: 'center',
-              top: 'center',
-              style: {
-                text: '综合均分',
-                fontSize: 12,
-                fontWeight: 800,
-                fill: '#64748b',
-                textAlign: 'center',
-                textVerticalAlign: 'middle',
-                fontFamily: 'var(--font-sans)',
-                y: 18,
-              },
-            },
-          ],
-        },
-      ],
+      // 移除中心综合均分圆环，避免视觉干扰，均分信息已在首页 KPI 卡片中呈现
     };
   }, [report, isMobile]);
 

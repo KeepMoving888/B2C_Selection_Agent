@@ -51,19 +51,20 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
     return {
       tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.92)', borderWidth: 0, padding: [5, 8], confine: true, textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 }, extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;' },
       legend: { orient: 'horizontal', top: 0, right: isMobile ? undefined : 0, left: isMobile ? 'center' : undefined, itemGap: isMobile ? 12 : 20, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 10 : 12 } },
-      grid: { left: isMobile ? 6 : 14, right: isMobile ? 6 : 60, top: isMobile ? 34 : 46, bottom: isMobile ? 16 : 20, containLabel: true },
-      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11, interval: isMobile ? 1 : 0, rotate: isMobile ? 30 : 0 } },
+      grid: { left: isMobile ? 10 : 14, right: isMobile ? 10 : 60, top: isMobile ? 40 : 46, bottom: isMobile ? 60 : 30, containLabel: true },
+      dataZoom: isMobile ? [{ type: 'inside', start: 0, end: 70 }, { type: 'slider', start: 0, end: 70, height: 14, bottom: 6, showDetail: false, borderColor: 'transparent', fillerColor: 'rgba(37,99,235,0.15)', handleStyle: { color: '#2563eb' } }] : undefined,
+      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11, interval: isMobile ? 0 : 0, rotate: isMobile ? 45 : 0, formatter: (value: string) => isMobile && value.length > 8 ? value.slice(0, 6) + '…' : value } },
       yAxis: [
-        { type: 'value', name: `售价 (${symbol})`, nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11, padding: isMobile ? [0, 0, 0, -20] : undefined }, max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 } },
-        { type: 'value', name: '月销量', nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 }, max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 9 : 11 } },
+        { type: 'value', name: isMobile ? '' : `售价 (${symbol})`, nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 }, max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11, formatter: (value: number) => isMobile ? `${symbol}${Math.round(value)}` : `${symbol}${value}` } },
+        { type: 'value', name: isMobile ? '' : '月销量', nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 }, max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { show: !isMobile, color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11 } },
       ],
       series: [
         {
           type: 'bar',
           name: '售价',
           data: competitors.map((p, i) => ({ value: p.price, itemStyle: { color: softPalette[i % softPalette.length], borderRadius: [6, 6, 0, 0] } })),
-          barWidth: isMobile ? '40%' : '45%',
-          label: { show: !isMobile, position: 'top', formatter: `${symbol}{c}`, color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
+          barWidth: isMobile ? '35%' : '45%',
+          label: { show: false, position: 'top', formatter: `${symbol}{c}`, color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
         },
         {
           type: 'line',
@@ -73,13 +74,13 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
           smooth: true,
           lineStyle: { color: '#f59e0b', width: 3 },
           itemStyle: { color: '#f59e0b', borderColor: '#fff', borderWidth: 2 },
-          label: { show: !isMobile, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
+          label: { show: false, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
         },
       ],
     };
   }, [competitors, isMobile, symbol]);
 
-  return <ReactECharts option={option} style={{ height: isMobile ? 300 : 360, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height: isMobile ? 380 : 360, width: '100%' }} />;
 }
 
 function CompetitorCard({ product, index, market }: { product: any; index: number; market: string }) {
@@ -604,7 +605,27 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         name: rootNode.name,
         value: rootNode.value,
         symbolSize: isMobile ? 48 : 58,
-        label: { show: true, fontSize: isMobile ? 13 : 14, fontWeight: 800, color: '#fff' },
+        label: {
+          show: true,
+          position: 'top',
+          distance: 8,
+          fontSize: isMobile ? 13 : 14,
+          fontWeight: 800,
+          color: '#1e293b',
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          borderColor: 'rgba(0,0,0,0.06)',
+          borderWidth: 1,
+          borderRadius: 6,
+          padding: [3, 8],
+          shadowBlur: 4,
+          shadowColor: 'rgba(0,0,0,0.08)',
+          textBorderColor: 'rgba(255,255,255,0.85)',
+          textBorderWidth: 2,
+          formatter: (p: any) => {
+            const name: string = p.name;
+            return name.length > 24 ? name.slice(0, 22) + '…' : name;
+          },
+        },
         itemStyle: {
           color: '#dc2626',
           shadowBlur: 24,
@@ -694,51 +715,65 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         <ApartmentOutlined style={{ color: 'var(--saas-primary)' }} /> 关键词关系网络与拓品建议
       </div>
       <div className="section-desc">
-        以「{report.keyword}」为核心，直接展示真实细分关键词与跨行业拓品关键词；<strong>圆球越大代表搜索热度越高，离中心越近代表关联度越强</strong>。下方为基于聚类的拓品方向建议。
+        以「{report.keyword}」为核心，直接展示真实细分关键词与跨行业拓品关键词；<strong>圆球越大代表搜索热度越高，离中心越近代表关联度越强</strong>。右侧为基于聚类的拓品方向建议。
       </div>
-      <ReactECharts option={chartOption} style={{ height: isMobile ? 420 : 800, width: '100%' }} />
-      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
-        {(rel?.expansion_suggestions || []).map((s, i) => (
-          <Col key={i} xs={24} md={12} lg={8}>
-            <div
-              style={{
-                padding: 14,
-                background: '#f8fafc',
-                border: '1px solid var(--saas-border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                height: '100%',
-              }}
-            >
+      <Row gutter={[24, 24]} align="stretch">
+        <Col xs={24} lg={16}>
+          <ReactECharts option={chartOption} style={{ height: isMobile ? 420 : 760, width: '100%' }} />
+        </Col>
+        <Col xs={24} lg={8}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              height: isMobile ? 'auto' : '100%',
+              maxHeight: isMobile ? 'none' : 760,
+              overflowY: isMobile ? 'visible' : 'auto',
+            }}
+          >
+            {(rel?.expansion_suggestions || []).map((s, i) => (
               <div
+                key={i}
                 style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: 'var(--saas-text)',
-                  marginBottom: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
+                  padding: 14,
+                  background: '#f8fafc',
+                  border: '1px solid var(--saas-border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  flexShrink: 0,
                 }}
               >
-                <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
-                {s.segment}
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
-                  平均机会分 {s.avg_score}
-                </span>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: 'var(--saas-text)',
+                    marginBottom: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                  {s.segment}
+                  <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
+                    平均机会分 {s.avg_score}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
+                  {s.rationale}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {s.keywords.map((kw, j) => (
+                    <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                      {kw}
+                    </Tag>
+                  ))}
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
-                {s.rationale}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {s.keywords.map((kw, j) => (
-                  <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                    {kw}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          </Col>
-        ))}
+            ))}
+          </div>
+        </Col>
       </Row>
     </div>
   );

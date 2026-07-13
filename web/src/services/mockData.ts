@@ -1017,7 +1017,6 @@ function generateSuppliers(
   const city = archetype.supplier_city;
   const specialty = archetype.supplier_specialty;
   const profile = getMarketProfile(market);
-  const cnKeywords = archetype.cn_keywords.length > 0 ? archetype.cn_keywords : [keyword];
 
   const districtMap: Record<string, string[]> = {
     '深圳': ['龙华区', '宝安区', '龙岗区', '南山区', '光明区'],
@@ -1077,7 +1076,6 @@ function generateSuppliers(
   return supplierPool.map((s, rank) => {
     const unitCost = Math.round(rng.uniform(archetype.price_range[0], archetype.price_range[1]) * rng.uniform(0.18, 0.34) * profile.price_mult * 100) / 100;
     const hotName = shuffledHot[rank % shuffledHot.length];
-    const cnQuery = cnKeywords[rank % cnKeywords.length];
 
     return {
       rank: rank + 1,
@@ -1095,7 +1093,8 @@ function generateSuppliers(
       hot_categories: [hotName, shuffledHot[(rank + 1) % shuffledHot.length]],
       hot_product_image: `https://placehold.co/100x100/334155/ffffff?text=${encodeURIComponent(hotName[0])}`,
       hot_product_name: hotName,
-      link_1688: `https://s.1688.com/selloffer/offer_search.htm?keywords=${encodeURIComponent(cnQuery)}`,
+      // 使用原始关键词（多为英文）生成 1688 搜索链接，避免中文编码乱码；空格统一用 + 更符合搜索引擎表单习惯
+      link_1688: `https://s.1688.com/selloffer/offer_search.htm?keywords=${encodeURIComponent(keyword).replace(/%20/g, '+')}`,
     };
   });
 }
