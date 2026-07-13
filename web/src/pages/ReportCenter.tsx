@@ -543,7 +543,7 @@ function ReportOverviewTab({ report }: { report: AnalysisReport }) {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card size="small" title={<><BarChartOutlined /> 五维能力雷达</>}>
+          <Card size="small" title={<><BarChartOutlined /> 四维能力雷达</>}>
             <ReactECharts key={`report-radar-${report.keyword}`} option={radarOption} style={{ height: 320 }} notMerge={true} />
           </Card>
         </Col>
@@ -1327,11 +1327,11 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
             <li key={i}><strong>{step.phase}</strong>：{step.title} — {step.value}</li>
           ))}
         </ul>
-        <div className="p-subtitle">五维评分拆解</div>
+        <div className="p-subtitle">四维评分拆解</div>
         {Object.entries(report.score_breakdown).map(([name, score]) => {
-          const maxV = { 利润空间: 40, 趋势热度: 25, 竞争强度: 20, 评论洞察: 15, 供应链稳定性: 15 }[name] ?? 25
+          const maxV = { 利润空间: 40, 趋势热度: 25, 竞争强度: 20, 评论洞察: 15 }[name] ?? 25
           const pct = Math.min(100, Math.max(0, (score / maxV) * 100))
-          const colors: Record<string, string> = { 利润空间: '#059669', 趋势热度: '#7c3aed', 竞争强度: '#0891b2', 评论洞察: '#2563eb', 供应链稳定性: '#d97706' }
+          const colors: Record<string, string> = { 利润空间: '#059669', 趋势热度: '#7c3aed', 竞争强度: '#0891b2', 评论洞察: '#2563eb' }
           return (
             <div key={name} className="p-score-row">
               <div className="p-score-name" style={{ color: colors[name] }}>{name}</div>
@@ -1620,7 +1620,6 @@ const RADAR_MAX_VALUES: Record<string, number> = {
   趋势热度: 25,
   竞争强度: 20,
   评论洞察: 15,
-  供应链稳定性: 15,
 }
 
 const RADAR_COLORS: Record<string, { start: string; end: string }> = {
@@ -1628,7 +1627,6 @@ const RADAR_COLORS: Record<string, { start: string; end: string }> = {
   趋势热度: { start: '#7c3aed', end: '#a78bfa' },
   竞争强度: { start: '#0891b2', end: '#22d3ee' },
   评论洞察: { start: '#2563eb', end: '#60a5fa' },
-  供应链稳定性: { start: '#d97706', end: '#fbbf24' },
 }
 
 function buildReportRadarOption(report: AnalysisReport): EChartsOption {
@@ -1680,7 +1678,7 @@ function buildReportRadarOption(report: AnalysisReport): EChartsOption {
       type: 'radar',
       data: [{
         value: normalized,
-        name: '五维评分',
+        name: '四维评分',
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(37, 99, 235, 0.42)' },

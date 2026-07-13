@@ -33,7 +33,6 @@ const MAX_VALUES: Record<string, number> = {
   趋势热度: 25,
   竞争强度: 20,
   评论洞察: 15,
-  供应链稳定性: 15,
 };
 
 const SCORE_COLORS: Record<string, { start: string; end: string; bg: string }> = {
@@ -41,7 +40,6 @@ const SCORE_COLORS: Record<string, { start: string; end: string; bg: string }> =
   趋势热度: { start: '#dc2626', end: '#f87171', bg: '#fef2f2' },
   竞争强度: { start: '#0891b2', end: '#22d3ee', bg: '#ecfeff' },
   评论洞察: { start: '#2563eb', end: '#60a5fa', bg: '#eff6ff' },
-  供应链稳定性: { start: '#d97706', end: '#fbbf24', bg: '#fffbeb' },
 };
 
 const METRIC_ACCENTS: Record<string, { color: string; bg: string; light: string; icon: React.ReactNode }> = {
@@ -195,7 +193,6 @@ function RadarChart({ report }: { report: AnalysisReport }) {
       趋势热度: '趋势\n热度',
       竞争强度: '竞争\n强度',
       评论洞察: '评论\n洞察',
-      供应链稳定性: '供应链\n稳定性',
     };
 
     return {
@@ -313,7 +310,7 @@ function ScoreBreakdown({ report }: { report: AnalysisReport }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="info-card-title">五维评分拆解</div>
+      <div className="info-card-title">四维评分拆解</div>
       <div className="section-desc">
         各项得分对综合评分的贡献度与相对表现，帮助定位优势与短板。
       </div>
@@ -348,7 +345,7 @@ function ScoreBreakdown({ report }: { report: AnalysisReport }) {
               {idx < sortedDimensions.length - 1 ? '、' : ''}
             </React.Fragment>
           ))}
-          {' '}等维度表现突出；建议结论由五维加权与毛利率共同决定，若趋势/竞争/供应链任一维度偏弱，会下调评级。
+          {' '}等维度表现突出；建议结论由四维加权与毛利率共同决定，若趋势/竞争/评论任一维度偏弱，会下调评级。
         </div>
       </div>
     </div>
