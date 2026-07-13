@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createHashRouter, Navigate } from 'react-router-dom'
 import MainLayout from './components/Layout/MainLayout'
 import ActionPlan from './pages/ActionPlan'
 import Compliance from './pages/Compliance'
@@ -13,7 +13,7 @@ import Settings from './pages/Settings'
 import Suppliers from './pages/Suppliers'
 import TrendSeasonal from './pages/TrendSeasonal'
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/login',
     element: <Login />,
