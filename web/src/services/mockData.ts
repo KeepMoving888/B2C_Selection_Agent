@@ -1610,17 +1610,17 @@ interface ScoringWeights {
   supply: number
 }
 
-function getScoringWeights(): ScoringWeights {
+export function getScoringWeights(): ScoringWeights {
   try {
     const raw = localStorage.getItem('app_settings')
     if (raw) {
       const parsed = JSON.parse(raw)
       if (parsed.weights) {
         return {
-          profit: Number(parsed.weights.profit) || 30,
-          trend: Number(parsed.weights.trend) || 25,
-          competition: Number(parsed.weights.competition) || 20,
-          review: Number(parsed.weights.review) || 15,
+          profit: Number(parsed.weights.profit) || 35,
+          trend: Number(parsed.weights.trend) || 20,
+          competition: Number(parsed.weights.competition) || 25,
+          review: Number(parsed.weights.review) || 10,
           supply: Number(parsed.weights.supply) || 10,
         }
       }
@@ -1628,7 +1628,7 @@ function getScoringWeights(): ScoringWeights {
   } catch {
     // ignore
   }
-  return { profit: 30, trend: 25, competition: 20, review: 15, supply: 10 }
+  return { profit: 35, trend: 20, competition: 25, review: 10, supply: 10 }
 }
 
 export function generateMockReport(
@@ -1665,34 +1665,47 @@ export function generateMockReport(
 
   // 综合评分（五维加权：利润/趋势/竞争/评论/供应链，原始分统一归一化为 0-100）
   const grossMargin = profit.gross_margin;
-  const marginRaw = Math.min(40, Math.max(-20, grossMargin * 120));
-  const trendRaw = archetype.trend === 'rising' ? 25 : archetype.trend === 'stable' ? 18 : 8;
   const keywordSummary = {
     search_volume: rng.randint(8500, 95000),
     trend: archetype.trend,
     competition: (avgReviews > 8000 ? 'high' : avgReviews > 2000 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
     cpc: Math.round(rng.uniform(0.65, 3.8) * 100) / 100,
-    opportunity_score: Math.round(Math.min(100, (marginRaw / 40) * 60 + (archetype.trend === 'rising' ? 25 : 15))),
+    opportunity_score: 0,
     top_niche_keywords: (keywordOpportunities || []).slice(0, 5).map((o) => o.keyword),
   };
   const globalTrends = buildGlobalTrends(keyword, archetype);
   const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary, archetype);
-  const competitionRaw = avgReviews < 1500 ? 20 : avgReviews < 8000 ? 12 : 5;
-  const insightRaw = archetype.pain_points.length > 0 ? 15 : 8;
-  // 供应链稳定性：基于供应商平均评分、响应率与交期综合评估
+
+  // 1. 利润空间：毛利率线性映射，35%+ 为满分
+  const profitScore = Math.max(0, Math.min(100, Math.round(grossMargin * 285.7 * 10) / 10));
+
+  // 2. 趋势热度：基于趋势方向 + 搜索量 + 波动度，避免 rising 直接满分
+  const trendBase = archetype.trend === 'rising' ? 58 : archetype.trend === 'stable' ? 36 : 15;
+  const volumeFactor = Math.min(1, Math.max(0, (keywordSummary.search_volume - 5000) / 85000));
+  const trendVolatility = rng.uniform(0, 12);
+  const trendScore = Math.round(Math.min(100, trendBase + volumeFactor * 24 + trendVolatility) * 10) / 10;
+
+  // 3. 竞争强度：基于平均评论数连续评分，评论越少竞争越友好
+  const competitionScore = Math.max(
+    0,
+    Math.min(100, Math.round((1 - Math.min(1, avgReviews / 14000)) * 100 * 10) / 10)
+  );
+
+  // 4. 评论洞察：基于痛点数量与质量，0 痛点也有基础分但不满分
+  const painCount = archetype.pain_points.length;
+  const insightScore = Math.min(100, Math.round((22 + painCount * 14 + rng.uniform(0, 8)) * 10) / 10);
+
+  // 5. 供应链稳定性：基于供应商平均评分与响应率
   const avgSupplierRating = suppliers.reduce((sum, s) => sum + s.rating, 0) / suppliers.length;
   const avgResponseRate = suppliers.reduce((sum, s) => sum + s.response_rate, 0) / suppliers.length;
-  const supplyRaw = Math.round(
-    Math.min(15, Math.max(5, (avgSupplierRating * 2.2) + (avgResponseRate / 20) - 2)) * 10
+  const supplyScore = Math.round(
+    Math.min(100, Math.max(0, avgSupplierRating * 16 + avgResponseRate * 0.35 - 25)) * 10
   ) / 10;
 
-  // 各维度原始分统一归一化为 0-100，确保权重系数即真实贡献比例
-  const normalize = (score: number, max: number) => Math.min(100, Math.max(0, (score / max) * 100));
-  const profitScore = Math.round(normalize(marginRaw, 40) * 10) / 10;
-  const trendScore = Math.round(normalize(trendRaw, 25) * 10) / 10;
-  const competitionScore = Math.round(normalize(competitionRaw, 20) * 10) / 10;
-  const insightScore = Math.round(normalize(insightRaw, 15) * 10) / 10;
-  const supplyScore = Math.round(normalize(supplyRaw, 15) * 10) / 10;
+  // 机会评分保持独立（用于关键词机会卡片），不受五维权重影响
+  keywordSummary.opportunity_score = Math.round(
+    Math.min(100, profitScore * 0.5 + trendScore * 0.3 + competitionScore * 0.2)
+  );
 
   // 读取后台权重配置并做加权求和（总分 100）
   const weights = getScoringWeights();

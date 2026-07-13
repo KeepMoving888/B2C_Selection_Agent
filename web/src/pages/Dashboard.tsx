@@ -25,6 +25,7 @@ import WelcomeGuide from '../components/WelcomeGuide';
 import { useMobile } from '../hooks/useMobile';
 import { useReport } from '../hooks/useReport';
 import { setPageTitle } from '../store/slices/uiSlice';
+import { getScoringWeights } from '../services/mockData';
 import type { AnalysisReport } from '../types';
 import { getMarketCurrency } from '../utils/currency';
 
@@ -305,7 +306,18 @@ function RadarChart({ report }: { report: AnalysisReport }) {
 }
 
 function ScoreBreakdown({ report }: { report: AnalysisReport }) {
-  const total = Object.values(report.score_breakdown).reduce((a, b) => a + b, 0);
+  const weights = getScoringWeights();
+  const weightMap: Record<string, number> = {
+    '利润空间': weights.profit,
+    '趋势热度': weights.trend,
+    '竞争强度': weights.competition,
+    '评论洞察': weights.review,
+    '供应链稳定性': weights.supply,
+  };
+  const weightedTotal = Object.entries(report.score_breakdown).reduce(
+    (sum, [name, score]) => sum + score * (weightMap[name] / 100),
+    0
+  );
   const sortedDimensions = Object.entries(report.score_breakdown)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
@@ -320,9 +332,10 @@ function ScoreBreakdown({ report }: { report: AnalysisReport }) {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1 }}>
           {Object.entries(report.score_breakdown).map(([name, score]) => {
-            const maxV = MAX_VALUES[name] ?? 25;
+            const maxV = MAX_VALUES[name] ?? 100;
             const pct = Math.min(100, Math.max(0, (score / maxV) * 100));
-            const contribution = total > 0 ? (score / total) * 100 : 0;
+            const weightedScore = score * (weightMap[name] / 100);
+            const contribution = weightedTotal > 0 ? (weightedScore / weightedTotal) * 100 : 0;
             const color = SCORE_COLORS[name];
             return (
               <div key={name} className="score-row">
