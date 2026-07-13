@@ -92,15 +92,15 @@ Amazon 竞品搜索（价格 / 评分 / BSR / 销量估算）
 
 | 决策看板 | 市场分析 | 趋势季节 |
 |---|---|---|
-| ![dashboard](screenshots/demo-dashboard.png) | ![market](screenshots/demo-market-analysis.png) | ![trend](screenshots/demo-trend-seasonal.png) |
+| ![dashboard](screenshots/dashboard.png) | ![market](screenshots/market-analysis.png) | ![trend](screenshots/trend-seasonal.png) |
 
 | 评论洞察 | 利润测算 | 供应商 |
 |---|---|---|
-| ![review](screenshots/demo-review-insights.png) | ![profit](screenshots/demo-profit-analysis.png) | ![suppliers](screenshots/demo-suppliers.png) |
+| ![review](screenshots/review-insights.png) | ![profit](screenshots/profit-analysis.png) | ![suppliers](screenshots/suppliers.png) |
 
 | 合规检查 | 行动计划 | 报告中心 |
 |---|---|---|
-| ![compliance](screenshots/demo-compliance.png) | ![action](screenshots/demo-action-plan.png) | ![report](screenshots/demo-report-center.png) |
+| ![compliance](screenshots/compliance.png) | ![action](screenshots/action-plan.png) | ![report](screenshots/report-center.png) |
 
 ## 模型方案：ORPO 微调 + AWQ 量化
 

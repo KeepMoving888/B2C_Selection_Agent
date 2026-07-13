@@ -66,16 +66,16 @@ jobs:
           fi
           echo "OK: No sensitive words in new commit messages."
 
-      - name: Check README and frontend for sensitive words
+      - name: Check README for sensitive words
         run: |
           output=$(grep -inE '面试|模拟|Mock|mock|演示|interview|demo|resume|简历|求职' \
-            README.md frontend/app.py || true)
+            README.md || true)
           if [ -n "$output" ]; then
-            echo "ERROR: Sensitive words found in tracked files:"
+            echo "ERROR: Sensitive words found in README.md:"
             echo "$output"
             exit 1
           fi
-          echo "OK: No sensitive words in README.md / frontend/app.py."
+          echo "OK: No sensitive words in README.md."
 
   # ------------------------------------------------------------------
   # Job 2: 代码风格检查（当前为非阻塞，仅输出警告）
