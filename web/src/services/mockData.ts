@@ -623,8 +623,56 @@ function seededRng(...args: (string | number)[]): {
   };
 }
 
-function resolveArchetype(keyword: string): ProductArchetype {
+const PLURAL_EXCEPTIONS = new Set([
+  'glasses', 'pants', 'shorts', 'scissors', 'pliers', 'tongs', 'clothes',
+  'news', 'goods', 'series', 'species', 'means', 'crossroads',
+]);
+
+function singularizeWord(word: string): string {
+  if (PLURAL_EXCEPTIONS.has(word) || word.endsWith('ss')) return word;
+  if (word.endsWith('ies') && /[^aeiou]ies$/.test(word) && word.length > 4) {
+    return word.slice(0, -3) + 'y';
+  }
+  if (word.endsWith('es')) {
+    const stem = word.slice(0, -2);
+    if (/(s|x|z|ch|sh)$/.test(stem)) return stem;
+  }
+  if (word.endsWith('s')) return word.slice(0, -1);
+  return word;
+}
+
+function pluralizeWord(word: string): string {
+  if (PLURAL_EXCEPTIONS.has(word) || word.endsWith('ss')) return word;
+  if (word.endsWith('y') && /[^aeiou]y$/.test(word)) return word.slice(0, -1) + 'ies';
+  if (/(s|x|z|ch|sh)$/.test(word)) return word + 'es';
+  if (word.endsWith('s')) return word;
+  return word + 's';
+}
+
+function singularizePhrase(phrase: string): string {
+  return phrase.toLowerCase().trim().split(/\s+/).map(singularizeWord).join(' ');
+}
+
+function pluralizePhrase(phrase: string): string {
+  const words = phrase.toLowerCase().trim().split(/\s+/);
+  if (words.length === 0) return phrase;
+  words[words.length - 1] = pluralizeWord(words[words.length - 1]);
+  return words.join(' ');
+}
+
+// 关键词归一化：把复数/单数形式映射到同一个品类画像，保证 "cat toy" 与 "cat toys" 结果一致
+export function normalizeKeyword(keyword: string): string {
   const key = keyword.toLowerCase().trim();
+  if (ARCHETYPES[key]) return key;
+  const singular = singularizePhrase(key);
+  if (ARCHETYPES[singular]) return singular;
+  const plural = pluralizePhrase(key);
+  if (ARCHETYPES[plural]) return plural;
+  return key;
+}
+
+function resolveArchetype(keyword: string): ProductArchetype {
+  const key = normalizeKeyword(keyword);
   for (const k of Object.keys(ARCHETYPES)) {
     if (key.includes(k)) return ARCHETYPES[k];
   }
@@ -1638,8 +1686,11 @@ export function generateMockReport(
   sellingPrice?: number,
   unitCost?: number
 ): AnalysisReport {
-  const rng = seededRng(keyword, market, budget);
-  const archetype = resolveArchetype(keyword);
+  // 使用归一化后的关键词进行数据生成，保证单复数形式（如 cat toy / cat toys）结果一致；
+  // 页面展示仍使用用户原始输入。
+  const canonicalKeyword = normalizeKeyword(keyword);
+  const rng = seededRng(canonicalKeyword, market, budget);
+  const archetype = resolveArchetype(canonicalKeyword);
   const profile = getMarketProfile(market);
 
   if (sellingPrice === undefined) {
@@ -1649,7 +1700,7 @@ export function generateMockReport(
     unitCost = Math.round(sellingPrice * rng.uniform(0.18, 0.30) * 100) / 100;
   }
 
-  const competitors = generateCompetitors(rng, archetype, keyword, market);
+  const competitors = generateCompetitors(rng, archetype, canonicalKeyword, market);
   const avgPrice = Math.round((competitors.reduce((sum, p) => sum + p.price, 0) / competitors.length) * 100) / 100;
   const avgRating = Math.round((competitors.reduce((sum, p) => sum + p.rating, 0) / competitors.length) * 10) / 10;
   const avgReviews = Math.round(competitors.reduce((sum, p) => sum + p.review_count, 0) / competitors.length);
@@ -1659,9 +1710,9 @@ export function generateMockReport(
   const detectedPeaks = detectPeakMonths(trend.values);
   const entryWindows = detectEntryWindows(trend.values, detectedPeaks);
   const seasonNarrative = buildSeasonNarrative(detectedPeaks, entryWindows, archetype.trend);
-  const suppliers = generateSuppliers(rng, keyword, archetype, market);
-  const trending = generateTrendingProducts(rng, keyword);
-  const keywordOpportunities = buildKeywordOpportunities(rng, keyword, archetype.category, competitors);
+  const suppliers = generateSuppliers(rng, canonicalKeyword, archetype, market);
+  const trending = generateTrendingProducts(rng, canonicalKeyword);
+  const keywordOpportunities = buildKeywordOpportunities(rng, canonicalKeyword, archetype.category, competitors);
 
   // 综合评分（五维加权：利润/趋势/竞争/评论/供应链，原始分统一归一化为 0-100）
   const grossMargin = profit.gross_margin;
@@ -1673,8 +1724,8 @@ export function generateMockReport(
     opportunity_score: 0,
     top_niche_keywords: (keywordOpportunities || []).slice(0, 5).map((o) => o.keyword),
   };
-  const globalTrends = buildGlobalTrends(keyword, archetype);
-  const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary, archetype);
+  const globalTrends = buildGlobalTrends(canonicalKeyword, archetype);
+  const keywordRelationships = buildKeywordRelationships(canonicalKeyword, keywordOpportunities, keywordSummary, archetype);
 
   // 1. 利润空间：综合毛利率 + 中性情景 ROI + 回本周期
   //    低客单价产品（如 cat toy）毛利率可能低，但试错成本低、ROI 周转快，应获得合理分数
@@ -1714,10 +1765,38 @@ export function generateMockReport(
     ) * 10
   ) / 10;
 
-  // 3. 竞争强度：需求/供给比值（搜索量 ÷ 竞品数）
+  // 3. 竞争强度：需求/供给比值（搜索量 ÷ 平台商家数）
   //    需求大于供给 → 竞争低（高分）；需求小于供给 → 竞争强（低分）
-  const demandSupplyRatio = keywordSummary.search_volume / Math.max(1, competitors.length);
-  const competitionScore = Math.min(100, Math.max(0, Math.round((demandSupplyRatio / 1500) * 100 * 10) / 10));
+  //    商家数根据品类饱和度与搜索量做综合估算（模拟 C 端平台官方行业数据分布）
+  const CATEGORY_SELLER_DENSITY: Record<string, number> = {
+    pet_supplies: 0.015,
+    electronics: 0.08,
+    sports: 0.02,
+    home_kitchen: 0.025,
+    beauty: 0.05,
+    baby: 0.03,
+    general: 0.04,
+  };
+  const CATEGORY_BASE_SELLERS: Record<string, number> = {
+    pet_supplies: 300,
+    electronics: 1200,
+    sports: 250,
+    home_kitchen: 400,
+    beauty: 800,
+    baby: 500,
+    general: 500,
+  };
+  const categoryDensity = CATEGORY_SELLER_DENSITY[archetype.category] || CATEGORY_SELLER_DENSITY.general;
+  const categoryBaseSellers = CATEGORY_BASE_SELLERS[archetype.category] || CATEGORY_BASE_SELLERS.general;
+  const simulatedSellerCount = Math.round(
+    categoryBaseSellers + keywordSummary.search_volume * categoryDensity * rng.uniform(0.85, 1.15)
+  );
+  const demandSupplyRatio = keywordSummary.search_volume / Math.max(1, simulatedSellerCount);
+  // 对数压缩：避免需求/供给比稍高就直接满分，让分数分布更接近真实行业数据
+  const competitionScore = Math.min(
+    100,
+    Math.max(0, Math.round(Math.log10(demandSupplyRatio + 1) * 38 * 10) / 10)
+  );
 
   // 4. 评论洞察：基于总评论量、平均评分、差评痛点机会
   const totalReviews = competitors.reduce((sum, p) => sum + (p.review_count || 0), 0);

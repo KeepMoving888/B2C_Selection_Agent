@@ -74,6 +74,13 @@ const GRADE_COLORS: Record<string, string> = {
   D: '#dc2626',
 }
 
+const GRADE_LABELS: Record<string, string> = {
+  A: '推荐进入',
+  B: '谨慎进入',
+  C: '观察',
+  D: '不建议',
+}
+
 const COUNTRY_COLORS: Record<string, string> = {
   US: '#dc2626',
   UK: '#2563eb',
@@ -270,10 +277,12 @@ export default function ReportCenter() {
         title: '等级',
         dataIndex: 'grade',
         key: 'grade',
-        width: 70,
+        width: isMobile ? 100 : 130,
         align: 'center' as const,
         render: (v: string) => (
-          <Tag color={GRADE_COLORS[v] || '#64748b'} style={{ fontWeight: 800 }}>{v}</Tag>
+          <Tag color={GRADE_COLORS[v] || '#64748b'} style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
+            {v} · {GRADE_LABELS[v] || v}
+          </Tag>
         ),
       },
       {
