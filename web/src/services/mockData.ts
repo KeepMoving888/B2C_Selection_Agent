@@ -871,6 +871,17 @@ function generateCompetitors(
 // ------------------------------------------------------------------
 // 趋势数据
 // ------------------------------------------------------------------
+function computeLinearSlope(values: number[]): number {
+  const n = values.length;
+  if (n < 2) return 0;
+  const x = Array.from({ length: n }, (_, i) => i);
+  const meanX = x.reduce((a, b) => a + b, 0) / n;
+  const meanY = values.reduce((a, b) => a + b, 0) / n;
+  const numerator = x.reduce((sum, xi, i) => sum + (xi - meanX) * (values[i] - meanY), 0);
+  const denominator = x.reduce((sum, xi) => sum + (xi - meanX) ** 2, 0);
+  return denominator > 0 ? numerator / denominator : 0;
+}
+
 function generateTrendSeries(rng: ReturnType<typeof seededRng>, archetype: ProductArchetype) {
   const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
   const now = new Date();
@@ -941,18 +952,70 @@ function generateTrendSeries(rng: ReturnType<typeof seededRng>, archetype: Produ
   trailingValues.reverse();
   trailingLastYear.reverse();
 
-  // 预测：结合最近 3 个月动量 + 去年同期同月季节性，避免平直/失真
+  // 预测：综合近12个月线性趋势、同比增长率、多年季节性系数与品类趋势方向
+  // 避免简单延续上月/去年，确保不同关键词/年份的预测曲线有显著差异
   const forecast: number[] = [];
   const actualSoFar = currentYearValues.slice(0, currentMonth - 1).filter((v): v is number => v != null);
   const lastVal = actualSoFar[actualSoFar.length - 1] ?? 50;
-  const last3 = actualSoFar.slice(-3);
-  const slope = last3.length >= 2 ? (last3[last3.length - 1] - last3[0]) / (last3.length - 1) : 0;
+
+  const recentYearValues = trailingValues.slice(-12).filter((v) => v != null) as number[];
+  const slope12 = recentYearValues.length >= 2 ? computeLinearSlope(recentYearValues) : 0;
+
+  const yoyRates: number[] = [];
+  for (let i = 0; i < Math.min(recentYearValues.length, trailingLastYear.length); i++) {
+    const ly = trailingLastYear[trailingLastYear.length - recentYearValues.length + i];
+    if (ly && ly > 0) yoyRates.push((recentYearValues[i] - ly) / ly);
+  }
+  const avgYoyGrowth = yoyRates.length > 0
+    ? yoyRates.reduce((a, b) => a + b, 0) / yoyRates.length
+    : (archetype.trend === 'rising' ? 0.05 : archetype.trend === 'falling' ? -0.03 : 0);
+
+  const yearlyMeans: number[] = [];
+  for (let y = currentYear - 2; y <= currentYear; y++) {
+    const vals = (yearlyData[y]?.values || []).filter((v) => v != null) as number[];
+    if (vals.length > 0) yearlyMeans.push(vals.reduce((a, b) => a + b, 0) / vals.length);
+  }
+  const globalMean = yearlyMeans.length > 0 ? yearlyMeans.reduce((a, b) => a + b, 0) / yearlyMeans.length : 50;
+  const seasonalFactors = baseValues.map((_, m) => {
+    const sameMonthValues: number[] = [];
+    for (let y = currentYear - 2; y <= currentYear; y++) {
+      const v = yearlyData[y]?.values[m];
+      if (v != null) sameMonthValues.push(v);
+    }
+    const monthMean = sameMonthValues.length > 0
+      ? sameMonthValues.reduce((a, b) => a + b, 0) / sameMonthValues.length
+      : baseValues[m];
+    return globalMean > 0 ? monthMean / globalMean : 1;
+  });
+
+  const currentMean = recentYearValues.length > 0
+    ? recentYearValues.reduce((a, b) => a + b, 0) / recentYearValues.length
+    : globalMean;
+  const currentBias = globalMean > 0 ? currentMean / globalMean : 1;
+
+  const categoryBias = archetype.trend === 'rising' ? 0.02 : archetype.trend === 'falling' ? -0.02 : 0;
+  // 首月偏重趋势延续，后续月份逐步让位于季节性与同比增长
+  const forecastWeights = [
+    [0.60, 0.25, 0.15],
+    [0.40, 0.35, 0.25],
+    [0.25, 0.35, 0.40],
+  ];
+
   for (let i = 1; i <= 3; i++) {
-    const futureMonthIdx = (currentMonth - 1 + i - 1) % 12; // 预测目标月在去年的同月索引
-    const seasonalBase = lastYear[futureMonthIdx] ?? lastVal;
-    const momentum = lastVal + slope * i * 0.7;
-    const blended = momentum * 0.6 + seasonalBase * 0.4;
-    forecast.push(Math.max(15, Math.min(100, Math.round(blended + rng.randint(-5, 5)))));
+    const futureMonthIdx = (currentMonth - 1 + i - 1) % 12;
+    const lastYearSameMonth = lastYear[futureMonthIdx] ?? baseValues[futureMonthIdx];
+
+    const trendComponent = lastVal + slope12 * i;
+    const yoyComponent = lastYearSameMonth * (1 + avgYoyGrowth);
+    const historicalMonthMean = baseValues[futureMonthIdx] * seasonalFactors[futureMonthIdx];
+    const seasonalComponent = historicalMonthMean * currentBias;
+
+    const [wTrend, wYoy, wSeasonal] = forecastWeights[i - 1];
+    let blended = trendComponent * wTrend + yoyComponent * wYoy + seasonalComponent * wSeasonal;
+    blended *= 1 + categoryBias * i;
+    blended += rng.uniform(-4, 4);
+
+    forecast.push(Math.max(15, Math.min(100, Math.round(blended))));
   }
 
   return {
@@ -1157,14 +1220,16 @@ function calculateProfit(
   market: string
 ) {
   const profile = getMarketProfile(market);
+  // 平台佣金率按品类差异化，贴近 Amazon 等 C 端平台实际费率
+  // 电子产品/美妆/母婴高价品多为 8%；宠物/运动/家居/综合品按 12% 估算，避免全部 15% 过高
   const referralRates: Record<string, number> = {
-    pet_supplies: 0.15,
+    pet_supplies: 0.12,
     electronics: 0.08,
-    sports: 0.15,
-    home_kitchen: 0.15,
-    beauty: 0.15,
-    baby: 0.15,
-    general: 0.15,
+    sports: 0.12,
+    home_kitchen: 0.12,
+    beauty: 0.08,
+    baby: 0.08,
+    general: 0.12,
   };
   const rate = Math.min(0.20, (referralRates[category] || 0.15) + profile.referral_adj);
   const fbaFee = (['pet_supplies', 'baby', 'beauty'].includes(category) ? 3.22 : ['sports'].includes(category) ? 4.20 : 4.80) + profile.fba_premium;
@@ -1859,7 +1924,7 @@ export function generateMockReport(
       10
   ) / 10;
 
-  // 综合判定：基于五维加权总分
+  // 综合判定：基于五维加权总分（颜色与报告中心保持一致：A绿/B蓝/C黄/D红）
   let verdict: string;
   let verdictColor: string;
   let grade: string;
@@ -1869,11 +1934,11 @@ export function generateMockReport(
     grade = 'A';
   } else if (totalScore >= 60) {
     verdict = '谨慎进入';
-    verdictColor = '#d97706';
+    verdictColor = '#2563eb';
     grade = 'B';
   } else if (totalScore >= 40) {
     verdict = '观察';
-    verdictColor = '#0891b2';
+    verdictColor = '#d97706';
     grade = 'C';
   } else {
     verdict = '不建议';

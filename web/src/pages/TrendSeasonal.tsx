@@ -87,8 +87,10 @@ function TrendChart({ report }: { report: AnalysisReport }) {
       lastYear = trend.series.last_year_values || [];
     }
 
-    const forecastMonths = trend.series.forecast_months || [];
-    const forecast = trend.series.forecast_values || [];
+    // 仅对「近12个月」与「当年」视图显示预测；历史年份不应出现未来预测线
+    const isFutureView = view === 'trailing' || Number(view) === currentYear;
+    const forecastMonths = isFutureView ? (trend.series.forecast_months || []) : [];
+    const forecast = isFutureView ? (trend.series.forecast_values || []) : [];
     const allX = [...x, ...forecastMonths];
     const rawMaxY = Math.max(...y.filter(Boolean), ...lastYear.filter(Boolean), ...forecast.filter(Boolean));
     const maxY = Math.ceil(rawMaxY * 1.12 / 10) * 10;
@@ -220,7 +222,7 @@ function TrendChart({ report }: { report: AnalysisReport }) {
         },
       ],
     };
-  }, [trend, peakMonths, entryWindows, isMobile, view]);
+  }, [trend, peakMonths, entryWindows, isMobile, view, currentYear]);
 
   return (
     <div>
