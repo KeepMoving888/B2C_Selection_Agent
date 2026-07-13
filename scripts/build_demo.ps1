@@ -2,15 +2,16 @@
 
 Write-Host "=== Step 1: Build single-file HTML for ZIP demo ===" -ForegroundColor Cyan
 Set-Location $PSScriptRoot\..\web
+Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
 $env:SINGLE_FILE = 'true'
 npm run build
 
 Write-Host "=== Packaging single-file demo zip ===" -ForegroundColor Cyan
 Set-Location $PSScriptRoot\..
 if (Test-Path web\b2c-selection-agent-demo.zip) {
-    Remove-Item web\b2c-selection-agent-demo.zip
+    Remove-Item web\b2c-selection-agent-demo.zip -Force
 }
-Compress-Archive -Path web\dist\* -DestinationPath web\b2c-selection-agent-demo.zip -Force
+Compress-Archive -Path web\dist\index.html -DestinationPath web\b2c-selection-agent-demo.zip -Force
 Write-Host "  -> web\b2c-selection-agent-demo.zip (single file HTML)" -ForegroundColor Green
 
 Write-Host ""

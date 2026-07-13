@@ -40,22 +40,14 @@ python scripts/product_selection_report.py "yoga mat" --selling-price 35 --unit-
 
 输出示例：`output/selection_report_*.json`
 
-### 一键 Docker 快速体验
+### 在线体验
 
-无需 GPU、无需下载大模型，使用示例数据直接运行前端：
+无需安装、无需 GPU，直接通过以下链接体验新版 React 前端：
 
-```bash
-# 1. 克隆仓库
-git clone https://github.com/KeepMoving888/B2C_Selection_Agent.git
-cd B2C_Selection_Agent
+- **Cloudflare Pages**: [https://b2c-selection-agent.pages.dev](https://b2c-selection-agent.pages.dev)
+- **GitHub Pages**: [https://keepmoving888.github.io/B2C_Selection_Agent](https://keepmoving888.github.io/B2C_Selection_Agent)
 
-# 2. 一键启动
-docker compose up -d
-
-# 3. 浏览器打开 http://localhost:8501
-```
-
-> 说明：默认 `docker-compose.yml` 启动 Streamlit 前端（示例数据模式），适合快速体验产品功能、代码评审与架构讲解。生产部署（含 vLLM / Prometheus / Grafana）请使用 `docker-compose.prod.yml`。
+> 说明：在线版本使用示例数据运行，用于产品功能演示与交互体验。生产部署（含 vLLM / Prometheus / Grafana）请使用 `docker-compose.prod.yml`。
 
 ### 启动新版前端（可选）
 

@@ -108,4 +108,6 @@ data/
 # ── 运行时截图与临时产物 ──
 web/screenshots/
 web/demo/
+web/b2c-selection-agent-demo.zip
+*.zip
 lark_auth_qr.png
