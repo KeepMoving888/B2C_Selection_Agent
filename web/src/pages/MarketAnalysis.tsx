@@ -1,4 +1,4 @@
-import { Button, Card, Col, Row, Segmented, Select, Space, Spin, Tag } from 'antd';
+import { Button, Card, Col, Row, Segmented, Select, Spin, Tag } from 'antd';
 import {
   ApartmentOutlined,
   BarChartOutlined,
@@ -526,10 +526,10 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
     const links: any[] = [];
 
     // 径向布局：中心词在 (0,0)，关联度越高（机会分越高）离中心越近
-    const innerRMin = isMobile ? 55 : 75;
-    const innerRMax = isMobile ? 110 : 155;
-    const outerRMin = isMobile ? 140 : 190;
-    const outerRMax = isMobile ? 210 : 280;
+    const innerRMin = isMobile ? 55 : 70;
+    const innerRMax = isMobile ? 110 : 150;
+    const outerRMin = isMobile ? 180 : 260;
+    const outerRMax = isMobile ? 250 : 330;
 
     const placeNodes = (nodes: typeof sameCategory, rMin: number, rMax: number, catIndex: number, palette: string[]) => {
       const count = nodes.length || 1;
@@ -549,12 +549,12 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
           category: catIndex,
           x,
           y,
-          symbolSize: Math.max(isMobile ? 16 : 18, (n.value / maxVal) * (isMobile ? 32 : 40)),
+          symbolSize: Math.max(isMobile ? 18 : 22, (n.value / maxVal) * (isMobile ? 36 : 48)),
           label: {
             show: true,
             position: x >= 0 ? 'right' : 'left',
-            distance: 8,
-            fontSize: isMobile ? 11 : 12,
+            distance: 10,
+            fontSize: isMobile ? 12 : 13,
             fontWeight: 800,
             color: '#1e293b',
             backgroundColor: 'rgba(255,255,255,0.78)',
@@ -659,7 +659,7 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
           roam: true,
           draggable: true,
           label: { show: true, position: 'right', distance: 6 },
-          labelLayout: { hideOverlap: false },
+          labelLayout: { hideOverlap: false, moveOverlap: 'shiftY' },
           lineStyle: { color: 'source', curveness: 0.1, opacity: 0.45 },
           emphasis: {
             focus: 'adjacency',
@@ -679,55 +679,51 @@ function KeywordRelationshipGraph({ report }: { report: AnalysisReport }) {
         <ApartmentOutlined style={{ color: 'var(--saas-primary)' }} /> 关键词关系网络与拓品建议
       </div>
       <div className="section-desc">
-        以「{report.keyword}」为核心，直接展示真实细分关键词与跨行业拓品关键词；<strong>圆球越大代表搜索热度越高，离中心越近代表关联度越强</strong>。右侧为基于聚类的拓品方向建议。
+        以「{report.keyword}」为核心，直接展示真实细分关键词与跨行业拓品关键词；<strong>圆球越大代表搜索热度越高，离中心越近代表关联度越强</strong>。下方为基于聚类的拓品方向建议。
       </div>
-      <Row gutter={[24, 24]}>
-        <Col xs={24} lg={16}>
-          <ReactECharts option={chartOption} style={{ height: isMobile ? 320 : 420, width: '100%' }} />
-        </Col>
-        <Col xs={24} lg={8}>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            {(rel?.expansion_suggestions || []).map((s, i) => (
+      <ReactECharts option={chartOption} style={{ height: isMobile ? 420 : 720, width: '100%' }} />
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
+        {(rel?.expansion_suggestions || []).map((s, i) => (
+          <Col key={i} xs={24} md={12} lg={8}>
+            <div
+              style={{
+                padding: 14,
+                background: '#f8fafc',
+                border: '1px solid var(--saas-border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                height: '100%',
+              }}
+            >
               <div
-                key={i}
                 style={{
-                  padding: 14,
-                  background: '#f8fafc',
-                  border: '1px solid var(--saas-border-subtle)',
-                  borderRadius: 'var(--radius-md)',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: 'var(--saas-text)',
+                  marginBottom: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 800,
-                    color: 'var(--saas-text)',
-                    marginBottom: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
-                  {s.segment}
-                  <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
-                    平均机会分 {s.avg_score}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
-                  {s.rationale}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {s.keywords.map((kw, j) => (
-                    <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                      {kw}
-                    </Tag>
-                  ))}
-                </div>
+                <BulbOutlined style={{ color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                {s.segment}
+                <span style={{ marginLeft: 'auto', fontSize: 12, color: s.avg_score >= 60 ? '#dc2626' : '#d97706' }}>
+                  平均机会分 {s.avg_score}
+                </span>
               </div>
-            ))}
-          </Space>
-        </Col>
+              <div style={{ fontSize: 12, color: 'var(--saas-text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
+                {s.rationale}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {s.keywords.map((kw, j) => (
+                  <Tag key={j} style={{ fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                    {kw}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          </Col>
+        ))}
       </Row>
     </div>
   );
