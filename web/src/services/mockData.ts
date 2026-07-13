@@ -1676,35 +1676,97 @@ export function generateMockReport(
   const globalTrends = buildGlobalTrends(keyword, archetype);
   const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary, archetype);
 
-  // 1. 利润空间：毛利率线性映射，35%+ 为满分
-  const profitScore = Math.max(0, Math.min(100, Math.round(grossMargin * 285.7 * 10) / 10));
+  // 1. 利润空间：综合毛利率 + 中性情景 ROI + 回本周期
+  //    低客单价产品（如 cat toy）毛利率可能低，但试错成本低、ROI 周转快，应获得合理分数
+  const neutralScenario = profit.roi_scenarios['中性'];
+  const roiValue = (neutralScenario && neutralScenario['ROI']) || 0;
+  const breakevenUnits = profit.breakeven_units || 9999;
+  const marginScore = Math.max(0, Math.min(100, grossMargin * 300)); // 33.3% = 100
+  const roiScore = Math.max(0, Math.min(100, roiValue)); // ROI 直接映射，100% = 100
+  const breakevenScore = Math.max(0, Math.min(100, (1 - Math.min(1, breakevenUnits / 600)) * 100));
+  const profitScore = Math.round((marginScore * 0.5 + roiScore * 0.3 + breakevenScore * 0.2) * 10) / 10;
 
-  // 2. 趋势热度：基于趋势方向 + 搜索量 + 波动度，避免 rising 直接满分
-  const trendBase = archetype.trend === 'rising' ? 58 : archetype.trend === 'stable' ? 36 : 15;
-  const volumeFactor = Math.min(1, Math.max(0, (keywordSummary.search_volume - 5000) / 85000));
-  const trendVolatility = rng.uniform(0, 12);
-  const trendScore = Math.round(Math.min(100, trendBase + volumeFactor * 24 + trendVolatility) * 10) / 10;
+  // 2. 趋势热度：基于真实趋势序列的 12 个月均值 + 近期增速 + 季节性强度
+  //    不再因 archetype.trend='rising' 直接给高分，避免与真实热度图脱节
+  const trendValues = trend.values || [];
+  const validTrendValues = trendValues.filter((v: number) => typeof v === 'number');
+  const trendAvg = validTrendValues.length > 0
+    ? validTrendValues.reduce((a: number, b: number) => a + b, 0) / validTrendValues.length
+    : 50;
+  const recentValues = validTrendValues.slice(-3);
+  const previousValues = validTrendValues.slice(-6, -3);
+  const recentAvg = recentValues.length > 0 ? recentValues.reduce((a: number, b: number) => a + b, 0) / recentValues.length : trendAvg;
+  const previousAvg = previousValues.length > 0 ? previousValues.reduce((a: number, b: number) => a + b, 0) / previousValues.length : trendAvg;
+  const growthRate = previousAvg > 0 ? (recentAvg - previousAvg) / previousAvg : 0;
+  const seasonalityStrength = Math.max(0, ...validTrendValues) - Math.min(100, ...validTrendValues);
+  const trendDirectionBonus = archetype.trend === 'rising' ? 6 : archetype.trend === 'stable' ? 0 : -8;
+  const trendScore = Math.round(
+    Math.min(
+      100,
+      Math.max(
+        0,
+        trendAvg * 0.65 +
+          Math.max(-15, Math.min(15, growthRate * 40)) +
+          seasonalityStrength * 0.08 +
+          trendDirectionBonus +
+          rng.uniform(-3, 3)
+      )
+    ) * 10
+  ) / 10;
 
-  // 3. 竞争强度：基于平均评论数连续评分，评论越少竞争越友好
-  const competitionScore = Math.max(
-    0,
-    Math.min(100, Math.round((1 - Math.min(1, avgReviews / 14000)) * 100 * 10) / 10)
-  );
+  // 3. 竞争强度：需求/供给比值（搜索量 ÷ 竞品数）
+  //    需求大于供给 → 竞争低（高分）；需求小于供给 → 竞争强（低分）
+  const demandSupplyRatio = keywordSummary.search_volume / Math.max(1, competitors.length);
+  const competitionScore = Math.min(100, Math.max(0, Math.round((demandSupplyRatio / 1500) * 100 * 10) / 10));
 
-  // 4. 评论洞察：基于痛点数量与质量，0 痛点也有基础分但不满分
+  // 4. 评论洞察：基于总评论量、平均评分、差评痛点机会
+  const totalReviews = competitors.reduce((sum, p) => sum + (p.review_count || 0), 0);
+  const avgCompetitorRating = competitors.length > 0
+    ? competitors.reduce((sum, p) => sum + (p.rating || 0), 0) / competitors.length
+    : 4.0;
   const painCount = archetype.pain_points.length;
-  const insightScore = Math.min(100, Math.round((22 + painCount * 14 + rng.uniform(0, 8)) * 10) / 10);
+  // 评论量：1000 条约 45 分，1 万条约 75 分，10 万条约 100 分
+  const reviewVolumeScore = Math.min(100, Math.max(0, Math.log10(Math.max(1, totalReviews)) * 25 - 25));
+  // 评分：3.0 起 0 分，4.0 约 50 分，5.0 满分
+  const ratingQualityScore = Math.min(100, Math.max(0, ((avgCompetitorRating - 3.0) / 2.0) * 100));
+  // 痛点机会：痛点越多，差异化空间越大
+  const painOpportunityScore = Math.min(100, 15 + painCount * 18 + rng.uniform(0, 8));
+  const insightScore = Math.round(
+    (reviewVolumeScore * 0.45 + ratingQualityScore * 0.3 + painOpportunityScore * 0.25) * 10
+  ) / 10;
 
-  // 5. 供应链稳定性：基于供应商平均评分与响应率
-  const avgSupplierRating = suppliers.reduce((sum, s) => sum + s.rating, 0) / suppliers.length;
-  const avgResponseRate = suppliers.reduce((sum, s) => sum + s.response_rate, 0) / suppliers.length;
+  // 5. 供应链稳定性：基于供应商综合数据
+  const avgSupplierRating = suppliers.reduce((sum, s) => sum + (s.rating || 0), 0) / suppliers.length;
+  const avgResponseRate = suppliers.reduce((sum, s) => sum + (s.response_rate || 0), 0) / suppliers.length;
+  const avgYears = suppliers.reduce((sum, s) => sum + (s.years || 0), 0) / suppliers.length;
+  const avgTransactions = suppliers.reduce((sum, s) => sum + (s.transactions || 0), 0) / suppliers.length;
+  const avgSampleDays = suppliers.reduce((sum, s) => sum + (s.sample_days || 7), 0) / suppliers.length;
+  // 提取产能数字（如 '日产 5K' -> 5）
+  const avgCapacity = suppliers.length > 0
+    ? suppliers.reduce((sum, s) => {
+        const match = String(s.capacity || '').match(/(\d+(?:\.\d+)?)/);
+        return sum + (match ? parseFloat(match[1]) : 5);
+      }, 0) / suppliers.length
+    : 5;
+  const ratingComponent = Math.min(100, Math.max(0, ((avgSupplierRating - 3.5) / 1.4) * 100));
+  const responseComponent = Math.min(100, Math.max(0, ((avgResponseRate - 70) / 30) * 100));
+  const experienceComponent = Math.min(100, Math.max(0, ((avgYears - 3) / 15) * 100));
+  const activityComponent = Math.min(100, Math.max(0, ((avgTransactions - 100) / 1700) * 100));
+  const sampleComponent = Math.min(100, Math.max(0, ((10 - avgSampleDays) / 7) * 100));
+  const capacityComponent = Math.min(100, Math.max(0, ((avgCapacity - 2) / 18) * 100));
   const supplyScore = Math.round(
-    Math.min(100, Math.max(0, avgSupplierRating * 16 + avgResponseRate * 0.35 - 25)) * 10
+    (ratingComponent * 0.2 +
+      responseComponent * 0.2 +
+      experienceComponent * 0.15 +
+      activityComponent * 0.15 +
+      sampleComponent * 0.15 +
+      capacityComponent * 0.15) *
+      10
   ) / 10;
 
   // 机会评分保持独立（用于关键词机会卡片），不受五维权重影响
   keywordSummary.opportunity_score = Math.round(
-    Math.min(100, profitScore * 0.5 + trendScore * 0.3 + competitionScore * 0.2)
+    Math.min(100, profitScore * 0.45 + trendScore * 0.3 + competitionScore * 0.25)
   );
 
   // 读取后台权重配置并做加权求和（总分 100）

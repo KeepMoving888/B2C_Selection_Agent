@@ -135,10 +135,18 @@ export default function Settings() {
     }
   }, [dispatch])
 
-  const saveSettings = (next: AppSettings) => {
+  const saveSettings = (next: AppSettings, showTip = false) => {
     setSettings(next)
     localStorage.setItem('app_settings', JSON.stringify(next))
+    if (showTip) {
+      message.success('设置已保存，重新生成报告后新权重与阈值将生效')
+    }
   }
+
+  const handleResetWeights = useCallback(() => {
+    const next = { ...settings, weights: defaultSettings.weights, thresholds: defaultSettings.thresholds }
+    saveSettings(next, true)
+  }, [settings])
 
   const createApiKey = useCallback(() => {
     if (!newKeyName.trim()) {
@@ -325,6 +333,18 @@ export default function Settings() {
               </Form.Item>
             </Col>
           </Row>
+          <Divider />
+          <Space>
+            <Button type="primary" onClick={() => saveSettings(settings, true)}>
+              保存参数设置
+            </Button>
+            <Button onClick={handleResetWeights}>
+              恢复默认权重
+            </Button>
+          </Space>
+          <Text type="secondary" style={{ marginLeft: 12 }}>
+            当前权重总和：{Object.values(settings.weights).reduce((a, b) => a + b, 0)}
+          </Text>
         </Card>
       ),
     },
@@ -557,7 +577,7 @@ export default function Settings() {
         </Card>
       ),
     },
-  ], [settings, visibleKeys, apiKeyModalOpen, newKeyName, newKeyScopes, createdKey, createApiKey, deleteApiKey, toggleApiKey, copyToClipboard])
+  ], [settings, visibleKeys, apiKeyModalOpen, newKeyName, newKeyScopes, createdKey, createApiKey, deleteApiKey, toggleApiKey, copyToClipboard, handleResetWeights])
 
   return (
     <div className="page-container">
