@@ -1663,37 +1663,45 @@ export function generateMockReport(
   const trending = generateTrendingProducts(rng, keyword);
   const keywordOpportunities = buildKeywordOpportunities(rng, keyword, archetype.category, competitors);
 
-  // 综合评分（五维加权：利润/趋势/竞争/评论/供应链）
+  // 综合评分（五维加权：利润/趋势/竞争/评论/供应链，原始分统一归一化为 0-100）
   const grossMargin = profit.gross_margin;
-  const marginScore = Math.min(40, Math.max(-20, grossMargin * 120));
-  const trendScore = archetype.trend === 'rising' ? 25 : archetype.trend === 'stable' ? 18 : 8;
+  const marginRaw = Math.min(40, Math.max(-20, grossMargin * 120));
+  const trendRaw = archetype.trend === 'rising' ? 25 : archetype.trend === 'stable' ? 18 : 8;
   const keywordSummary = {
     search_volume: rng.randint(8500, 95000),
     trend: archetype.trend,
     competition: (avgReviews > 8000 ? 'high' : avgReviews > 2000 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
     cpc: Math.round(rng.uniform(0.65, 3.8) * 100) / 100,
-    opportunity_score: Math.round(Math.min(100, (marginScore / 40) * 60 + (archetype.trend === 'rising' ? 25 : 15))),
+    opportunity_score: Math.round(Math.min(100, (marginRaw / 40) * 60 + (archetype.trend === 'rising' ? 25 : 15))),
     top_niche_keywords: (keywordOpportunities || []).slice(0, 5).map((o) => o.keyword),
   };
   const globalTrends = buildGlobalTrends(keyword, archetype);
   const keywordRelationships = buildKeywordRelationships(keyword, keywordOpportunities, keywordSummary, archetype);
-  const competitionScore = avgReviews < 1500 ? 20 : avgReviews < 8000 ? 12 : 5;
-  const insightScore = archetype.pain_points.length > 0 ? 15 : 8;
+  const competitionRaw = avgReviews < 1500 ? 20 : avgReviews < 8000 ? 12 : 5;
+  const insightRaw = archetype.pain_points.length > 0 ? 15 : 8;
   // 供应链稳定性：基于供应商平均评分、响应率与交期综合评估
   const avgSupplierRating = suppliers.reduce((sum, s) => sum + s.rating, 0) / suppliers.length;
   const avgResponseRate = suppliers.reduce((sum, s) => sum + s.response_rate, 0) / suppliers.length;
-  const supplyScore = Math.round(
+  const supplyRaw = Math.round(
     Math.min(15, Math.max(5, (avgSupplierRating * 2.2) + (avgResponseRate / 20) - 2)) * 10
   ) / 10;
 
-  // 读取后台权重配置并做加权归一化（总分 100）
+  // 各维度原始分统一归一化为 0-100，确保权重系数即真实贡献比例
+  const normalize = (score: number, max: number) => Math.min(100, Math.max(0, (score / max) * 100));
+  const profitScore = Math.round(normalize(marginRaw, 40) * 10) / 10;
+  const trendScore = Math.round(normalize(trendRaw, 25) * 10) / 10;
+  const competitionScore = Math.round(normalize(competitionRaw, 20) * 10) / 10;
+  const insightScore = Math.round(normalize(insightRaw, 15) * 10) / 10;
+  const supplyScore = Math.round(normalize(supplyRaw, 15) * 10) / 10;
+
+  // 读取后台权重配置并做加权求和（总分 100）
   const weights = getScoringWeights();
   const totalScore = Math.round(
-    ((marginScore / 40) * weights.profit +
-      (trendScore / 25) * weights.trend +
-      (competitionScore / 20) * weights.competition +
-      (insightScore / 15) * weights.review +
-      (supplyScore / 15) * weights.supply) *
+    (profitScore * (weights.profit / 100) +
+      trendScore * (weights.trend / 100) +
+      competitionScore * (weights.competition / 100) +
+      insightScore * (weights.review / 100) +
+      supplyScore * (weights.supply / 100)) *
       10
   ) / 10;
 
@@ -1763,7 +1771,7 @@ export function generateMockReport(
     overall_score: totalScore,
     max_score: 100,
     score_breakdown: {
-      '利润空间': Math.round(marginScore * 10) / 10,
+      '利润空间': profitScore,
       '趋势热度': trendScore,
       '竞争强度': competitionScore,
       '评论洞察': insightScore,

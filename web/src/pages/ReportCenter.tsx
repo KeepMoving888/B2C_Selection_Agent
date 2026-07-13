@@ -1329,7 +1329,7 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
         </ul>
         <div className="p-subtitle">五维评分拆解</div>
         {Object.entries(report.score_breakdown).map(([name, score]) => {
-          const maxV = { 利润空间: 40, 趋势热度: 25, 竞争强度: 20, 评论洞察: 15, 供应链稳定性: 15 }[name] ?? 25
+          const maxV = { 利润空间: 100, 趋势热度: 100, 竞争强度: 100, 评论洞察: 100, 供应链稳定性: 100 }[name] ?? 100
           const pct = Math.min(100, Math.max(0, (score / maxV) * 100))
           const colors: Record<string, string> = { 利润空间: '#059669', 趋势热度: '#7c3aed', 竞争强度: '#0891b2', 评论洞察: '#2563eb', 供应链稳定性: '#d97706' }
           return (
@@ -1616,11 +1616,11 @@ function ReportPrintContent({ report }: { report: AnalysisReport }) {
 }
 
 const RADAR_MAX_VALUES: Record<string, number> = {
-  利润空间: 40,
-  趋势热度: 25,
-  竞争强度: 20,
-  评论洞察: 15,
-  供应链稳定性: 15,
+  利润空间: 100,
+  趋势热度: 100,
+  竞争强度: 100,
+  评论洞察: 100,
+  供应链稳定性: 100,
 }
 
 const RADAR_COLORS: Record<string, { start: string; end: string }> = {

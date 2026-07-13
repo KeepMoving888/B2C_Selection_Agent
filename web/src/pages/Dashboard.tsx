@@ -29,11 +29,11 @@ import type { AnalysisReport } from '../types';
 import { getMarketCurrency } from '../utils/currency';
 
 const MAX_VALUES: Record<string, number> = {
-  利润空间: 40,
-  趋势热度: 25,
-  竞争强度: 20,
-  评论洞察: 15,
-  供应链稳定性: 15,
+  利润空间: 100,
+  趋势热度: 100,
+  竞争强度: 100,
+  评论洞察: 100,
+  供应链稳定性: 100,
 };
 
 const SCORE_COLORS: Record<string, { start: string; end: string; bg: string }> = {
