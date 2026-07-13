@@ -107,4 +107,5 @@ data/
 
 # ── 运行时截图与临时产物 ──
 web/screenshots/
+web/demo/
 lark_auth_qr.png
