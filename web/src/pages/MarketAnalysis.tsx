@@ -48,22 +48,24 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
     const rawMaxPrice = Math.max(...competitors.map((p) => p.price));
     const rawMaxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
     // 坐标轴上限取整，避免出现 38.412800000000004 这类无意义长数字
-    const maxPrice = Math.ceil(rawMaxPrice * 1.28 / 5) * 5;
-    const maxSales = Math.ceil(rawMaxSales * 1.28 / 100) * 100;
+    const maxPrice = Math.round(Math.ceil((rawMaxPrice * 1.28) / 5) * 5);
+    const maxSales = Math.round(Math.ceil((rawMaxSales * 1.28) / 100) * 100);
+    const priceInterval = maxPrice > 0 ? maxPrice / 5 : 1;
+    const salesInterval = maxSales > 0 ? maxSales / 5 : 1;
 
     return {
       tooltip: {
         trigger: 'axis',
         backgroundColor: 'rgba(30, 41, 59, 0.92)',
         borderWidth: 0,
-        padding: [5, 8],
+        padding: [6, 10],
         confine: true,
         textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
         extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
         formatter: (params: any) => {
           const lines = params.map((p: any) => {
             const val = Math.round(p.data?.value ?? p.data);
-            const prefix = p.seriesName === '售价' ? symbol : '';
+            const prefix = p.seriesName === '竞品售价' ? symbol : '';
             const suffix = p.seriesName === '月销量' ? ' 件' : '';
             return `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:10px;color:rgba(255,255,255,0.8)">${p.seriesName}: ${prefix}${val.toLocaleString()}${suffix}</span>`;
           });
@@ -71,18 +73,17 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
         },
       },
       legend: {
+        show: true,
         orient: 'horizontal',
-        top: isMobile ? undefined : 0,
-        bottom: isMobile ? 0 : undefined,
-        left: isMobile ? 'center' : undefined,
-        right: isMobile ? undefined : 0,
-        itemGap: isMobile ? 12 : 20,
-        itemWidth: isMobile ? 12 : 14,
-        itemHeight: isMobile ? 12 : 14,
+        top: 0,
+        left: 'center',
+        itemGap: isMobile ? 16 : 20,
+        itemWidth: isMobile ? 10 : 12,
+        itemHeight: isMobile ? 10 : 12,
         textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 11 : 12 },
       },
-      grid: { left: isMobile ? 8 : 14, right: isMobile ? 8 : 60, top: isMobile ? 28 : 46, bottom: isMobile ? 76 : 30, containLabel: true },
-      dataZoom: isMobile ? [{ type: 'inside', start: 0, end: 70 }, { type: 'slider', start: 0, end: 70, height: 14, bottom: 28, showDetail: false, borderColor: 'transparent', fillerColor: 'rgba(37,99,235,0.15)', handleStyle: { color: '#2563eb' } }] : undefined,
+      grid: { left: isMobile ? 6 : 12, right: isMobile ? 6 : 56, top: isMobile ? 38 : 40, bottom: isMobile ? 70 : 24, containLabel: true },
+      dataZoom: isMobile ? [{ type: 'inside', start: 0, end: 70 }, { type: 'slider', start: 0, end: 70, height: 12, bottom: 8, showDetail: false, borderColor: 'transparent', fillerColor: 'rgba(37,99,235,0.15)', handleStyle: { color: '#2563eb' } }] : undefined,
       xAxis: {
         type: 'category',
         data: competitors.map((p) => p.brand),
@@ -93,15 +94,14 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
           fontSize: isMobile ? 10 : 11,
           interval: 0,
           rotate: isMobile ? 45 : 0,
-          formatter: (value: string) => (isMobile && value.length > 6 ? value.slice(0, 5) + '…' : value),
+          formatter: (value: string) => (isMobile && value.length > 5 ? value.slice(0, 4) + '…' : value),
         },
       },
       yAxis: [
         {
           type: 'value',
-          name: isMobile ? '' : `售价 (${symbol})`,
-          nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 },
           max: maxPrice,
+          interval: priceInterval,
           min: 0,
           axisLine: { show: false },
           splitLine: { lineStyle: { color: 'var(--saas-border)' } },
@@ -109,9 +109,8 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
         },
         {
           type: 'value',
-          name: isMobile ? '' : '月销量',
-          nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 },
           max: maxSales,
+          interval: salesInterval,
           min: 0,
           axisLine: { show: false },
           splitLine: { show: false },
@@ -121,10 +120,10 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
       series: [
         {
           type: 'bar',
-          name: '售价',
+          name: '竞品售价',
           data: competitors.map((p, i) => ({ value: Math.round(p.price), itemStyle: { color: softPalette[i % softPalette.length], borderRadius: [6, 6, 0, 0] } })),
-          barWidth: isMobile ? '32%' : '45%',
-          label: { show: !isMobile, position: 'top', formatter: `${symbol}{c}`, color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
+          barWidth: isMobile ? '36%' : '45%',
+          label: { show: false },
         },
         {
           type: 'line',
@@ -136,13 +135,13 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
           itemStyle: { color: '#f59e0b', borderColor: '#fff', borderWidth: 2 },
           symbol: 'circle',
           symbolSize: isMobile ? 5 : 7,
-          label: { show: !isMobile, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
+          label: { show: false },
         },
       ],
     };
   }, [competitors, isMobile, symbol]);
 
-  return <ReactECharts option={option} style={{ height: isMobile ? 420 : 360, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height: isMobile ? 380 : 360, width: '100%' }} />;
 }
 
 function CompetitorCard({ product, index, market }: { product: any; index: number; market: string }) {
