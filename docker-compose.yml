@@ -9,7 +9,7 @@
 # 打开浏览器访问：http://localhost:8501
 #
 # 说明：
-#   本配置默认使用示例数据运行前端，无需 GPU 和大模型，
+#   本配置默认使用预置数据运行前端，无需 GPU 和大模型，
 #   适合快速体验产品功能、代码评审与架构讲解。
 #   生产部署（含 vLLM / Prometheus / Grafana）请使用：
 #   docker compose -f docker-compose.prod.yml up -d

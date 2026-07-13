@@ -385,7 +385,7 @@ _real_product_cache: Dict[str, List[Dict]] = {}
 def _fetch_real_amazon_products(keyword: str, market: str, limit: int = 10) -> List[Dict]:
     """
     尝试从 Amazon 搜索结果页抓取真实产品 ASIN、标题、价格、评分、评论数、图片。
-    抓取失败或网络不可用时返回空列表，由调用方降级为示例数据+搜索链接。
+    抓取失败或网络不可用时返回空列表，由调用方降级为预置数据+搜索链接。
     """
     cache_key = f"{market.lower()}:{keyword.lower()}"
     if cache_key in _real_product_cache:

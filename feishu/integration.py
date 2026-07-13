@@ -886,7 +886,7 @@ class FeishuIntegration:
         quality_notes = []
         for src in report.get("data_sources", {}).values():
             if "MOCK" in str(src) or "mock" in str(src):
-                quality_notes.append("含示例数据")
+                quality_notes.append("含预置数据")
         set_text("数据质量备注", ", ".join(quality_notes) or "请复核真实 API")
 
         # 6. 上传 JSON 附件
