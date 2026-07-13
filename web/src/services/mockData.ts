@@ -1601,6 +1601,36 @@ function buildKeywordRelationships(
 // ------------------------------------------------------------------
 // 主函数：生成报告
 // ------------------------------------------------------------------
+
+interface ScoringWeights {
+  profit: number
+  trend: number
+  competition: number
+  review: number
+  supply: number
+}
+
+function getScoringWeights(): ScoringWeights {
+  try {
+    const raw = localStorage.getItem('app_settings')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed.weights) {
+        return {
+          profit: Number(parsed.weights.profit) || 30,
+          trend: Number(parsed.weights.trend) || 25,
+          competition: Number(parsed.weights.competition) || 20,
+          review: Number(parsed.weights.review) || 15,
+          supply: Number(parsed.weights.supply) || 10,
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { profit: 30, trend: 25, competition: 20, review: 15, supply: 10 }
+}
+
 export function generateMockReport(
   keyword: string,
   market: string,
@@ -1633,7 +1663,7 @@ export function generateMockReport(
   const trending = generateTrendingProducts(rng, keyword);
   const keywordOpportunities = buildKeywordOpportunities(rng, keyword, archetype.category, competitors);
 
-  // 综合评分（五维）
+  // 综合评分（五维加权：利润/趋势/竞争/评论/供应链）
   const grossMargin = profit.gross_margin;
   const marginScore = Math.min(40, Math.max(-20, grossMargin * 120));
   const trendScore = archetype.trend === 'rising' ? 25 : archetype.trend === 'stable' ? 18 : 8;
@@ -1655,21 +1685,31 @@ export function generateMockReport(
   const supplyScore = Math.round(
     Math.min(15, Math.max(5, (avgSupplierRating * 2.2) + (avgResponseRate / 20) - 2)) * 10
   ) / 10;
-  const totalScore = Math.round((marginScore + trendScore + competitionScore + insightScore + supplyScore) * 10) / 10;
 
-  // 综合判定：基于五维总分（利润+趋势+竞争+洞察+供应链）
+  // 读取后台权重配置并做加权归一化（总分 100）
+  const weights = getScoringWeights();
+  const totalScore = Math.round(
+    ((marginScore / 40) * weights.profit +
+      (trendScore / 25) * weights.trend +
+      (competitionScore / 20) * weights.competition +
+      (insightScore / 15) * weights.review +
+      (supplyScore / 15) * weights.supply) *
+      10
+  ) / 10;
+
+  // 综合判定：基于五维加权总分
   let verdict: string;
   let verdictColor: string;
   let grade: string;
-  if (totalScore >= 85) {
+  if (totalScore >= 75) {
     verdict = '推荐进入';
     verdictColor = '#16a34a';
     grade = 'A';
-  } else if (totalScore >= 70) {
+  } else if (totalScore >= 60) {
     verdict = '谨慎进入';
     verdictColor = '#d97706';
     grade = 'B';
-  } else if (totalScore >= 50) {
+  } else if (totalScore >= 40) {
     verdict = '观察';
     verdictColor = '#0891b2';
     grade = 'C';

@@ -55,6 +55,7 @@ interface AppSettings {
     trend: number
     competition: number
     review: number
+    supply: number
   }
   thresholds: {
     recommend: number
@@ -71,7 +72,7 @@ interface AppSettings {
 }
 
 const defaultSettings: AppSettings = {
-  weights: { profit: 30, trend: 25, competition: 25, review: 20 },
+  weights: { profit: 30, trend: 25, competition: 20, review: 15, supply: 10 },
   thresholds: { recommend: 70, risky: 50 },
   notifications: { email: true, browser: true, weekly: true, riskAlert: true },
   apiKeys: [],
@@ -282,6 +283,17 @@ export default function Settings() {
                   max={100}
                   value={settings.weights.review}
                   onChange={(v) => saveSettings({ ...settings, weights: { ...settings.weights, review: v || 0 } })}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="供应链稳定性权重">
+                <InputNumber
+                  min={0}
+                  max={100}
+                  value={settings.weights.supply}
+                  onChange={(v) => saveSettings({ ...settings, weights: { ...settings.weights, supply: v || 0 } })}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
