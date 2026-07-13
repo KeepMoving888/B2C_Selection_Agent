@@ -45,42 +45,104 @@ function PriceSalesChart({ report }: { report: AnalysisReport }) {
   const { symbol } = getMarketCurrency(report.market);
 
   const option: EChartsOption = useMemo(() => {
-    const maxPrice = Math.max(...competitors.map((p) => p.price));
-    const maxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
+    const rawMaxPrice = Math.max(...competitors.map((p) => p.price));
+    const rawMaxSales = Math.max(...competitors.map((p) => p.estimated_monthly_sales));
+    // 坐标轴上限取整，避免出现 38.412800000000004 这类无意义长数字
+    const maxPrice = Math.ceil(rawMaxPrice * 1.28 / 5) * 5;
+    const maxSales = Math.ceil(rawMaxSales * 1.28 / 100) * 100;
 
     return {
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.92)', borderWidth: 0, padding: [5, 8], confine: true, textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 }, extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;' },
-      legend: { orient: 'horizontal', top: 0, right: isMobile ? undefined : 0, left: isMobile ? 'center' : undefined, itemGap: isMobile ? 12 : 20, textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 10 : 12 } },
-      grid: { left: isMobile ? 10 : 14, right: isMobile ? 10 : 60, top: isMobile ? 40 : 46, bottom: isMobile ? 60 : 30, containLabel: true },
-      dataZoom: isMobile ? [{ type: 'inside', start: 0, end: 70 }, { type: 'slider', start: 0, end: 70, height: 14, bottom: 6, showDetail: false, borderColor: 'transparent', fillerColor: 'rgba(37,99,235,0.15)', handleStyle: { color: '#2563eb' } }] : undefined,
-      xAxis: { type: 'category', data: competitors.map((p) => p.brand), axisLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11, interval: isMobile ? 0 : 0, rotate: isMobile ? 45 : 0, formatter: (value: string) => isMobile && value.length > 8 ? value.slice(0, 6) + '…' : value } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(30, 41, 59, 0.92)',
+        borderWidth: 0,
+        padding: [5, 8],
+        confine: true,
+        textStyle: { color: '#ffffff', fontFamily: 'var(--font-sans)', fontSize: 11 },
+        extraCssText: 'max-width:240px !important;width:auto !important;min-width:0 !important;word-wrap:break-word !important;white-space:normal !important;border-radius:4px !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;backdrop-filter:blur(4px) !important;',
+        formatter: (params: any) => {
+          const lines = params.map((p: any) => {
+            const val = Math.round(p.data?.value ?? p.data);
+            const prefix = p.seriesName === '售价' ? symbol : '';
+            const suffix = p.seriesName === '月销量' ? ' 件' : '';
+            return `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${p.color};margin-right:5px;vertical-align:middle"></span><span style="font-size:10px;color:rgba(255,255,255,0.8)">${p.seriesName}: ${prefix}${val.toLocaleString()}${suffix}</span>`;
+          });
+          return `<div style="font-weight:800;font-size:12px;color:#fff;margin-bottom:3px">${params[0].axisValue}</div><div style="line-height:1.45">${lines.join('<br/>')}</div>`;
+        },
+      },
+      legend: {
+        orient: 'horizontal',
+        top: isMobile ? undefined : 0,
+        bottom: isMobile ? 0 : undefined,
+        left: isMobile ? 'center' : undefined,
+        right: isMobile ? undefined : 0,
+        itemGap: isMobile ? 12 : 20,
+        itemWidth: isMobile ? 12 : 14,
+        itemHeight: isMobile ? 12 : 14,
+        textStyle: { color: 'var(--saas-text-secondary)', fontWeight: 700, fontSize: isMobile ? 11 : 12 },
+      },
+      grid: { left: isMobile ? 8 : 14, right: isMobile ? 8 : 60, top: isMobile ? 28 : 46, bottom: isMobile ? 76 : 30, containLabel: true },
+      dataZoom: isMobile ? [{ type: 'inside', start: 0, end: 70 }, { type: 'slider', start: 0, end: 70, height: 14, bottom: 28, showDetail: false, borderColor: 'transparent', fillerColor: 'rgba(37,99,235,0.15)', handleStyle: { color: '#2563eb' } }] : undefined,
+      xAxis: {
+        type: 'category',
+        data: competitors.map((p) => p.brand),
+        axisLine: { lineStyle: { color: 'var(--saas-border)' } },
+        axisLabel: {
+          color: 'var(--saas-text-muted)',
+          fontWeight: 600,
+          fontSize: isMobile ? 10 : 11,
+          interval: 0,
+          rotate: isMobile ? 45 : 0,
+          formatter: (value: string) => (isMobile && value.length > 6 ? value.slice(0, 5) + '…' : value),
+        },
+      },
       yAxis: [
-        { type: 'value', name: isMobile ? '' : `售价 (${symbol})`, nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 }, max: maxPrice * 1.28, axisLine: { show: false }, splitLine: { lineStyle: { color: 'var(--saas-border)' } }, axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11, formatter: (value: number) => isMobile ? `${symbol}${Math.round(value)}` : `${symbol}${value}` } },
-        { type: 'value', name: isMobile ? '' : '月销量', nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 }, max: maxSales * 1.28, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { show: !isMobile, color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11 } },
+        {
+          type: 'value',
+          name: isMobile ? '' : `售价 (${symbol})`,
+          nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 },
+          max: maxPrice,
+          min: 0,
+          axisLine: { show: false },
+          splitLine: { lineStyle: { color: 'var(--saas-border)' } },
+          axisLabel: { color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11, formatter: (value: number) => `${symbol}${Math.round(value)}` },
+        },
+        {
+          type: 'value',
+          name: isMobile ? '' : '月销量',
+          nameTextStyle: { color: 'var(--saas-text-muted)', fontSize: isMobile ? 10 : 11 },
+          max: maxSales,
+          min: 0,
+          axisLine: { show: false },
+          splitLine: { show: false },
+          axisLabel: { show: !isMobile, color: 'var(--saas-text-muted)', fontWeight: 600, fontSize: isMobile ? 10 : 11, formatter: (value: number) => `${Math.round(value).toLocaleString()}` },
+        },
       ],
       series: [
         {
           type: 'bar',
           name: '售价',
-          data: competitors.map((p, i) => ({ value: p.price, itemStyle: { color: softPalette[i % softPalette.length], borderRadius: [6, 6, 0, 0] } })),
-          barWidth: isMobile ? '35%' : '45%',
-          label: { show: false, position: 'top', formatter: `${symbol}{c}`, color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
+          data: competitors.map((p, i) => ({ value: Math.round(p.price), itemStyle: { color: softPalette[i % softPalette.length], borderRadius: [6, 6, 0, 0] } })),
+          barWidth: isMobile ? '32%' : '45%',
+          label: { show: !isMobile, position: 'top', formatter: `${symbol}{c}`, color: 'var(--saas-text)', fontSize: 10, fontWeight: 700 },
         },
         {
           type: 'line',
           name: '月销量',
           yAxisIndex: 1,
-          data: competitors.map((p) => p.estimated_monthly_sales),
+          data: competitors.map((p) => Math.round(p.estimated_monthly_sales)),
           smooth: true,
           lineStyle: { color: '#f59e0b', width: 3 },
           itemStyle: { color: '#f59e0b', borderColor: '#fff', borderWidth: 2 },
-          label: { show: false, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
+          symbol: 'circle',
+          symbolSize: isMobile ? 5 : 7,
+          label: { show: !isMobile, position: 'top', formatter: '{c}', color: '#b45309', fontSize: 10, fontWeight: 700 },
         },
       ],
     };
   }, [competitors, isMobile, symbol]);
 
-  return <ReactECharts option={option} style={{ height: isMobile ? 380 : 360, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height: isMobile ? 420 : 360, width: '100%' }} />;
 }
 
 function CompetitorCard({ product, index, market }: { product: any; index: number; market: string }) {
