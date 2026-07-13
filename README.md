@@ -21,7 +21,18 @@
 
 ## 快速开始
 
-### 本地最小运行
+### 在线体验
+
+无需安装、无需 GPU，直接通过浏览器访问：
+
+- **Cloudflare Pages**: [https://b2c-selection-agent.pages.dev](https://b2c-selection-agent.pages.dev)
+- **GitHub Pages**: [https://keepmoving888.github.io/B2C_Selection_Agent](https://keepmoving888.github.io/B2C_Selection_Agent)
+
+> 说明：在线版本使用预置数据运行，用于产品功能展示与交互体验。生产部署（含 vLLM / Prometheus / Grafana）请使用 `docker-compose.prod.yml`。
+
+### 本地 CLI 运行（可选）
+
+如需在本地调用真实数据源生成选品报告：
 
 ```bash
 # 1. 安装依赖
@@ -38,20 +49,9 @@ python scripts/product_selection_report.py "yoga mat" --limit 5
 python scripts/product_selection_report.py "yoga mat" --selling-price 35 --unit-cost 8
 ```
 
-输出示例：`output/selection_report_*.json`
+输出：`output/selection_report_*.json`
 
-### 在线体验
-
-无需安装、无需 GPU，直接通过以下链接体验新版 React 前端：
-
-- **Cloudflare Pages**: [https://b2c-selection-agent.pages.dev](https://b2c-selection-agent.pages.dev)
-- **GitHub Pages**: [https://keepmoving888.github.io/B2C_Selection_Agent](https://keepmoving888.github.io/B2C_Selection_Agent)
-
-> 说明：在线版本使用示例数据运行，用于产品功能演示与交互体验。生产部署（含 vLLM / Prometheus / Grafana）请使用 `docker-compose.prod.yml`。
-
-### 启动新版前端（可选）
-
-项目同时维护一套基于 React + Vite 的新版前端（目录 `web/`），用于更完整的分析页面交互：
+### 本地启动前端（可选）
 
 ```bash
 cd web
@@ -59,7 +59,7 @@ npm install
 npm run dev
 ```
 
-访问 `http://localhost:5173` 即可进入新版选品分析驾驶舱。
+访问 `http://localhost:5173` 进入新版选品分析驾驶舱。
 
 ## 系统架构
 
@@ -126,12 +126,12 @@ cross-border-agent/
 ├── monitoring/       # Prometheus / Grafana / Alerts 业务指标
 ├── scripts/          # 选品报告 / 数据采集 / 索引构建 / 模型校验
 ├── web/              # React + Vite 新版前端
-├── frontend/         # Streamlit 示例数据前端（旧版，保留作为本地 fallback）
+├── frontend/         # Streamlit 前端（旧版，保留作为本地 fallback）
 ├── tests/            # 单元测试
 └── config/           # 配置中心
 ```
 
-### 前端分析页面示例
+### 前端分析页面截图
 
 | 决策看板 | 市场分析 | 趋势季节 |
 |---|---|---|
@@ -296,7 +296,7 @@ sudo systemctl start api-gateway.service
 | 推理 | `vllm:gpu_cache_usage_perc` | KV Cache GPU 占用率 | < 90% | 接近 100% 时增大 `--gpu-memory-utilization` 或减少并发 |
 | 推理 | `vllm:num_requests_waiting` | 排队请求数 | 不持续增长 | 持续增长时扩容或限流 |
 
-### 告警规则示例
+### 告警规则配置
 
 ```yaml
 # deploy/alerts.yml
