@@ -24,6 +24,13 @@ export default function AppHeader() {
 
   const isDark = false;
 
+  const handleLogoClick = () => {
+    // 重置搜索与报告状态，回到带向导的初始首页
+    localStorage.removeItem('current_report');
+    localStorage.setItem('last_search', JSON.stringify({ keyword: '', market: 'US', budget: '5000-10000' }));
+    window.location.href = `${window.location.origin}${window.location.pathname}#/dashboard`;
+  };
+
   const userMenuItems = [
     { key: 'profile', label: <Link to="/settings">个人设置</Link> },
     { key: 'help', label: '帮助中心' },
@@ -72,7 +79,7 @@ export default function AppHeader() {
         >
           {isMobile ? <MenuOutlined /> : sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         </span>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+        <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
           <div
             style={{
               width: 36,
@@ -98,7 +105,7 @@ export default function AppHeader() {
               Product Selection
             </span>
           </div>
-        </Link>
+        </div>
       </Space>
 
       <Space size={isMobile ? 12 : 20}>
