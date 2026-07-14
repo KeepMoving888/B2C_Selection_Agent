@@ -28,7 +28,13 @@ export default function AppHeader() {
     // 重置搜索与报告状态，回到带向导的初始首页
     localStorage.removeItem('current_report');
     localStorage.setItem('last_search', JSON.stringify({ keyword: '', market: 'US', budget: '5000-10000' }));
-    window.location.href = `${window.location.origin}${window.location.pathname}#/dashboard`;
+    const targetUrl = `${window.location.origin}${window.location.pathname}#/dashboard`;
+    if (window.location.href.split('#')[0] === targetUrl.split('#')[0]) {
+      // 已在首页时直接刷新，确保 Redux 重新从 localStorage 初始化
+      window.location.reload();
+    } else {
+      window.location.href = targetUrl;
+    }
   };
 
   const userMenuItems = [
